@@ -1,0 +1,77 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Django
+*.log
+/local_settings.py
+/db.sqlite3
+/db.sqlite3-journal
+/media
+/staticfiles
+/static_root
+
+# Environment files
+.env
+.env.*.local
+# Keep templates committed
+!.env.*
+# But keep production/test/dev env templates
+.env.production
+.env.test
+.env.development
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+/logs/
+*.log
+
+# PyCharm
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ruff
+.ruff_cache/
+
+# uv
+uv.lock
+
+# SQL migrations (schema managed in separate repo)
+# But keep our SQL scripts
+!sql/migrations/*.sql
+!sql/data/*.sql
+
+# Django admin (not used in this microservice)
+!*/admin.py

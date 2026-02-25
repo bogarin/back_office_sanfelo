@@ -1,0 +1,162 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  :root {
+    /* DAU Brand Colors */
+    --primary: #9d2638;
+    --secondary: #1a1a1a;
+    --accent: #f59e0b;
+    --primary-fg: #ffffff;
+
+    /* Body Colors (Light Theme) */
+    --body-fg: #1a1a1a;
+    --body-bg: #ffffff;
+    --body-quiet-color: #6b7280;
+    --body-medium-color: #4b5563;
+    --body-loud-color: #111827;
+
+    /* Link Colors */
+    --link-fg: #417893;
+    --link-hover-color: #0b599b;
+    --link-selected-fg: #1a1a1a;
+
+    /* Message Colors */
+    --message-success-bg: #d1fae5;
+    --message-success-icon: url(../img/icon-yes.svg);
+    --message-warning-bg: #fef3c7;
+    --message-warning-icon: url(../img/icon-alert.svg);
+    --message-error-bg: #fee2e2;
+    --message-error-icon: url(../img/icon-no.svg);
+    --message-info-bg: #d1ecf1;
+    --message-info-icon: url(../img/icon-info.svg);
+
+    /* Button Colors */
+    --button-bg: #1e3a8a;
+    --button-hover-bg: #1e40af;
+    --delete-button-bg: #ef4444;
+    --delete-button-hover-bg: #dc2626;
+
+    /* Header Colors */
+    --header-bg: var(--primary);
+    --header-link-color: #ffffff;
+
+    /* Breadcrumbs */
+    --breadcrumbs-bg: var(--primary);
+    --breadcrumbs-link-fg: #ffffff;
+    --breadcrumbs-fg: #e0e7ff;
+
+    /* Object Tools */
+    --object-tools-bg: #6b7280;
+    --object-tools-hover-bg: #4b5563;
+
+    /* Selected Row */
+    --selected-row: #fef3c7;
+
+    /* Borders */
+    --hairline-color: #d5dbdb;
+    --border-color: #d5dbdb;
+
+    /* Error FG */
+    --error-fg: #991b1b;
+  }
+
+  /* Badge Styles */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .badge-success {
+    background-color: #10b981;
+    color: white;
+  }
+
+  .badge-danger {
+    background-color: #ef4444;
+    color: white;
+  }
+
+  .badge-warning {
+    background-color: #f59e0b;
+    color: white;
+  }
+
+  .badge-info {
+    background-color: #3b82f6;
+    color: white;
+  }
+
+  .badge-secondary {
+    background-color: #6b7280;
+    color: white;
+  }
+
+  .badge-activo {
+    background-color: #10b981;
+    color: white;
+  }
+
+  .badge-inactivo {
+    background-color: #ef4444;
+    color: white;
+  }
+
+  .badge-inicio {
+    background-color: #6b7280;
+    color: white;
+  }
+
+  .badge-proceso {
+    background-color: #3b82f6;
+    color: white;
+  }
+
+  .badge-finalizado {
+    background-color: #10b981;
+    color: white;
+  }
+
+  .badge-otro {
+    background-color: #ef4444;
+    color: white;
+  }
+
+  /* UMA Value Display */
+  .uma-valor {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #10b981;
+  }
+
+  /* Importe Calculado Display */
+  .importe-calculado {
+    font-weight: bold;
+  }
+
+  /* Bitacora Movement Badges */
+  .badge-insert {
+    background-color: #10b981;
+    color: white;
+  }
+
+  .badge-update {
+    background-color: #3b82f6;
+    color: white;
+  }
+
+  .badge-delete {
+    background-color: #ef4444;
+    color: white;
+  }
+
+  .badge-otro {
+    background-color: #6b7280;
+    color: white;
+  }
+</style>
+{% endblock %}
