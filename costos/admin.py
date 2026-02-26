@@ -23,6 +23,7 @@ class CostoAdmin(AuditTrailMixin, BaseModelAdmin):
         "id_tramite",
         "axo",
         "importe_calculado",
+        "activo",
         "activo_badge",
         "fomento",
         "fecha_actualiza",

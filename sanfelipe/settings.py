@@ -2,8 +2,8 @@
 Django settings for sanfelipe project.
 
 Microservice for San Felipe Government Backoffice.
-Uses Keycloak for authentication via django-allauth (OpenID Connect).
-Database schema is managed externally (no Django migrations).
+Uses Django's built-in auth system with SQLite.
+Business data (tramites, catalogos, costos, bitacora) uses PostgreSQL.
 """
 
 from pathlib import Path
@@ -14,15 +14,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Environment configuration
 env = environ.Env()
-ENVIRONMENT = env("ENVIRONMENT", default="development")
-env_file = BASE_DIR / f".env.{ENVIRONMENT}"
+
+# Read environment variables from .env file
+# Copy .env.example to .env and customize with your actual values
+env_file = BASE_DIR / ".env"
 
 try:
     environ.Env.read_env(env_file)
 except FileNotFoundError:
     raise FileNotFoundError(
         f"Environment file not found: {env_file}. "
-        f"Please create .env.{ENVIRONMENT} or check ENVIRONMENT variable."
+        f"Please copy .env.example to .env and customize it with your actual values."
     )
 
 # =============================================================================
@@ -51,46 +53,12 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = env.bool("DJANGO_CSRF_COOKIE_SECURE", default=False)
 
 # =============================================================================
-# DJANGO-ALLAUTH + KEYCLOAK (OpenID Connect) SETTINGS
-# =============================================================================
-
-# Keycloak OpenID Connect provider configuration
-# Using OIDC provider with Keycloak as per django-allauth 65.x docs
-SOCIALACCOUNT_PROVIDERS = {
-    "openid_connect": {
-        "APPS": [
-            {
-                "provider_id": "keycloak",
-                "name": "Keycloak",
-                "client_id": env("KEYCLOAK_CLIENT_ID"),
-                "secret": env("KEYCLOAK_CLIENT_SECRET"),
-                "settings": {
-                    "server_url": env("KEYCLOAK_SERVER_URL", default=""),
-                },
-            }
-        ]
-    }
-}
-
-# django-allauth settings
-AUTHENTICATION_BACKENDS = (
-    # django-allauth backends
-    "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
-    "allauth.socialaccount.auth_backends.OpenIDConnectBackend",
-)
-
-# IMPORTANT: We're NOT managing users locally in Django
-# All user data comes from Keycloak via OIDC
-SOCIALACCOUNT_AUTO_SIGNUP = False  # Disable auto sign-up
-ACCOUNT_ADAPTER = "core.account_adapter.CustomAccountAdapter"
-
-# =============================================================================
 # APPLICATION DEFINITION
 # =============================================================================
 
 INSTALLED_APPS = [
     # Django core apps
+    "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
     "django.contrib.staticfiles",
@@ -98,14 +66,7 @@ INSTALLED_APPS = [
     "django.contrib.admin",
     # Third-party apps
     "debug_toolbar" if DEBUG else None,
-    # django-allauth - core apps
-    "django.contrib.sites",
-    "django.contrib.auth",
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.openid_connect",
-    # Local apps
+    # Local apps (business data in PostgreSQL, managed externally)
     "tramites",
     "catalogos",
     "bitacora",
@@ -124,7 +85,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "allauth.account.middleware.AccountMiddleware",  # django-allauth middleware
 ]
 
 if DEBUG:
@@ -141,8 +101,8 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "allauth.socialaccount.context_processors.socialaccount",  # Keycloak user info
             ],
         },
     },
@@ -155,9 +115,25 @@ ASGI_APPLICATION = "sanfelipe.asgi.application"
 # DATABASE
 # =============================================================================
 
+# Multi-database configuration:
+# - default (SQLite): Django auth, admin, sessions
+# - business (PostgreSQL): tramites, catalogos, costos, bitacora (legacy tables)
+#
+# Business tables are managed externally (managed=False), so Django won't
+# create or modify them - it only reads/writes to existing PostgreSQL tables.
+
 DATABASES = {
-    "default": env.db(default="sqlite:///db.sqlite3"),
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    },
+    "business": env.db(
+        default="postgres://postgres:postgres@localhost:5432/backoffice"
+    ),
 }
+
+# Route business apps to PostgreSQL
+DATABASE_ROUTERS = ["sanfelipe.routers.BusinessDatabaseRouter"]
 
 # =============================================================================
 # CACHE
@@ -264,6 +240,11 @@ LOGGING = {
             "level": LOG_LEVEL,
             "propagate": False,
         },
+        "django.utils.autoreload": {
+            "handlers": ["console"],
+            "level": "WARNING",  # Reduce autoreload noise in development
+            "propagate": False,
+        },
         "sanfelipe": {
             "handlers": ["console", "file"] if not DEBUG else ["console"],
             "level": LOG_LEVEL,
@@ -278,18 +259,13 @@ LOGGING = {
 }
 
 # =============================================================================
-# AUTHENTICATION (Keycloak via django-allauth OIDC)
+# AUTHENTICATION (Django built-in)
 # =============================================================================
 
-# django-allauth settings
-ACCOUNT_EMAIL_REQUIRED = False  # Email not required, comes from Keycloak
-ACCOUNT_USERNAME_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = "username_email"
-ACCOUNT_UNIQUE_EMAIL = False  # Allow duplicate emails (Keycloak uniqueness)
-
-# Custom adapter to save Keycloak user info to our models
-ACCOUNT_ADAPTER = "core.account_adapter.CustomAccountAdapter"
-SOCIALACCOUNT_ADAPTER = "core.account_adapter.CustomSocialAccountAdapter"
+# Use Django's default auth backend
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+]
 
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = env.list(
@@ -343,25 +319,6 @@ TRAMITE_PRIORIDADES = (
 
 # Pagination
 DEFAULT_PAGE_SIZE = env.int("DJANGO_DEFAULT_PAGE_SIZE", default=25)
-
-# =============================================================================
-# MIGRATIONS DISABLED
-# =============================================================================
-
-# Migrations are handled externally via SQL scripts from another repository
-# This setting prevents Django from trying to run migrations
-MIGRATION_MODULES = {
-    "contenttypes": None,
-    "allauth": None,
-    "allauth.account": None,
-    "allauth.socialaccount": None,
-    "allauth.socialaccount.providers.openid_connect": None,
-    "tramites": None,
-    "catalogos": None,
-    "bitacora": None,
-    "costos": None,
-    "core": None,
-}
 
 # =============================================================================
 # SANITY CHECK

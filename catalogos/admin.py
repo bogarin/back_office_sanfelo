@@ -48,6 +48,7 @@ class CatTramiteAdmin(AuditTrailMixin, CatalogBaseAdmin):
         "id",
         "nombre",
         "area",
+        "activo",
         "activo_badge",
         "respuesta_dias",
         "pago_inicial",
@@ -126,6 +127,7 @@ class CatUsuarioAdmin(AuditTrailMixin, BaseModelAdmin):
         "usuario",
         "nivel",
         "correo",
+        "activo",
         "activo_badge",
         "fecha_alta",
     )
@@ -165,7 +167,14 @@ class CatUsuarioAdmin(AuditTrailMixin, BaseModelAdmin):
 class CatPeritoAdmin(AuditTrailMixin, BaseModelAdmin):
     """Admin interface for CatPerito model."""
 
-    list_display = ("nombre_completo", "telefono", "correo", "estatus_badge", "cedula")
+    list_display = (
+        "nombre_completo",
+        "telefono",
+        "correo",
+        "estatus",
+        "estatus_badge",
+        "cedula",
+    )
     list_filter = ("estatus",)
     search_fields = ("nombre", "paterno", "materno", "correo", "cedula", "rfc")
     list_editable = ("estatus",)

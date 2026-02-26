@@ -15,6 +15,7 @@ class Bitacora(models.Model):
     """
 
     class Meta:
+        managed = False
         db_table = "bitacora"
         verbose_name = "Bitácora"
         verbose_name_plural = "Bitácoras"

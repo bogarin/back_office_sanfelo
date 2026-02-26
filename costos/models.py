@@ -17,6 +17,7 @@ class Costo(models.Model):
     """
 
     class Meta:
+        managed = False
         db_table = "costo"
         verbose_name = "Costo"
         verbose_name_plural = "Costos"
@@ -78,6 +79,7 @@ class Uma(models.Model):
     """
 
     class Meta:
+        managed = False
         db_table = "uma"
         verbose_name = "UMA"
         verbose_name_plural = "UMAs"

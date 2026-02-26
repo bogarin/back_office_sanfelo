@@ -16,6 +16,7 @@ class Tramite(models.Model):
     """
 
     class Meta:
+        managed = False
         db_table = "tramite"
         verbose_name = "Trámite"
         verbose_name_plural = "Trámites"

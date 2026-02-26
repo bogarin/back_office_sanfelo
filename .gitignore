@@ -24,12 +24,10 @@ env/
 # Environment files
 .env
 .env.*.local
-# Keep templates committed
-!.env.*
-# But keep production/test/dev env templates
-.env.production
-.env.test
-.env.development
+# Keep example in git
+!.env.example
+# Keep docker example in git
+!.env.docker.example
 
 # IDEs
 .vscode/

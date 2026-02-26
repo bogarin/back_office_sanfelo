@@ -28,9 +28,10 @@ class TramiteAdmin(AuditTrailMixin, BaseModelAdmin):
         "folio",
         "tramite_nombre",
         "estatus_display",
-        "solicitante_nombre",
         "importe_total",
+        "pagado",
         "pagado_badge",
+        "urgente",
         "urgente_badge",
         "creado",
     )
