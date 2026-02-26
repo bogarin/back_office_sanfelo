@@ -5,7 +5,7 @@ Routes business apps (tramites, catalogos, costos, bitacora) to PostgreSQL
 while keeping Django's auth, admin, sessions on SQLite.
 """
 
-from typing import Optional
+from typing import Any, Optional
 
 
 class BusinessDatabaseRouter:
@@ -14,13 +14,13 @@ class BusinessDatabaseRouter:
     # Apps that store business data in PostgreSQL
     BUSINESS_APPS = {"tramites", "catalogos", "costos", "bitacora"}
 
-    def db_for_read(self, model: type) -> Optional[str]:
+    def db_for_read(self, model: type, **hints: Any) -> Optional[str]:
         """Route read queries to business DB for business apps."""
         if model._meta.app_label in self.BUSINESS_APPS:
             return "business"
         return "default"
 
-    def db_for_write(self, model: type) -> Optional[str]:
+    def db_for_write(self, model: type, **hints: Any) -> Optional[str]:
         """Route write queries to business DB for business apps."""
         if model._meta.app_label in self.BUSINESS_APPS:
             return "business"

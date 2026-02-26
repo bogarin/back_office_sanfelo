@@ -141,17 +141,23 @@ DATABASE_ROUTERS = ["sanfelipe.routers.BusinessDatabaseRouter"]
 
 TESTING = env.bool("TESTING", default=False)
 
-if TESTING:
+# Cache only in production for performance
+# Development: No cache (simple, fast development)
+# Testing: Dummy cache (no side effects in tests)
+# Production: LocMemCache (fast, simple, no external dependencies)
+if DEBUG or TESTING:
+    # Development and testing - no cache
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         }
     }
 else:
+    # Production - use built-in local memory cache
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": env("REDIS_URL", default="redis://127.0.0.1:6379/1"),
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-sanfelipe-cache",
         }
     }
 
@@ -203,6 +209,7 @@ if DEBUG:
 # =============================================================================
 
 LOG_LEVEL = env("DJANGO_LOG_LEVEL", default="INFO" if not DEBUG else "DEBUG")
+DEBUG_SQL = env.bool("DJANGO_DEBUG_SQL", default=False)
 
 LOGGING = {
     "version": 1,
@@ -238,6 +245,11 @@ LOGGING = {
         "django": {
             "handlers": ["console", "file"] if not DEBUG else ["console"],
             "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "DEBUG" if DEBUG_SQL else "WARNING",
             "propagate": False,
         },
         "django.utils.autoreload": {
@@ -276,7 +288,9 @@ CSRF_TRUSTED_ORIGINS = env.list(
 # SESSION SETTINGS
 # =============================================================================
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# Use signed cookies - perfect for minimal session data (auth, CSRF, messages)
+# No server-side storage needed, fast and simple
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_AGE = env.int("DJANGO_SESSION_COOKIE_AGE", default=3600)  # 1 hour
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"

@@ -1,0 +1,132 @@
+@media (prefers-color-scheme: dark) {
+    :root {
+      --primary: #9d2638;
+      --primary-fg: #ffffff;
+
+      --body-fg: #eeeeee;
+      --body-bg: #121212; /* Neutral dark */
+      --body-quiet-color: #9ca3af;
+      --body-medium-color: #d0d0d0;
+      --body-loud-color: #ffffff;
+
+      --breadcrumbs-link-fg: #ffffff;
+      --breadcrumbs-bg: #420b12; /* Deep Garnet */
+
+      --link-fg: #f59e0b; /* Orange for high contrast on black */
+      --link-hover-color: #fbbf24;
+      --link-selected-fg: var(--primary);
+
+      --hairline-color: #262626;
+      --border-color: #333333;
+
+      --error-fg: #f87171;
+
+      --message-debug-bg: #333333;
+      --message-info-bg: #1e3a8a;
+      --message-success-bg: #064e3b;
+      --message-warning-bg: #451a03;
+      --message-error-bg: #450a0a;
+
+      --darkened-bg: #1a1a1a;
+      --selected-bg: #262626;
+      --selected-row: #3b070c;
+
+      --close-button-bg: #333333;
+      --close-button-hover-bg: #4b5563;
+
+      color-scheme: dark;
+    }
+}
+
+html[data-theme="dark"] {
+    --primary: #9d2638;
+    --primary-fg: #ffffff;
+
+    --body-fg: #eeeeee;
+    --body-bg: #121212;
+    --body-quiet-color: #9ca3af;
+    --body-medium-color: #d0d0d0;
+    --body-loud-color: #ffffff;
+
+    --breadcrumbs-link-fg: #ffffff;
+    --breadcrumbs-bg: #420b12;
+
+    --link-fg: #f59e0b;
+    --link-hover-color: #fbbf24;
+    --link-selected-fg: var(--primary);
+
+    --hairline-color: #262626;
+    --border-color: #333333;
+
+    --error-fg: #f87171;
+
+    --message-success-bg: #064e3b;
+    --message-warning-bg: #451a03;
+    --message-error-bg: #450a0a;
+
+    --darkened-bg: #1a1a1a;
+    --selected-bg: #262626;
+
+    --close-button-bg: #333333;
+    --close-button-hover-bg: #4b5563;
+
+    color-scheme: dark;
+}
+
+/* THEME SWITCH */
+.theme-toggle {
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    background: transparent;
+    vertical-align: middle;
+    margin-inline-start: 5px;
+    margin-top: -1px;
+}
+
+.theme-toggle svg {
+    vertical-align: middle;
+    height: 1.5rem;
+    width: 1.5rem;
+    display: none;
+}
+
+/*
+Fully hide screen reader text so we only show the one matching the current
+theme.
+*/
+.theme-toggle .visually-hidden {
+    display: none;
+}
+
+html[data-theme="auto"] .theme-toggle .theme-label-when-auto {
+    display: block;
+}
+
+html[data-theme="dark"] .theme-toggle .theme-label-when-dark {
+    display: block;
+}
+
+html[data-theme="light"] .theme-toggle .theme-label-when-light {
+    display: block;
+}
+
+/* ICONS */
+.theme-toggle svg.theme-icon-when-auto,
+.theme-toggle svg.theme-icon-when-dark,
+.theme-toggle svg.theme-icon-when-light {
+    fill: var(--header-link-color);
+    color: var(--header-bg);
+}
+
+html[data-theme="auto"] .theme-toggle svg.theme-icon-when-auto {
+    display: block;
+}
+
+html[data-theme="dark"] .theme-toggle svg.theme-icon-when-dark {
+    display: block;
+}
+
+html[data-theme="light"] .theme-toggle svg.theme-icon-when-light {
+    display: block;
+}

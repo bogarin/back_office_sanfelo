@@ -1,0 +1,48 @@
+html[data-theme="light"],
+:root {
+    /* Brand - Using a much darker red to stabilize the UI */
+    --primary: #5a1019;
+    --secondary: #4b5563;
+    --accent: #f59e0b;
+    --primary-fg: #ffffff;
+
+    /* Header & Dashboard Bars */
+    --header-bg: var(--primary);
+    --header-color: #ffffff; /* Critical fix: White text on dark red */
+    --header-link-color: #ffffff;
+    --header-branding-color: var(--accent); /* Sun icon stays orange */
+
+    /* Sidebar & Breadcrumbs */
+    --breadcrumbs-bg: #420b12; /* Darker than primary for depth */
+    --breadcrumbs-fg: #ffffff;
+
+    /* Body */
+    --body-bg: #ffffff;
+    --body-fg: #1a1a1a;
+
+    /* Module Headers (The bars in the dashboard) */
+    --link-fg: #5a1019;
+    --link-hover-color: #9d2638;
+
+    /* Buttons */
+    --default-button-bg: #4b5563;
+    --default-button-hover-bg: #374151;
+
+    color-scheme: light;
+}
+
+/* Hard override for the branding text to ensure white contrast */
+html[data-theme="light"] #branding #site-name a {
+    color: #ffffff !important;
+    text-shadow: none; /* Removes any fuzzy orange shadows */
+}
+
+/* Keeps the orange as a decorative accent on the icon only */
+.theme-toggle {
+    color: var(--accent);
+}
+
+#content-related .module h2 {
+    background: var(--header-bg);
+    color: var(--header-link-color);
+}
