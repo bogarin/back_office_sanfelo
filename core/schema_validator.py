@@ -17,32 +17,32 @@ class SchemaValidator:
 
     # Mapping of Django field types to PostgreSQL types
     TYPE_MAPPING = {
-        "AutoField": "integer",
-        "BigIntegerField": "bigint",
-        "BinaryField": "bytea",
-        "BooleanField": "boolean",
-        "CharField": "character varying",
-        "DateField": "date",
-        "DateTimeField": "timestamp without time zone",
-        "DecimalField": "numeric",
-        "DurationField": "interval",
-        "FileField": "character varying",
-        "FilePathField": "character varying",
-        "FloatField": "double precision",
-        "IntegerField": "integer",
-        "GenericIPAddressField": "character varying",
-        "NullBooleanField": "boolean",
-        "PositiveIntegerField": "integer",
-        "PositiveSmallIntegerField": "smallint",
-        "SlugField": "character varying",
-        "SmallIntegerField": "smallint",
-        "TextField": "text",
-        "TimeField": "time without time zone",
-        "URLField": "character varying",
-        "UUIDField": "uuid",
-        "ForeignKey": "integer",
-        "OneToOneField": "integer",
-        "ManyToManyField": "integer",  # junction table
+        'AutoField': 'integer',
+        'BigIntegerField': 'bigint',
+        'BinaryField': 'bytea',
+        'BooleanField': 'boolean',
+        'CharField': 'character varying',
+        'DateField': 'date',
+        'DateTimeField': 'timestamp without time zone',
+        'DecimalField': 'numeric',
+        'DurationField': 'interval',
+        'FileField': 'character varying',
+        'FilePathField': 'character varying',
+        'FloatField': 'double precision',
+        'IntegerField': 'integer',
+        'GenericIPAddressField': 'character varying',
+        'NullBooleanField': 'boolean',
+        'PositiveIntegerField': 'integer',
+        'PositiveSmallIntegerField': 'smallint',
+        'SlugField': 'character varying',
+        'SmallIntegerField': 'smallint',
+        'TextField': 'text',
+        'TimeField': 'time without time zone',
+        'URLField': 'character varying',
+        'UUIDField': 'uuid',
+        'ForeignKey': 'integer',
+        'OneToOneField': 'integer',
+        'ManyToManyField': 'integer',  # junction table
     }
 
     def __init__(self):
@@ -78,11 +78,11 @@ class SchemaValidator:
 
             return [
                 {
-                    "name": col[0],
-                    "data_type": col[1],
-                    "max_length": col[2],
-                    "nullable": col[3] == "YES",
-                    "default": col[4],
+                    'name': col[0],
+                    'data_type': col[1],
+                    'max_length': col[2],
+                    'nullable': col[3] == 'YES',
+                    'default': col[4],
                 }
                 for col in columns
             ]
@@ -103,21 +103,21 @@ class SchemaValidator:
                 continue
 
             field_info = {
-                "name": field.name,
-                "type": field.__class__.__name__,
-                "nullable": field.null,
-                "blank": field.blank,
-                "default": field.default if field.default != "NOT PROVIDED" else None,
+                'name': field.name,
+                'type': field.__class__.__name__,
+                'nullable': field.null,
+                'blank': field.blank,
+                'default': field.default if field.default != 'NOT PROVIDED' else None,
             }
 
             # Get max_length for CharField
-            if hasattr(field, "max_length") and field.max_length is not None:
-                field_info["max_length"] = field.max_length
+            if hasattr(field, 'max_length') and field.max_length is not None:
+                field_info['max_length'] = field.max_length
 
             # Get max_digits and decimal_places for DecimalField
-            if field.__class__.__name__ == "DecimalField":
-                field_info["max_digits"] = field.max_digits
-                field_info["decimal_places"] = field.decimal_places
+            if field.__class__.__name__ == 'DecimalField':
+                field_info['max_digits'] = field.max_digits
+                field_info['decimal_places'] = field.decimal_places
 
             fields.append(field_info)
 
@@ -141,13 +141,11 @@ class SchemaValidator:
             return True
 
         # Character varying can match any length
-        if mapped_type == "character varying" and sql_type.startswith(
-            "character varying"
-        ):
+        if mapped_type == 'character varying' and sql_type.startswith('character varying'):
             return True
 
         # Integer can match serial
-        if mapped_type == "integer" and sql_type == "integer":
+        if mapped_type == 'integer' and sql_type == 'integer':
             return True
 
         return False
@@ -159,7 +157,7 @@ class SchemaValidator:
             model_class: Django model class to validate
             table_name: Name of the SQL table to compare against
         """
-        print(f"\nValidating: {model_class.__name__} → {table_name}")
+        print(f'\nValidating: {model_class.__name__} → {table_name}')
 
         # Get SQL columns
         sql_columns = self.get_sql_columns(table_name)
@@ -171,14 +169,14 @@ class SchemaValidator:
         django_fields = self.get_django_fields(model_class)
 
         # Create maps for comparison
-        sql_map = {col["name"]: col for col in sql_columns}
-        django_map = {field["name"]: field for field in django_fields}
+        sql_map = {col['name']: col for col in sql_columns}
+        django_map = {field['name']: field for field in django_fields}
 
         # Check for fields in Django but not in SQL
         for field_name, field in django_map.items():
             if field_name not in sql_map:
                 # Skip auto fields (id)
-                if field_name == "id":
+                if field_name == 'id':
                     continue
                 self.errors.append(
                     f"Field '{field_name}' exists in {model_class.__name__} "
@@ -190,37 +188,37 @@ class SchemaValidator:
             sql_col = sql_map[field_name]
 
             # Compare types
-            if not self.compare_types(field["type"], sql_col["data_type"]):
+            if not self.compare_types(field['type'], sql_col['data_type']):
                 self.errors.append(
-                    f"Type mismatch for {model_class.__name__}.{field_name}: "
-                    f"Django={field['type']}, SQL={sql_col['data_type']}"
+                    f'Type mismatch for {model_class.__name__}.{field_name}: '
+                    f'Django={field["type"]}, SQL={sql_col["data_type"]}'
                 )
 
             # Compare nullability
             # Note: Django null=False means NOT NULL in SQL
-            if not field["nullable"] and sql_col["nullable"]:
+            if not field['nullable'] and sql_col['nullable']:
                 self.warnings.append(
-                    f"Nullable mismatch for {model_class.__name__}.{field_name}: "
-                    f"Django=NOT NULL, SQL=nullable"
+                    f'Nullable mismatch for {model_class.__name__}.{field_name}: '
+                    f'Django=NOT NULL, SQL=nullable'
                 )
 
             # Compare max_length
-            if "max_length" in field and sql_col["max_length"] is not None:
-                if field["max_length"] != sql_col["max_length"]:
+            if 'max_length' in field and sql_col['max_length'] is not None:
+                if field['max_length'] != sql_col['max_length']:
                     self.errors.append(
-                        f"Max length mismatch for {model_class.__name__}.{field_name}: "
-                        f"Django={field['max_length']}, SQL={sql_col['max_length']}"
+                        f'Max length mismatch for {model_class.__name__}.{field_name}: '
+                        f'Django={field["max_length"]}, SQL={sql_col["max_length"]}'
                     )
 
         # Check for columns in SQL but not in Django
         for col_name, col in sql_map.items():
             if col_name not in django_map:
                 # Skip id (auto field)
-                if col_name == "id":
+                if col_name == 'id':
                     continue
                 self.warnings.append(
                     f"Column '{col_name}' exists in table '{table_name}' "
-                    f"but not in {model_class.__name__}"
+                    f'but not in {model_class.__name__}'
                 )
 
     def validate_all(self) -> bool:
@@ -231,20 +229,19 @@ class SchemaValidator:
         """
         from django.apps import apps
 
-        print("=" * 60)
-        print("SCHEMA VALIDATION REPORT")
-        print("=" * 60)
+        print('=' * 60)
+        print('SCHEMA VALIDATION REPORT')
+        print('=' * 60)
 
         # Get all models
         for model in apps.get_models():
             # Skip models from third-party apps
             if model._meta.app_label in [
-                "admin",
-                "auth",
-                "contenttypes",
-                "sessions",
-                "sites",
-                "allauth",
+                'admin',
+                'auth',
+                'contenttypes',
+                'sessions',
+                'sites',
             ]:
                 continue
 
@@ -255,30 +252,31 @@ class SchemaValidator:
             self.validate_model(model, table_name)
 
         # Print summary
-        print("\n" + "=" * 60)
-        print("SUMMARY")
-        print("=" * 60)
+        print('\n' + '=' * 60)
+        print('SUMMARY')
+        print('=' * 60)
 
         if self.warnings:
-            print(f"\n⚠️  Warnings ({len(self.warnings)}):")
+            print(f'\n⚠️  Warnings ({len(self.warnings)}):')
             for warning in self.warnings:
-                print(f"  - {warning}")
+                print(f'  - {warning}')
 
         if self.errors:
-            print(f"\n❌ Errors ({len(self.errors)}):")
+            print(f'\n❌ Errors ({len(self.errors)}):')
             for error in self.errors:
-                print(f"  - {error}")
+                print(f'  - {error}')
 
         if not self.errors and not self.warnings:
-            print("\n✅ All models are synchronized with the database schema!")
+            print('\n✅ All models are synchronized with the database schema!')
 
         return len(self.errors) == 0
 
 
 def main():
-    """Main entry point for the schema validator."""
-    if not settings.DATABASES["default"]["ENGINE"].startswith("postgresql"):
-        print("❌ Schema validation only works with PostgreSQL")
+    """Main entry point for schema validator."""
+    # Check if business database is PostgreSQL
+    if not settings.DATABASES.get('business', {}).get('ENGINE', '').startswith('postgresql'):
+        print('❌ Schema validation only works with PostgreSQL business database')
         sys.exit(1)
 
     validator = SchemaValidator()
@@ -287,13 +285,13 @@ def main():
     sys.exit(0 if success else 1)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import os
 
     import django
 
     # Configure Django settings
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sanfelipe.settings")
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sanfelipe.settings')
     django.setup()
 
     main()

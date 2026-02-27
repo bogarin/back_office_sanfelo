@@ -24,7 +24,7 @@ FROM ghcr.io/astral-sh/uv:latest
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     # Set default port (can be overridden by HTTP_PORT env var)
-    HTTP_PORT=8090 \
+    HTTP_PORT=8080 \
     # Set default Django settings module
     DJANGO_SETTINGS_MODULE=sanfelipe.settings
 
@@ -49,15 +49,14 @@ EXPOSE ${HTTP_PORT}
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 USER appuser
-
 # Collect static files
 RUN /app/.venv/bin/python manage.py collectstatic --noinput --clear
 
 # Use uv to run gunicorn with the specified HTTP_PORT
-# gunicorn will bind to 0.0.0.0:${HTTP_PORT}
+# gunicorn will bind to 0.0.0.0:8080
 # We use --bind flag to specify the port dynamically
 CMD /app/.venv/bin/gunicorn \
-     --bind 0.0.0.0:${HTTP_PORT} \
+     --bind 0.0.0.0:8080 \
      --workers 4 \
      --threads 2 \
      --timeout 120 \

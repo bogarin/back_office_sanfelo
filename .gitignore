@@ -73,3 +73,6 @@ uv.lock
 
 # Django admin (not used in this microservice)
 !*/admin.py
+
+# Main database should not be tracked
+db/
