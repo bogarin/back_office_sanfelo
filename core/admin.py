@@ -7,8 +7,6 @@ Configures the admin interface for the backoffice with:
 """
 
 from django.contrib import admin
-from django.utils.translation import gettext_lazy as _
-
 
 # Admin Site Configuration
 admin.site.site_header = "Backoffice San Felipe"
@@ -62,8 +60,9 @@ class AuditTrailMixin:
 
     def save_model(self, request, obj, form, change):
         """Save model and log changes to bitacora."""
-        from bitacora.models import Bitacora
         from datetime import date
+
+        from bitacora.models import Bitacora
 
         super().save_model(request, obj, form, change)
 
@@ -82,8 +81,9 @@ class AuditTrailMixin:
 
     def delete_model(self, request, obj):
         """Delete model and log to bitacora."""
-        from bitacora.models import Bitacora
         from datetime import date
+
+        from bitacora.models import Bitacora
 
         # Log the deletion to bitacora
         Bitacora.objects.create(
@@ -104,7 +104,7 @@ def mark_as_active(modeladmin, request, queryset):
     rows_updated = queryset.update(activo=True)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {(rows_updated == 1) and 'registro' or 'registros'} marcados como activos.",
+        f"{rows_updated} {((rows_updated == 1) and 'registro') or 'registros'} marcados como activos.",
     )
 
 
@@ -116,7 +116,7 @@ def mark_as_inactive(modeladmin, request, queryset):
     rows_updated = queryset.update(activo=False)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {(rows_updated == 1) and 'registro' or 'registros'} marcados como inactivos.",
+        f"{rows_updated} {((rows_updated == 1) and 'registro') or 'registros'} marcados como inactivos.",
     )
 
 
@@ -128,7 +128,7 @@ def mark_urgent(modeladmin, request, queryset):
     rows_updated = queryset.update(urgente=True)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {(rows_updated == 1) and 'trámite' or 'trámites'} marcados como urgentes.",
+        f"{rows_updated} {((rows_updated == 1) and 'trámite') or 'trámites'} marcados como urgentes.",
     )
 
 
@@ -140,7 +140,7 @@ def mark_not_urgent(modeladmin, request, queryset):
     rows_updated = queryset.update(urgente=False)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {(rows_updated == 1) and 'trámite' or 'trámites'} marcados como no urgentes.",
+        f"{rows_updated} {((rows_updated == 1) and 'trámite') or 'trámites'} marcados como no urgentes.",
     )
 
 
@@ -149,12 +149,11 @@ mark_not_urgent.short_description = "Marcar como no urgentes"
 
 def mark_as_paid(modeladmin, request, queryset):
     """Admin action to mark tramites as paid."""
-    from django.utils import timezone
 
     rows_updated = queryset.update(pagado=True)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {(rows_updated == 1) and 'trámite' or 'trámites'} marcados como pagados.",
+        f"{rows_updated} {((rows_updated == 1) and 'trámite') or 'trámites'} marcados como pagados.",
     )
 
 
@@ -166,7 +165,7 @@ def mark_as_unpaid(modeladmin, request, queryset):
     rows_updated = queryset.update(pagado=False)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {(rows_updated == 1) and 'trámite' or 'trámites'} marcados como no pagados.",
+        f"{rows_updated} {((rows_updated == 1) and 'trámite') or 'trámites'} marcados como no pagados.",
     )
 
 

@@ -5,18 +5,21 @@ with filtering, search, and bulk actions.
 """
 
 from django.contrib import admin
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
-from django.db.models import Count, Q
 
-from tramites.models import Tramite
-from core.admin import BaseModelAdmin, AuditTrailMixin
-from core.admin import mark_urgent, mark_not_urgent, mark_as_paid, mark_as_unpaid
+from core.admin import (
+    AuditTrailMixin,
+    BaseModelAdmin,
+    mark_as_paid,
+    mark_as_unpaid,
+    mark_not_urgent,
+    mark_urgent,
+)
 from core.admin_utils import (
-    render_status_badge,
     render_pagado_badge,
+    render_status_badge,
     render_urgente_badge,
 )
+from tramites.models import Tramite
 
 
 @admin.register(Tramite)
@@ -127,7 +130,7 @@ class TramiteAdmin(AuditTrailMixin, BaseModelAdmin):
     def get_form(self, request, obj=None, **kwargs):
         """Customize form with widget choices from catalog tables."""
         form = super().get_form(request, obj, **kwargs)
-        from catalogos.models import CatTramite, CatEstatus, CatPerito
+        from catalogos.models import CatEstatus, CatPerito, CatTramite
 
         # Populate choices dynamically
         tramites_choices = [

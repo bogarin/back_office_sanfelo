@@ -5,11 +5,11 @@ San Felipe Government Backoffice URL routing.
 Microservice architecture with Django Admin for backoffice UI.
 """
 
-from django.contrib import admin
-from django.urls import path, include
-from django.http import HttpResponse
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
+from django.http import HttpResponse
+from django.urls import include, path
 
 from core.views import home
 
@@ -36,7 +36,8 @@ if settings.DEBUG:
     import debug_toolbar
     urlpatterns = [
         path("__debug__/", include(debug_toolbar.urls)),
-    ] + urlpatterns
+        *urlpatterns
+    ]
 
     # Static files serving in development
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

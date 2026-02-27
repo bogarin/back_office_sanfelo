@@ -5,9 +5,10 @@ This module contains the main views for the Backoffice San Felipe.
 Following Django's best practices with proper separation of concerns.
 """
 
-from typing import Dict, Any
-from django.shortcuts import render
+from typing import Any
+
 from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
 
 
 def home(request: HttpRequest) -> HttpResponse:
@@ -23,7 +24,7 @@ def home(request: HttpRequest) -> HttpResponse:
     Returns:
         HttpResponse: Rendered home page template.
     """
-    context: Dict[str, Any] = {
+    context: dict[str, Any] = {
         "title": "Backoffice San Felipe",
         "subtitle": "Sistema de Gestión de Trámites",
     }

@@ -7,6 +7,7 @@ Business data (tramites, catalogos, costos, bitacora) uses PostgreSQL.
 """
 
 from pathlib import Path
+
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.

@@ -5,7 +5,7 @@ Routes business apps (tramites, catalogos, costos, bitacora) to PostgreSQL
 while keeping Django's auth, admin, sessions on SQLite.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 
 class BusinessDatabaseRouter:
@@ -14,19 +14,19 @@ class BusinessDatabaseRouter:
     # Apps that store business data in PostgreSQL
     BUSINESS_APPS = {"tramites", "catalogos", "costos", "bitacora"}
 
-    def db_for_read(self, model: type, **hints: Any) -> Optional[str]:
+    def db_for_read(self, model: type, **hints: Any) -> str | None:
         """Route read queries to business DB for business apps."""
         if model._meta.app_label in self.BUSINESS_APPS:
             return "business"
         return "default"
 
-    def db_for_write(self, model: type, **hints: Any) -> Optional[str]:
+    def db_for_write(self, model: type, **hints: Any) -> str | None:
         """Route write queries to business DB for business apps."""
         if model._meta.app_label in self.BUSINESS_APPS:
             return "business"
         return "default"
 
-    def allow_relation(self, obj1: type, obj2: type) -> Optional[bool]:
+    def allow_relation(self, obj1: type, obj2: type) -> bool | None:
         """Allow relations only within the same database."""
         # Allow relations within business apps (same PostgreSQL)
         if (

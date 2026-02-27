@@ -5,11 +5,10 @@ Provides admin interface for managing costos (Costo) and UMA value (Uma).
 
 from django.contrib import admin
 from django.utils.html import format_html
-from django.db.models import Sum
 
-from costos.models import Costo, Uma
-from core.admin import BaseModelAdmin, AuditTrailMixin, mark_as_active, mark_as_inactive
+from core.admin import AuditTrailMixin, BaseModelAdmin, mark_as_active, mark_as_inactive
 from core.admin_utils import render_activo_badge
+from costos.models import Costo, Uma
 
 
 @admin.register(Costo)
@@ -189,8 +188,9 @@ class UmaAdmin(BaseModelAdmin):
 
     def ultima_actualizacion(self, obj):
         """Display the last update date from the stored procedure."""
-        from costos.models import Costo
         from datetime import date
+
+        from costos.models import Costo
 
         # Find the most recent costo update date
         last_update = (

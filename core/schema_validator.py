@@ -6,9 +6,10 @@ Run with: uv run python -m core.schema_validator
 """
 
 import sys
-from typing import Dict, List, Tuple, Any
-from django.db import connection
+from typing import Any
+
 from django.conf import settings
+from django.db import connection
 
 
 class SchemaValidator:
@@ -46,10 +47,10 @@ class SchemaValidator:
 
     def __init__(self):
         """Initialize the validator."""
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
 
-    def get_sql_columns(self, table_name: str) -> List[Dict[str, Any]]:
+    def get_sql_columns(self, table_name: str) -> list[dict[str, Any]]:
         """Get column information from PostgreSQL.
 
         Args:
@@ -86,7 +87,7 @@ class SchemaValidator:
                 for col in columns
             ]
 
-    def get_django_fields(self, model_class: type) -> List[Dict[str, Any]]:
+    def get_django_fields(self, model_class: type) -> list[dict[str, Any]]:
         """Get field information from Django model.
 
         Args:
@@ -287,8 +288,9 @@ def main():
 
 
 if __name__ == "__main__":
-    import django
     import os
+
+    import django
 
     # Configure Django settings
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sanfelipe.settings")

@@ -14,7 +14,6 @@ If custom URLs are needed in the future (e.g., API endpoints, public views),
 they can be added here.
 """
 
-from django.urls import path
 
 app_name = "tramites"
 

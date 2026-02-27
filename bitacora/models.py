@@ -19,7 +19,7 @@ class Bitacora(models.Model):
         db_table = "bitacora"
         verbose_name = "Bitácora"
         verbose_name_plural = "Bitácoras"
-        ordering = ["-fecha"]
+        ordering = ("-fecha",)
 
     id = models.AutoField(primary_key=True)
     usuario_sis = models.CharField(max_length=20, verbose_name="Usuario Sistema")

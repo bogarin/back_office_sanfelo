@@ -8,32 +8,31 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from catalogos.models import (
-    CatTramite,
-    CatEstatus,
-    CatUsuario,
-    CatPerito,
+    Actividades,
     CatActividad,
     CatCategoria,
+    CatEstatus,
     CatInciso,
+    CatPerito,
     CatRequisito,
     CatTipo,
-    RelTmtCateReq,
-    RelTmtCategoria,
-    RelTmtInciso,
-    RelTmtTipoReq,
-    Actividades,
+    CatTramite,
+    CatUsuario,
     Cobro,
     RelTmtActividad,
+    RelTmtCategoria,
+    RelTmtCateReq,
+    RelTmtInciso,
+    RelTmtTipoReq,
 )
 from core.admin import (
-    BaseModelAdmin,
     AuditTrailMixin,
+    BaseModelAdmin,
     CatalogBaseAdmin,
     mark_as_active,
     mark_as_inactive,
 )
-from core.admin_utils import render_status_badge, render_activo_badge
-
+from core.admin_utils import render_activo_badge
 
 # ============================================================================
 # CATALOG TABLES (cat_*)
@@ -108,9 +107,9 @@ class CatEstatusAdmin(AuditTrailMixin, CatalogBaseAdmin):
         """Display estatus group based on ID."""
         if 100 <= obj.id < 200:
             return format_html('<span class="badge badge-inicio">Inicio</span>')
-        elif 200 <= obj.id < 300:
+        if 200 <= obj.id < 300:
             return format_html('<span class="badge badge-proceso">Proceso</span>')
-        elif 300 <= obj.id < 400:
+        if 300 <= obj.id < 400:
             return format_html('<span class="badge badge-finalizado">Finalizado</span>')
         return format_html('<span class="badge badge-otro">Otro</span>')
 

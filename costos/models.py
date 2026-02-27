@@ -6,6 +6,7 @@ Note: This is a mapping to the external SQL schema - do NOT use Django migration
 """
 
 import decimal
+
 from django.db import models
 
 

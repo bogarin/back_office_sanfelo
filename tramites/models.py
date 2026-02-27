@@ -7,6 +7,8 @@ Note: This is a mapping to the external SQL schema - do NOT use Django migration
 
 from django.db import models
 
+from catalogos.models import CatEstatus, CatTramite
+
 
 class Tramite(models.Model):
     """Main model for tramites.
@@ -20,8 +22,8 @@ class Tramite(models.Model):
         db_table = "tramite"
         verbose_name = "Trámite"
         verbose_name_plural = "Trámites"
-        ordering = ["-creado"]
-        indexes = [
+        ordering = ("-creado", )
+        indexes = (
             models.Index(fields=["folio"]),
             models.Index(fields=["id_cat_estatus", "-creado"]),
             models.Index(
@@ -42,7 +44,7 @@ class Tramite(models.Model):
                 condition=models.Q(pagado=False),
                 name="idx_tramite_prioridad",
             ),
-        ]
+        )
 
     # Primary key
     id = models.AutoField(primary_key=True)
@@ -95,8 +97,6 @@ class Tramite(models.Model):
     @property
     def estatus_display(self) -> str:
         """Get display name for estatus from cat_estatus."""
-        from catalogos.models import CatEstatus
-
         try:
             estatus = CatEstatus.objects.get(id=self.id_cat_estatus)
             return estatus.estatus
@@ -106,8 +106,6 @@ class Tramite(models.Model):
     @property
     def tramite_display(self) -> str:
         """Get display name for tramite from cat_tramite."""
-        from catalogos.models import CatTramite
-
         try:
             tramite = CatTramite.objects.get(id=self.id_cat_tramite)
             return tramite.nombre
