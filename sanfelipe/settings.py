@@ -26,7 +26,7 @@ except FileNotFoundError:
     raise FileNotFoundError(
         f'Environment file not found: {env_file}. '
         f'Please copy .env.example to .env and customize it with your actual values.'
-    )
+    ) from None
 
 # =============================================================================
 # SECURITY SETTINGS
@@ -122,7 +122,7 @@ ASGI_APPLICATION = 'sanfelipe.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': env.path('DJANGO_SQLITE_DB_PATH', default=BASE_DIR / 'db.sqlite3'),
+        'NAME': str(env.path('DJANGO_SQLITE_DB_PATH', default=str(BASE_DIR / 'db' / 'db.sqlite3'))),
     },
     'business': env.db(
         'DATABASE_URL', default='postgres://postgres:postgres@localhost:5432/backoffice'
@@ -275,6 +275,10 @@ LOGGING = {
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# Role-based access control groups
+OPERADOR_GROUP_NAME = 'Operador'
+ADMINISTRADOR_GROUP_NAME = 'Administrador'
 
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = env.list(

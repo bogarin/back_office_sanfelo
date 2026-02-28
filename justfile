@@ -29,6 +29,14 @@ makemigrations APP:
 createsuperuser:
     uv run manage.py createsuperuser
 
+# Setup roles (create Administrador and Operador groups)
+setup_roles:
+    uv run manage.py setup_roles
+
+# Validate schema against external PostgreSQL database
+validate-schema:
+    uv run manage.py validate_schema
+
 # Type checking with pyright
 typecheck:
     uv run pyright

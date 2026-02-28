@@ -47,8 +47,12 @@ class SchemaValidator:
 
     def __init__(self):
         """Initialize the validator."""
+        from django.db import connections
+
         self.errors: list[str] = []
         self.warnings: list[str] = []
+        # Use business connection (PostgreSQL) for schema validation
+        self.connection = connections['business']
 
     def get_sql_columns(self, table_name: str) -> list[dict[str, Any]]:
         """Get column information from PostgreSQL.
@@ -59,7 +63,7 @@ class SchemaValidator:
         Returns:
             List of dictionaries with column information
         """
-        with connection.cursor() as cursor:
+        with self.connection.cursor() as cursor:
             cursor.execute(
                 """
                 SELECT

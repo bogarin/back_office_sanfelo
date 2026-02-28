@@ -3,45 +3,52 @@
 Provides admin interface for managing costos (Costo) and UMA value (Uma).
 """
 
+from django.conf import settings
 from django.contrib import admin
 from django.utils.html import format_html
 
-from core.admin import AuditTrailMixin, BaseModelAdmin, mark_as_active, mark_as_inactive
+from core.admin import (
+    AuditTrailMixin,
+    BaseModelAdmin,
+    mark_as_active,
+    mark_as_inactive,
+    OperatorPermissionMixin,
+)
 from core.admin_utils import render_activo_badge
 from costos.models import Costo, Uma
 
 
 @admin.register(Costo)
-class CostoAdmin(AuditTrailMixin, BaseModelAdmin):
+class CostoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
     """Admin interface for Costo model."""
 
     # List display configuration
     list_display = (
-        "id",
-        "descripcion",
-        "id_tramite",
-        "axo",
-        "importe_calculado",
-        "activo",
-        "activo_badge",
-        "fomento",
-        "fecha_actualiza",
+        'id',
+        'descripcion',
+        'id_tramite',
+        'axo',
+        'importe_calculado',
+        'activo',
+        'activo_badge',
+        'fomento',
+        'fecha_actualiza',
     )
 
     # List filtering
-    list_filter = ("axo", "activo", "fomento", "fecha_actualiza", "id_tipo")
+    list_filter = ('axo', 'activo', 'fomento', 'fecha_actualiza', 'id_tipo')
 
     # Search fields
-    search_fields = ("descripcion", "formula", "observacion")
+    search_fields = ('descripcion', 'formula', 'observacion')
 
     # Ordering
-    ordering = ("-axo", "id_tramite", "rango_ini")
+    ordering = ('-axo', 'id_tramite', 'rango_ini')
 
     # Pagination
     list_per_page = 50
 
     # Fields that should be editable in the list view
-    list_editable = ("activo", "fomento")
+    list_editable = ('activo', 'fomento')
 
     # Actions
     actions = [mark_as_active, mark_as_inactive]
@@ -49,69 +56,69 @@ class CostoAdmin(AuditTrailMixin, BaseModelAdmin):
     # Fieldsets for the edit form
     fieldsets = (
         (
-            "Información del Costo",
+            'Información del Costo',
             {
-                "fields": (
-                    "id_tramite",
-                    "descripcion",
-                    "formula",
-                    "axo",
-                    "id_tipo",
+                'fields': (
+                    'id_tramite',
+                    'descripcion',
+                    'formula',
+                    'axo',
+                    'id_tipo',
                 ),
             },
         ),
         (
-            "Valores de Costo",
+            'Valores de Costo',
             {
-                "fields": (
-                    "cant_umas",
-                    "rango_ini",
-                    "rango_fin",
-                    "inciso",
+                'fields': (
+                    'cant_umas',
+                    'rango_ini',
+                    'rango_fin',
+                    'inciso',
                 ),
             },
         ),
         (
-            "Aportaciones Especiales",
+            'Aportaciones Especiales',
             {
-                "fields": (
-                    "cruz_roja",
-                    "bomberos",
+                'fields': (
+                    'cruz_roja',
+                    'bomberos',
                 ),
             },
         ),
         (
-            "Configuración",
+            'Configuración',
             {
-                "fields": (
-                    "activo",
-                    "fomento",
+                'fields': (
+                    'activo',
+                    'fomento',
                 ),
             },
         ),
         (
-            "Información de Actualización",
+            'Información de Actualización',
             {
-                "fields": (
-                    "id_usuario",
-                    "fecha_actualiza",
-                    "observacion",
+                'fields': (
+                    'id_usuario',
+                    'fecha_actualiza',
+                    'observacion',
                 ),
-                "classes": ("collapse",),
+                'classes': ('collapse',),
             },
         ),
     )
 
     # Read-only fields
-    readonly_fields = ("id",)
+    readonly_fields = ('id',)
 
     # Custom display methods
     def activo_badge(self, obj):
         """Display activo status as badge."""
         return render_activo_badge(obj.activo)
 
-    activo_badge.short_description = "Estado"
-    activo_badge.admin_order_field = "activo"
+    activo_badge.short_description = 'Estado'
+    activo_badge.admin_order_field = 'activo'
     activo_badge.allow_tags = True
 
     def importe_calculado(self, obj):
@@ -126,9 +133,9 @@ class CostoAdmin(AuditTrailMixin, BaseModelAdmin):
                     obj.cant_umas,
                     uma,
                 )
-        return "N/A"
+        return 'N/A'
 
-    importe_calculado.short_description = "Importe Calculado"
+    importe_calculado.short_description = 'Importe Calculado'
     importe_calculado.allow_tags = True
 
     # Custom form field widget customization
@@ -141,8 +148,8 @@ class CostoAdmin(AuditTrailMixin, BaseModelAdmin):
         tipos_choices = [(t.id, t.tipo) for t in CatTipo.objects.all()]
         usuarios_choices = [(u.id, u.nombre) for u in CatUsuario.objects.all()]
 
-        form.base_fields["id_tipo"].widget.choices = tipos_choices
-        form.base_fields["id_usuario"].widget.choices = usuarios_choices
+        form.base_fields['id_tipo'].widget.choices = tipos_choices
+        form.base_fields['id_usuario'].widget.choices = usuarios_choices
 
         return form
 
@@ -158,23 +165,38 @@ class CostoAdmin(AuditTrailMixin, BaseModelAdmin):
         from datetime import date
 
         # Set the user who made the change
-        if hasattr(request, "user"):
-            obj.id_usuario = request.user.id if hasattr(request.user, "id") else 1
+        if hasattr(request, 'user'):
+            obj.id_usuario = request.user.id if hasattr(request.user, 'id') else 1
 
         # Set the update date
         obj.fecha_actualiza = date.today()
 
         super().save_model(request, obj, form, change)
 
+    def has_add_permission(self, request):
+        if request.user.groups.filter(name='Operador').exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        if request.user.groups.filter(name='Operador').exists():
+            return False
+        return super().has_change_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        if request.user.groups.filter(name='Operador').exists():
+            return False
+        return super().has_delete_permission(request)
+
 
 @admin.register(Uma)
-class UmaAdmin(BaseModelAdmin):
+class UmaAdmin(BaseModelAdmin, OperatorPermissionMixin):
     """Admin interface for Uma model.
 
     Note: Only one record (id=1) should exist in this table.
     """
 
-    list_display = ("id", "valor_display", "ultima_actualizacion")
+    list_display = ('id', 'valor_display', 'ultima_actualizacion')
 
     def valor_display(self, obj):
         """Display UMA value with formatting."""
@@ -183,7 +205,7 @@ class UmaAdmin(BaseModelAdmin):
             obj.valor,
         )
 
-    valor_display.short_description = "Valor de la UMA"
+    valor_display.short_description = 'Valor de la UMA'
     valor_display.allow_tags = True
 
     def ultima_actualizacion(self, obj):
@@ -195,21 +217,25 @@ class UmaAdmin(BaseModelAdmin):
         # Find the most recent costo update date
         last_update = (
             Costo.objects.filter(fecha_actualiza__lte=date.today())
-            .order_by("-fecha_actualiza")
+            .order_by('-fecha_actualiza')
             .first()
         )
         if last_update:
-            return last_update.fecha_actualiza.strftime("%d/%m/%Y")
-        return "N/A"
+            return last_update.fecha_actualiza.strftime('%d/%m/%Y')
+        return 'N/A'
 
-    ultima_actualizacion.short_description = "Última Actualización"
+    ultima_actualizacion.short_description = 'Última Actualización'
 
     def has_add_permission(self, request):
         """Only allow add if no UMA record exists."""
+        if request.user.groups.filter(name='Operador').exists():
+            return False
         return not Uma.objects.exists()
 
     def has_delete_permission(self, request, obj=None):
         """Disable delete permission."""
+        if request.user.groups.filter(name='Operador').exists():
+            return False
         return False
 
     def save_model(self, request, obj, form, change):
@@ -222,14 +248,19 @@ class UmaAdmin(BaseModelAdmin):
 
     fieldsets = (
         (
-            "Valor de la UMA",
+            'Valor de la UMA',
             {
-                "fields": ("valor",),
-                "description": (
-                    "El valor de la UMA (Unidad de Medida y Actualización) se utiliza "
-                    "para calcular los costos de los trámites. Solo debe existir un "
-                    "registro en esta tabla (id=1)."
+                'fields': ('valor',),
+                'description': (
+                    'El valor de la UMA (Unidad de Medida y Actualización) se utiliza '
+                    'para calcular los costos de los trámites. Solo debe existir un '
+                    'registro en esta tabla (id=1).'
                 ),
             },
         ),
     )
+
+    def has_change_permission(self, request, obj=None):
+        if request.user.groups.filter(name='Operador').exists():
+            return False
+        return super().has_change_permission(request)

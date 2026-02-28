@@ -19,57 +19,55 @@ class Costo(models.Model):
 
     class Meta:
         managed = False
-        db_table = "costo"
-        verbose_name = "Costo"
-        verbose_name_plural = "Costos"
-        ordering = ["id_tramite", "rango_ini"]
+        db_table = 'costo'
+        verbose_name = 'Costo'
+        verbose_name_plural = 'Costos'
+        ordering = ['id_tramite', 'rango_ini']
 
     id = models.AutoField(primary_key=True)
-    id_tramite = models.IntegerField(verbose_name="ID Trámite")
-    axo = models.IntegerField(default=2020, verbose_name="Año")
-    descripcion = models.CharField(max_length=255, verbose_name="Descripción")
-    formula = models.CharField(
-        max_length=255, blank=True, null=True, verbose_name="Fórmula"
-    )
+    id_tramite = models.IntegerField(verbose_name='ID Trámite')
+    axo = models.IntegerField(default=2020, verbose_name='Año')
+    descripcion = models.CharField(max_length=255, verbose_name='Descripción')
+    formula = models.CharField(max_length=255, blank=True, null=True, verbose_name='Fórmula')
     cant_umas = models.DecimalField(
         max_digits=10,
         decimal_places=4,
         blank=True,
         null=True,
-        verbose_name="Cantidad de UMA",
+        verbose_name='Cantidad de UMA',
     )
     rango_ini = models.DecimalField(
         max_digits=10,
         decimal_places=4,
         blank=True,
         null=True,
-        verbose_name="Rango Inicial",
+        verbose_name='Rango Inicial',
     )
     rango_fin = models.DecimalField(
         max_digits=10,
         decimal_places=4,
         blank=True,
         null=True,
-        verbose_name="Rango Final",
+        verbose_name='Rango Final',
     )
-    inciso = models.IntegerField(blank=True, null=True, verbose_name="Inciso")
-    fomento = models.BooleanField(default=True, verbose_name="Fomento")
+    inciso = models.IntegerField(blank=True, null=True, verbose_name='Inciso')
+    fomento = models.BooleanField(default=True, blank=True, null=True, verbose_name='Fomento')
     cruz_roja = models.DecimalField(
-        max_digits=10, decimal_places=4, default=0, verbose_name="Cruz Roja"
+        max_digits=10, decimal_places=4, blank=True, null=True, verbose_name='Cruz Roja'
     )
     bomberos = models.DecimalField(
-        max_digits=10, decimal_places=4, default=0, verbose_name="Bomberos"
+        max_digits=10, decimal_places=4, blank=True, null=True, verbose_name='Bomberos'
     )
-    activo = models.BooleanField(default=True, verbose_name="Activo")
-    id_usuario = models.IntegerField(verbose_name="ID Usuario")
-    fecha_actualiza = models.DateField(verbose_name="Fecha de Actualización")
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+    id_usuario = models.IntegerField(verbose_name='ID Usuario')
+    fecha_actualiza = models.DateField(verbose_name='Fecha de Actualización')
     observacion = models.CharField(
-        max_length=600, blank=True, null=True, verbose_name="Observación"
+        max_length=600, blank=True, null=True, verbose_name='Observación'
     )
-    id_tipo = models.IntegerField(blank=True, null=True, verbose_name="ID Tipo")
+    id_tipo = models.IntegerField(blank=True, null=True, verbose_name='ID Tipo')
 
     def __str__(self) -> str:
-        return f"{self.descripcion} ({self.id_tramite})"
+        return f'{self.descripcion} ({self.id_tramite})'
 
 
 class Uma(models.Model):
@@ -81,15 +79,15 @@ class Uma(models.Model):
 
     class Meta:
         managed = False
-        db_table = "uma"
-        verbose_name = "UMA"
-        verbose_name_plural = "UMAs"
+        db_table = 'uma'
+        verbose_name = 'UMA'
+        verbose_name_plural = 'UMAs'
 
     id = models.AutoField(primary_key=True)
-    valor = models.DecimalField(max_digits=10, decimal_places=4, verbose_name="Valor")
+    valor = models.DecimalField(max_digits=10, decimal_places=4, verbose_name='Valor')
 
     def __str__(self) -> str:
-        return f"UMA: ${self.valor}"
+        return f'UMA: ${self.valor}'
 
     @classmethod
     def get_current_uma(cls) -> decimal.Decimal:
@@ -119,4 +117,4 @@ class Uma(models.Model):
         from django.db import connection
 
         with connection.cursor() as cursor:
-            cursor.execute("CALL sp_actualizar_uma(%s)", [valor])
+            cursor.execute('CALL sp_actualizar_uma(%s)', [valor])

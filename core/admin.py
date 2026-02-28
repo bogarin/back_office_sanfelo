@@ -6,12 +6,13 @@ Configures the admin interface for the backoffice with:
 - Admin actions and permissions
 """
 
+from django.conf import settings
 from django.contrib import admin
 
 # Admin Site Configuration
-admin.site.site_header = "Backoffice San Felipe"
-admin.site.site_title = "Backoffice San Felipe"
-admin.site.index_title = "Panel de Administración"
+admin.site.site_header = 'Backoffice San Felipe'
+admin.site.site_title = 'Backoffice San Felipe'
+admin.site.index_title = 'Panel de Administración'
 
 
 # Custom ModelAdmin Base Classes
@@ -25,7 +26,7 @@ class BaseModelAdmin(admin.ModelAdmin):
 
     class Media:
         css = {
-            "all": ("admin/css/custom.css",),
+            'all': ('admin/css/custom.css',),
         }
 
 
@@ -47,7 +48,7 @@ class CatalogBaseAdmin(BaseModelAdmin):
     """Base ModelAdmin for catalog tables with common features."""
 
     list_per_page = 50
-    search_fields = ("nombre", "descripcion")
+    search_fields = ('nombre', 'descripcion')
     save_as = True
 
 
@@ -69,14 +70,12 @@ class AuditTrailMixin:
         if change:
             # Log the change to bitacora
             Bitacora.objects.create(
-                usuario_sis=request.user.username
-                if hasattr(request, "user")
-                else "admin",
-                tipo_mov="UPDATE",
-                usuario_pc=request.META.get("REMOTE_ADDR", "localhost"),
+                usuario_sis=request.user.username if hasattr(request, 'user') else 'admin',
+                tipo_mov='UPDATE',
+                usuario_pc=request.META.get('REMOTE_ADDR', 'localhost'),
                 fecha=date.today(),
-                maquina=request.META.get("REMOTE_HOST", ""),
-                observaciones=f"Actualizado {self.model._meta.verbose_name}: {obj}",
+                maquina=request.META.get('REMOTE_HOST', ''),
+                observaciones=f'Actualizado {self.model._meta.verbose_name}: {obj}',
             )
 
     def delete_model(self, request, obj):
@@ -87,12 +86,12 @@ class AuditTrailMixin:
 
         # Log the deletion to bitacora
         Bitacora.objects.create(
-            usuario_sis=request.user.username if hasattr(request, "user") else "admin",
-            tipo_mov="DELETE",
-            usuario_pc=request.META.get("REMOTE_ADDR", "localhost"),
+            usuario_sis=request.user.username if hasattr(request, 'user') else 'admin',
+            tipo_mov='DELETE',
+            usuario_pc=request.META.get('REMOTE_ADDR', 'localhost'),
             fecha=date.today(),
-            maquina=request.META.get("REMOTE_HOST", ""),
-            observaciones=f"Eliminado {self.model._meta.verbose_name}: {obj}",
+            maquina=request.META.get('REMOTE_HOST', ''),
+            observaciones=f'Eliminado {self.model._meta.verbose_name}: {obj}',
         )
 
         super().delete_model(request, obj)
@@ -104,11 +103,11 @@ def mark_as_active(modeladmin, request, queryset):
     rows_updated = queryset.update(activo=True)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {((rows_updated == 1) and 'registro') or 'registros'} marcados como activos.",
+        f'{rows_updated} {((rows_updated == 1) and "registro") or "registros"} marcados como activos.',
     )
 
 
-mark_as_active.short_description = "Marcar como activos"
+mark_as_active.short_description = 'Marcar como activos'
 
 
 def mark_as_inactive(modeladmin, request, queryset):
@@ -116,11 +115,11 @@ def mark_as_inactive(modeladmin, request, queryset):
     rows_updated = queryset.update(activo=False)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {((rows_updated == 1) and 'registro') or 'registros'} marcados como inactivos.",
+        f'{rows_updated} {((rows_updated == 1) and "registro") or "registros"} marcados como inactivos.',
     )
 
 
-mark_as_inactive.short_description = "Marcar como inactivos"
+mark_as_inactive.short_description = 'Marcar como inactivos'
 
 
 def mark_urgent(modeladmin, request, queryset):
@@ -128,11 +127,11 @@ def mark_urgent(modeladmin, request, queryset):
     rows_updated = queryset.update(urgente=True)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {((rows_updated == 1) and 'trámite') or 'trámites'} marcados como urgentes.",
+        f'{rows_updated} {((rows_updated == 1) and "trámite") or "trámites"} marcados como urgentes.',
     )
 
 
-mark_urgent.short_description = "Marcar como urgentes"
+mark_urgent.short_description = 'Marcar como urgentes'
 
 
 def mark_not_urgent(modeladmin, request, queryset):
@@ -140,11 +139,11 @@ def mark_not_urgent(modeladmin, request, queryset):
     rows_updated = queryset.update(urgente=False)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {((rows_updated == 1) and 'trámite') or 'trámites'} marcados como no urgentes.",
+        f'{rows_updated} {((rows_updated == 1) and "trámite") or "trámites"} marcados como no urgentes.',
     )
 
 
-mark_not_urgent.short_description = "Marcar como no urgentes"
+mark_not_urgent.short_description = 'Marcar como no urgentes'
 
 
 def mark_as_paid(modeladmin, request, queryset):
@@ -153,11 +152,11 @@ def mark_as_paid(modeladmin, request, queryset):
     rows_updated = queryset.update(pagado=True)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {((rows_updated == 1) and 'trámite') or 'trámites'} marcados como pagados.",
+        f'{rows_updated} {((rows_updated == 1) and "trámite") or "trámites"} marcados como pagados.',
     )
 
 
-mark_as_paid.short_description = "Marcar como pagados"
+mark_as_paid.short_description = 'Marcar como pagados'
 
 
 def mark_as_unpaid(modeladmin, request, queryset):
@@ -165,31 +164,92 @@ def mark_as_unpaid(modeladmin, request, queryset):
     rows_updated = queryset.update(pagado=False)
     modeladmin.message_user(
         request,
-        f"{rows_updated} {((rows_updated == 1) and 'trámite') or 'trámites'} marcados como no pagados.",
+        f'{rows_updated} {((rows_updated == 1) and "trámite") or "trámites"} marcados como no pagados.',
     )
 
 
-mark_as_unpaid.short_description = "Marcar como no pagados"
+mark_as_unpaid.short_description = 'Marcar como no pagados'
 
 
 # Custom Admin Site (optional for future customization)
 class BackofficeAdminSite(admin.AdminSite):
     """Custom admin site for backoffice with specific configurations."""
 
-    site_header = "Backoffice San Felipe"
-    site_title = "Backoffice San Felipe"
-    index_title = "Panel de Administración"
+    site_header = 'Backoffice San Felipe'
+    site_title = 'Backoffice San Felipe'
+    index_title = 'Panel de Administración'
 
     def get_app_list(self, request, app_label=None):
         """Customize app list ordering."""
         app_list = super().get_app_list(request, app_label)
 
         # Reorder apps: tramites first, then catalogs, then others
-        order = {"tramites": 0, "catalogos": 1, "costos": 2, "bitacora": 3}
-        app_list.sort(key=lambda x: order.get(x["app_label"], 999))
+        order = {'tramites': 0, 'catalogos': 1, 'costos': 2, 'bitacora': 3}
+        app_list.sort(key=lambda x: order.get(x['app_label'], 999))
 
         return app_list
 
+    def has_permission(self, request):
+        """Check if user has permission to access the admin site."""
+        return request.user.is_active and request.user.is_staff
 
-# Uncomment to use custom admin site instead of default
-# admin_site = BackofficeAdminSite(name="backoffice_admin")
+
+# Permission Mixins for Role-Based Access Control
+class OperatorPermissionMixin:
+    """Mixin para controlar permisos de operadores (solo lectura)."""
+
+    def has_view_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+
+        app_label = self.model._meta.app_label
+
+        if request.user.groups.filter(name='Administrador').exists():
+            return True
+
+        if request.user.groups.filter(name='Operador').exists():
+            if app_label in ['catalogos', 'costos', 'bitacora']:
+                return True
+            return False
+
+        return False
+
+    def has_add_permission(self, request):
+        if request.user.is_superuser:
+            return True
+        if request.user.groups.filter(name='Administrador').exists():
+            return True
+        if request.user.groups.filter(name='Operador').exists():
+            return False
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        if request.user.groups.filter(name='Administrador').exists():
+            return True
+        if request.user.groups.filter(name='Operador').exists():
+            return False
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        if request.user.groups.filter(name='Administrador').exists():
+            return True
+        if request.user.groups.filter(name='Operador').exists():
+            return False
+        return False
+
+
+class ReadOnlyModelAdmin(OperatorPermissionMixin, admin.ModelAdmin):
+    """Admin con solo permisos de lectura."""
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
