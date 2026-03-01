@@ -87,21 +87,6 @@ class CatTramiteAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin
     activo_badge.admin_order_field = 'activo'
     activo_badge.allow_tags = True
 
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
-
 
 @admin.register(CatEstatus)
 class CatEstatusAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
@@ -132,21 +117,6 @@ class CatEstatusAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin
 
     estatus_group.short_description = 'Grupo'
     estatus_group.allow_tags = True
-
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
 
 
 @admin.register(CatUsuario)
@@ -192,21 +162,6 @@ class CatUsuarioAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
     activo_badge.short_description = 'Estado'
     activo_badge.admin_order_field = 'activo'
     activo_badge.allow_tags = True
-
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
 
 
 @admin.register(CatPerito)
@@ -265,21 +220,6 @@ class CatPeritoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
     estatus_badge.admin_order_field = 'estatus'
     estatus_badge.allow_tags = True
 
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
-
 
 @admin.register(CatActividad)
 class CatActividadAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
@@ -287,21 +227,6 @@ class CatActividadAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMix
 
     list_display = ('id', 'actividad')
     search_fields = ('actividad',)
-
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
 
 
 @admin.register(CatCategoria)
@@ -311,21 +236,6 @@ class CatCategoriaAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMix
     list_display = ('id', 'categoria')
     search_fields = ('categoria',)
 
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
-
 
 @admin.register(CatInciso)
 class CatIncisoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
@@ -333,21 +243,6 @@ class CatIncisoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
 
     list_display = ('id', 'inciso', 'descripcion')
     search_fields = ('inciso', 'descripcion')
-
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
 
 
 @admin.register(CatRequisito)
@@ -357,21 +252,6 @@ class CatRequisitoAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMix
     list_display = ('id', 'requisito')
     search_fields = ('requisito',)
 
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
-
 
 @admin.register(CatTipo)
 class CatTipoAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
@@ -379,21 +259,6 @@ class CatTipoAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
 
     list_display = ('id', 'tipo')
     search_fields = ('tipo',)
-
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
 
 
 # ============================================================================
@@ -409,21 +274,6 @@ class RelTmtCateReqAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixi
     list_filter = ('id_cat_tramite', 'id_cat_categoria')
     search_fields = ('id_cat_tramite', 'id_cat_requisito')
 
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
-
 
 @admin.register(RelTmtCategoria)
 class RelTmtCategoriaAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
@@ -432,21 +282,6 @@ class RelTmtCategoriaAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMi
     list_display = ('id', 'id_cat_tramite', 'id_cat_categoria')
     list_filter = ('id_cat_tramite', 'id_cat_categoria')
     search_fields = ('id_cat_tramite', 'id_cat_categoria')
-
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
 
 
 @admin.register(RelTmtInciso)
@@ -457,21 +292,6 @@ class RelTmtIncisoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin
     list_filter = ('id_cat_inciso', 'id_cat_tramite')
     search_fields = ('id_cat_inciso', 'id_cat_tramite')
 
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
-
 
 @admin.register(RelTmtTipoReq)
 class RelTmtTipoReqAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
@@ -481,21 +301,6 @@ class RelTmtTipoReqAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixi
     list_filter = ('id_cat_tipo', 'id_cat_tramite')
     search_fields = ('id_cat_tipo', 'id_cat_tramite', 'id_cat_requisito')
 
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
-
 
 @admin.register(RelTmtActividad)
 class RelTmtActividadAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
@@ -504,21 +309,6 @@ class RelTmtActividadAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMi
     list_display = ('id', 'id_cat_tramite', 'id_cat_actividad')
     list_filter = ('id_cat_tramite', 'id_cat_actividad')
     search_fields = ('id_cat_tramite', 'id_cat_actividad')
-
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
 
 
 # ============================================================================
@@ -585,21 +375,6 @@ class ActividadesAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin)
 
         return form
 
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
-
 
 @admin.register(Cobro)
 class CobroAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
@@ -623,18 +398,3 @@ class CobroAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
             },
         ),
     )
-
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)

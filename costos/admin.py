@@ -173,21 +173,6 @@ class CostoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
 
         super().save_model(request, obj, form, change)
 
-    def has_add_permission(self, request):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_delete_permission(request)
-
 
 @admin.register(Uma)
 class UmaAdmin(BaseModelAdmin, OperatorPermissionMixin):
@@ -259,8 +244,3 @@ class UmaAdmin(BaseModelAdmin, OperatorPermissionMixin):
             },
         ),
     )
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return super().has_change_permission(request)

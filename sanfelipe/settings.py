@@ -10,6 +10,9 @@ from pathlib import Path
 
 import environ
 
+# Import CSP utilities for Django 6.0 Content Security Policy support
+from django.utils.csp import CSP
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -50,6 +53,123 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = env.bool('DJANGO_CSRF_COOKIE_SECURE', default=False)
 
 # =============================================================================
+# CONTENT SECURITY POLICY (CSP) - Django 6.0 Native Support
+# =============================================================================
+
+# CSP is a powerful security feature that helps prevent XSS attacks and other
+# content injection attacks by defining which content sources are trusted.
+#
+# Security Benefits:
+# - Prevents execution of unauthorized scripts (XSS mitigation)
+# - Controls which external resources can be loaded (scripts, styles, images, fonts)
+# - Blocks unauthorized content injection
+# - Provides violation reporting for monitoring and debugging
+#
+# For initial deployment, use REPORT_ONLY mode to identify any issues without
+# breaking functionality. After confirming everything works, switch to enforced mode.
+CSP_REPORT_MODE = env.bool('DJANGO_CSP_REPORT_ONLY', default=False)
+
+if CSP_REPORT_MODE:
+    # Report-only mode: Monitor violations without blocking content
+    # This is recommended for initial deployment to identify any issues
+    SECURE_CSP_REPORT_ONLY = {
+        # Default fallback for all content types
+        # 'self' allows resources from the same origin only
+        'default-src': [CSP.SELF],
+        # Script sources: Only allow scripts from same origin with nonce support
+        # NONCE allows inline scripts with a valid nonce attribute
+        # This is more secure than 'unsafe-inline' as it explicitly whitelists scripts
+        'script-src': [CSP.SELF, CSP.NONCE],
+        # Style sources: Allow styles from same origin and inline styles
+        # Note: Django admin uses some inline styles, so UNSAFE_INLINE is needed
+        # For better security, consider using NONCE for inline styles
+        'style-src': [CSP.SELF, CSP.UNSAFE_INLINE],
+        # Image sources: Allow images from same origin and data: URIs
+        # data: URIs are commonly used for base64-encoded images in Django admin
+        'img-src': [CSP.SELF, 'data:'],
+        # Font sources: Only allow fonts from same origin
+        # Django admin loads fonts from static files
+        'font-src': [CSP.SELF],
+        # Connect sources: Restrict AJAX/Fetch requests to same origin
+        'connect-src': [CSP.SELF],
+        # Object sources: Block all plugins (Flash, Java, etc.)
+        # This prevents plugin-based XSS attacks
+        'object-src': [CSP.NONE],
+        # Media sources: Restrict audio/video to same origin
+        'media-src': [CSP.SELF],
+        # Frame sources: Block all iframes unless explicitly needed
+        # Prevents clickjacking attacks
+        'frame-src': [CSP.NONE],
+        # Frame ancestors: Prevent page from being embedded in frames
+        # Works with X-Frame-Options middleware for clickjacking protection
+        'frame-ancestors': [CSP.SELF],
+        # Base URI: Restrict base tag to same origin
+        'base-uri': [CSP.SELF],
+        # Form action: Restrict form submissions to same origin
+        'form-action': [CSP.SELF],
+        # Manifest: Restrict app manifests to same origin
+        'manifest-src': [CSP.SELF],
+        # Report violations to this endpoint (optional, for monitoring)
+        # Uncomment and configure if you want to collect CSP violation reports
+        # "report-uri": ["/csp-violation-report/"],
+        # "report-to": ["csp-endpoint"],
+    }
+
+    # No enforced policy in report-only mode
+    SECURE_CSP = None
+else:
+    # Enforced mode: Actively block non-compliant content
+    # Use this after confirming no issues in report-only mode
+    SECURE_CSP = {
+        # Default fallback for all content types
+        # 'self' allows resources from the same origin only
+        'default-src': [CSP.SELF],
+        # Script sources: Only allow scripts from same origin with nonce support
+        # NONCE allows inline scripts with a valid nonce attribute
+        # This is more secure than 'unsafe-inline' as it explicitly whitelists scripts
+        'script-src': [CSP.SELF, CSP.NONCE],
+        # Style sources: Allow styles from same origin and inline styles
+        # Note: Django admin uses some inline styles, so UNSAFE_INLINE is needed
+        # For better security, consider using NONCE for inline styles
+        'style-src': [CSP.SELF, CSP.UNSAFE_INLINE],
+        # Image sources: Allow images from same origin and data: URIs
+        # data: URIs are commonly used for base64-encoded images in Django admin
+        'img-src': [CSP.SELF, 'data:'],
+        # Font sources: Only allow fonts from same origin
+        # Django admin loads fonts from static files
+        'font-src': [CSP.SELF],
+        # Connect sources: Restrict AJAX/Fetch requests to same origin
+        'connect-src': [CSP.SELF],
+        # Object sources: Block all plugins (Flash, Java, etc.)
+        # This prevents plugin-based XSS attacks
+        'object-src': [CSP.NONE],
+        # Media sources: Restrict audio/video to same origin
+        'media-src': [CSP.SELF],
+        # Frame sources: Block all iframes unless explicitly needed
+        # Prevents clickjacking attacks
+        'frame-src': [CSP.NONE],
+        # Frame ancestors: Prevent page from being embedded in frames
+        # Works with X-Frame-Options middleware for clickjacking protection
+        'frame-ancestors': [CSP.SELF],
+        # Base URI: Restrict base tag to same origin
+        'base-uri': [CSP.SELF],
+        # Form action: Restrict form submissions to same origin
+        'form-action': [CSP.SELF],
+        # Manifest: Restrict app manifests to same origin
+        'manifest-src': [CSP.SELF],
+        # Report violations to this endpoint (optional, for monitoring)
+        # Uncomment and configure if you want to collect CSP violation reports
+        # "report-uri": ["/csp-violation-report/"],
+        # "report-to": ["csp-endpoint"],
+    }
+
+    # No report-only policy when enforcing
+    SECURE_CSP_REPORT_ONLY = None
+
+# Note: The resulting CSP header will look like:
+# Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-SECRET'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; media-src 'self'; frame-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; manifest-src 'self'
+
+# =============================================================================
 # APPLICATION DEFINITION
 # =============================================================================
 
@@ -76,6 +196,7 @@ INSTALLED_APPS = [app for app in INSTALLED_APPS if app]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.csp.ContentSecurityPolicyMiddleware',  # CSP middleware for XSS protection
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -100,6 +221,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # CSP context processor - provides csp_nonce for inline scripts/styles
+                'django.template.context_processors.csp',
             ],
         },
     },
@@ -113,8 +236,11 @@ ASGI_APPLICATION = 'sanfelipe.asgi.application'
 # =============================================================================
 
 # Multi-database configuration:
-# - default (SQLite): Django auth, admin, sessions
-# - business (PostgreSQL): tramites, catalogos, costos, bitacora (legacy tables)
+# - default (SQLite): Django auth, admin, sessions, messages, staticfiles, debug_toolbar
+# - business (PostgreSQL): tramites, catalogos, costos, bitacora, core (business data)
+#
+# The database router (sanfelipe.db_router.MultiDatabaseRouter) routes queries
+# to the appropriate database based on the app label.
 #
 # Business tables are managed externally (managed=False), so Django won't
 # create or modify them - it only reads/writes to existing PostgreSQL tables.
@@ -130,7 +256,8 @@ DATABASES = {
 }
 
 # Route business apps to PostgreSQL
-DATABASE_ROUTERS = ['sanfelipe.routers.BusinessDatabaseRouter']
+# Use the comprehensive multi-database router
+DATABASE_ROUTERS = ['sanfelipe.db_router.router_instance']
 
 # =============================================================================
 # CACHE

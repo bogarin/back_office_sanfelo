@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h1>CSP Usage Example</h1>
+
+    <!-- ✅ GOOD: External JavaScript files work without nonce -->
+    <script src="{% static 'js/main.js' %}" defer></script>
+
+    <!-- ✅ GOOD: Inline script with nonce attribute -->
+    <script nonce="{{ csp_nonce }}">
+        // This inline JavaScript will be allowed because it has the nonce
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Inline script with nonce is working!');
+            initCustomFunctionality();
+        });
+
+        function initCustomFunctionality() {
+            // Your custom initialization logic here
+            const button = document.getElementById('my-button');
+            if (button) {
+                button.addEventListener('click', handleButtonClick);
+            }
+        }
+
+        function handleButtonClick(event) {
+            event.preventDefault();
+            alert('Button clicked! CSP is protecting your site.');
+        }
+    </script>
+
+    <!-- ✅ GOOD: External CSS files work without nonce -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <!-- ✅ GOOD: Inline styles with nonce attribute -->
+    <style nonce="{{ csp_nonce }}">
+        .custom-container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .highlight {
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        /* Dynamic styles based on template variables */
+        .status-{{ status }} {
+            background-color: {% if status == 'success' %}#28a745{% elif status == 'warning' %}#ffc107{% else %}#dc3545{% endif %};
+            color: white;
+        }
+    </style>
+
+    <div class="custom-container">
+        <h2>Secure Inline Content Example</h2>
+        <p>
+            This page demonstrates how to use <span class="highlight">CSP nonces</span>
+            for inline scripts and styles.
+        </p>
+
+        <p>
+            The <code>csp_nonce</code> context variable is automatically provided by
+            the <code>django.template.context_processors.csp</code> context processor.
+        </p>
+
+        <div class="status-{{ status }}">
+            Current status: {{ status|title }}
+        </div>
+
+        <button id="my-button" class="btn btn-primary">
+            Click Me!
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- ✅ GOOD: Block-based JavaScript can use inline scripts with nonces -->
+<script nonce="{{ csp_nonce }}">
+    // Additional page-specific JavaScript
+    console.log('Extra JS block loaded successfully!');
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<!-- ✅ GOOD: Block-based CSS can use inline styles with nonces -->
+<style nonce="{{ csp_nonce }}">
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+</style>
+{% endblock %}
+
+{% block inline_js_example %}
+<!-- ❌ BAD: Inline script WITHOUT nonce will be blocked by CSP -->
+<!-- This will cause a CSP violation in the browser console -->
+{#
+<script>
+    console.log('This script will be blocked!');
+</script>
+#}
+{% endblock %}
+
+{% block inline_css_example %}
+<!-- ❌ BAD: Inline style WITHOUT nonce will be blocked by CSP -->
+<!-- This will cause a CSP violation in the browser console -->
+{#
+<style>
+    .blocked-style {
+        color: red;
+    }
+</style>
+#}
+{% endblock %}
+
+{% block external_resources %}
+<!-- ✅ GOOD: External resources from allowed sources -->
+<img src="{% static 'images/logo.png' %}" alt="Logo">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="Data URI Image">
+
+<!-- ✅ GOOD: Fonts from allowed sources -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Note: If you use external fonts, you need to add them to font-src in settings.py -->
+<!-- Example: "font-src": [CSP.SELF, "https://fonts.googleapis.com", "https://fonts.gstatic.com"] -->
+{% endblock %}
