@@ -22,7 +22,8 @@ Un **ADR (Architecture Decision Record)** es un documento corto que captura una 
 | [ADR-003](003-estrategia-caching-rendimiento.md) | Estrategia de caching y rendimiento |
 | [ADR-004](004-logging-monitoreo.md) | Logging y monitoreo |
 | [ADR-005](005-despliegue-docker-gunicorn.md) | Despliegue con Docker y gunicorn |
-| [ADR-006](006-permisos-admin-operador.md) | Permisos de admin y operador |
+| [ADR-006](006-permisos-admin-operador.md) | Permisos de admin y operador *(Superseded)* |
+| [ADR-007](007-implementacion-rbac-django-60.md) | Implementación de Control de Acceso Basado en Roles (RBAC) para Django 6.0 |
 
 
 ## Cómo crear un nuevo ADR

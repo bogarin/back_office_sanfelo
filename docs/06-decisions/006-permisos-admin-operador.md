@@ -1,5 +1,12 @@
-# 006: Permisos de admin y operador
+---
+**Estado:** Superseded
+**Sustituido por:** [ADR-007](007-implementacion-rbac-django-60.md)
+**Fecha:** 28 de febrero de 2026
+**Motivo:** Documentación existente era narrativa, no seguía formato ADR oficial. ADR-007 proporciona documentación estructurada completa de toda la implementación RBAC incluyendo Django 6.0 features.
 
+---
+
+# 006: Permisos de admin y operador
 **Fecha:** 26 de febrero de 2026  
 **Estado:** Propuesto
 
