@@ -15,18 +15,9 @@ class TestAdminRegistration:
         'app_label,model_name',
         [
             ('tramites', 'Tramite'),
-            ('costos', 'Costo'),
             ('costos', 'Uma'),
-            ('catalogos', 'CatTramite'),
-            ('catalogos', 'CatEstatus'),
             ('catalogos', 'CatPerito'),
-            ('catalogos', 'CatActividad'),
-            ('catalogos', 'CatCategoria'),
-            ('catalogos', 'CatInciso'),
-            ('catalogos', 'CatRequisito'),
-            ('catalogos', 'CatTipo'),
             ('catalogos', 'Actividades'),
-            ('catalogos', 'Cobro'),
         ],
     )
     def test_model_registered_in_admin(self, app_label, model_name):

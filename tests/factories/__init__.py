@@ -10,21 +10,10 @@ from tests.factories.auth import (
     UserFactory,
 )
 from tests.factories.catalogos import (
-    ActividadesFactory,
-    CatActividadFactory,
-    CatCategoriaFactory,
-    CatEstatusFactory,
-    CatIncisoFactory,
-    CatPeritoFactory,
-    CatRequisitoFactory,
-    CatTipoFactory,
     CatTramiteFactory,
-    CobroFactory,
-    RelTmtActividadFactory,
-    RelTmtCategoriaFactory,
-    RelTmtCateReqFactory,
-    RelTmtIncisoFactory,
-    RelTmtTipoReqFactory,
+    CatEstatusFactory,
+    CatPeritoFactory,
+    ActividadesFactory,
 )
 from tests.factories.costos import CostoFactory, UmaFactory
 from tests.factories.tramites import TramiteFactory

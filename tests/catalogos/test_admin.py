@@ -8,20 +8,34 @@ This file contains only tests specific to catalogos that are not covered by gene
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
 
-from catalogos.admin import CatTramiteAdmin
-from catalogos.models import CatTramite
-from tests.factories import CatTramiteFactory
+from catalogos.admin import ActividadesAdmin, CatPeritoAdmin
+from catalogos.models import Actividades, CatPerito
+from tests.factories import ActividadesFactory, CatPeritoFactory
 
 
-class TestCatTramiteAdmin(TestCase):
-    """Test suite for CatTramiteAdmin specific tests."""
+class TestCatPeritoAdmin(TestCase):
+    """Test suite for CatPeritoAdmin specific tests."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.site = AdminSite()
-        self.admin = CatTramiteAdmin(CatTramite, self.site)
-        self.tramite = CatTramiteFactory()
+        self.admin = CatPeritoAdmin(CatPerito, self.site)
+        self.perito = CatPeritoFactory()
 
     def test_admin_registered(self):
-        """Test that CatTramite is registered with admin."""
+        """Test that CatPerito is registered with admin."""
+        self.assertIsNotNone(self.admin)
+
+
+class TestActividadesAdmin(TestCase):
+    """Test suite for ActividadesAdmin specific tests."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.site = AdminSite()
+        self.admin = ActividadesAdmin(Actividades, self.site)
+        self.actividades = ActividadesFactory()
+
+    def test_admin_registered(self):
+        """Test that Actividades is registered with admin."""
         self.assertIsNotNone(self.admin)

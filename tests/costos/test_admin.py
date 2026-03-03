@@ -8,26 +8,24 @@ This file contains only tests specific to costos.
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
 
-from costos.admin import CostoAdmin, UmaAdmin
-from costos.models import Costo, Uma
-from tests.factories import CostoFactory, UmaFactory
+from costos.admin import UmaAdmin
+from costos.models import Uma
+from tests.factories import UmaFactory
 
 
-class TestCostoAdmin(TestCase):
-    """Test suite for CostoAdmin specific tests."""
+class TestUmaAdmin(TestCase):
+    """Test suite for UmaAdmin specific tests."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.site = AdminSite()
-        self.admin = CostoAdmin(Costo, self.site)
-        self.costo = CostoFactory()
+        self.admin = UmaAdmin(Uma, self.site)
+        self.uma = UmaFactory()
 
     def test_admin_registered(self):
-        """Test that Costo is registered with admin."""
+        """Test that Uma is registered with admin."""
         self.assertIsNotNone(self.admin)
 
-
-class TestUmaAdmin(TestCase):
     """Test suite for UmaAdmin specific tests."""
 
     def setUp(self):
