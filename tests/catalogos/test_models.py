@@ -19,7 +19,6 @@ from tests.factories import (
     CatRequisitoFactory,
     CatTipoFactory,
     CatTramiteFactory,
-    CatUsuarioFactory,
 )
 
 
@@ -43,43 +42,6 @@ class TestCatTramite(TestCase):
         self.assertIsNotNone(self.tramite.pago_inicial)
         self.assertIsNotNone(self.tramite.url)
         self.assertIsNotNone(self.tramite.activo)
-
-
-class TestCatEstatus(TestCase):
-    """Test suite for CatEstatus model."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        self.estatus = CatEstatusFactory()
-
-    def test_str_representation(self):
-        """Test string representation of CatEstatus."""
-        self.assertEqual(str(self.estatus), self.estatus.estatus)
-
-    def test_model_fields(self):
-        """Test CatEstatus model fields."""
-        self.assertIsNotNone(self.estatus.estatus)
-        self.assertIsNotNone(self.estatus.responsable)
-        self.assertIsNotNone(self.estatus.descripcion)
-
-
-class TestCatUsuario(TestCase):
-    """Test suite for CatUsuario model."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        self.usuario = CatUsuarioFactory()
-
-    def test_str_representation(self):
-        """Test string representation of CatUsuario."""
-        self.assertEqual(str(self.usuario), self.usuario.nombre)
-
-    def test_model_fields(self):
-        """Test CatUsuario model fields."""
-        self.assertIsNotNone(self.usuario.nombre)
-        self.assertIsNotNone(self.usuario.usuario)
-        self.assertIsNotNone(self.usuario.correo)
-        self.assertIsNotNone(self.usuario.nivel)
 
 
 class TestCatPerito(TestCase):

@@ -18,7 +18,6 @@ from catalogos.models import (
     CatRequisito,
     CatTipo,
     CatTramite,
-    CatUsuario,
     Cobro,
     RelTmtActividad,
     RelTmtCategoria,
@@ -116,51 +115,6 @@ class CatEstatusAdmin(CatalogBaseAdmin, RoleBasedAccessMixin):
 
     estatus_group.short_description = 'Grupo'
     estatus_group.allow_tags = True
-
-
-@admin.register(CatUsuario)
-class CatUsuarioAdmin(BaseModelAdmin, RoleBasedAccessMixin):
-    """Admin interface for CatUsuario model."""
-
-    list_display = (
-        'nombre',
-        'usuario',
-        'nivel',
-        'correo',
-        'activo',
-        'activo_badge',
-        'fecha_alta',
-    )
-    list_filter = ('activo', 'nivel')
-    search_fields = ('nombre', 'usuario', 'correo')
-    list_editable = ('activo',)
-    actions = [mark_as_active, mark_as_inactive]
-
-    fieldsets = (
-        (
-            'Información del Usuario',
-            {
-                'fields': ('nombre', 'usuario', 'correo', 'nivel'),
-            },
-        ),
-        (
-            'Configuración',
-            {
-                'fields': (
-                    'activo',
-                    ('fecha_alta', 'fecha_baja'),
-                ),
-            },
-        ),
-    )
-
-    def activo_badge(self, obj):
-        """Display activo status as badge."""
-        return render_activo_badge(obj.activo)
-
-    activo_badge.short_description = 'Estado'
-    activo_badge.admin_order_field = 'activo'
-    activo_badge.allow_tags = True
 
 
 @admin.register(CatPerito)
@@ -361,16 +315,14 @@ class ActividadesAdmin(BaseModelAdmin, RoleBasedAccessMixin):
     def get_form(self, request, obj=None, **kwargs):
         """Customize form with widget choices from catalog tables."""
         form = super().get_form(request, obj, **kwargs)
-        from catalogos.models import CatActividad, CatEstatus, CatUsuario
+        from catalogos.models import CatActividad, CatEstatus
 
         # Populate choices dynamically
         actividades_choices = [(a.id, a.actividad) for a in CatActividad.objects.all()]
         estatus_choices = [(e.id, e.estatus) for e in CatEstatus.objects.all()]
-        usuarios_choices = [(u.id, u.nombre) for u in CatUsuario.objects.all()]
 
         form.base_fields['id_cat_actividad'].widget.choices = actividades_choices
         form.base_fields['id_cat_estatus'].widget.choices = estatus_choices
-        form.base_fields['id_cat_usuario'].widget.choices = usuarios_choices
 
         return form
 

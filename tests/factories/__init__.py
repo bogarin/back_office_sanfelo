@@ -19,7 +19,6 @@ from tests.factories.catalogos import (
     CatRequisitoFactory,
     CatTipoFactory,
     CatTramiteFactory,
-    CatUsuarioFactory,
     CobroFactory,
     RelTmtActividadFactory,
     RelTmtCategoriaFactory,
@@ -42,7 +41,6 @@ __all__ = [
     # Catalogos factories
     'CatTramiteFactory',
     'CatEstatusFactory',
-    'CatUsuarioFactory',
     'CatPeritoFactory',
     'CatActividadFactory',
     'CatCategoriaFactory',

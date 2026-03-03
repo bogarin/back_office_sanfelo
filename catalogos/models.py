@@ -62,36 +62,6 @@ class CatEstatus(models.Model):
         return f'{self.estatus}'
 
 
-class CatUsuario(models.Model):
-    """Catálogo de usuarios del sistema."""
-
-    class Meta:
-        managed = True
-        db_table = 'cat_usuario'
-        verbose_name = 'Catálogo Usuario'
-        verbose_name_plural = 'Catálogo Usuarios'
-        ordering = ['nombre']
-
-    id = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=125, verbose_name='Nombre')
-    usuario = models.CharField(max_length=20, verbose_name='Usuario')
-    password = models.CharField(
-        max_length=24,
-        blank=True,
-        null=True,
-        verbose_name='Contraseña',
-        db_column='pass',
-    )
-    fecha_baja = models.DateField(verbose_name='Fecha de Baja')
-    fecha_alta = models.DateField(verbose_name='Fecha de Alta')
-    activo = models.BooleanField(verbose_name='Activo')
-    correo = models.CharField(max_length=255, blank=True, null=True, verbose_name='Correo')
-    nivel = models.CharField(max_length=60, verbose_name='Nivel')
-
-    def __str__(self) -> str:
-        return f'{self.nombre}'
-
-
 class CatPerito(models.Model):
     """Catálogo de peritos autorizados."""
 

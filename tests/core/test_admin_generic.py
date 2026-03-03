@@ -19,7 +19,6 @@ class TestAdminRegistration:
             ('costos', 'Uma'),
             ('catalogos', 'CatTramite'),
             ('catalogos', 'CatEstatus'),
-            ('catalogos', 'CatUsuario'),
             ('catalogos', 'CatPerito'),
             ('catalogos', 'CatActividad'),
             ('catalogos', 'CatCategoria'),

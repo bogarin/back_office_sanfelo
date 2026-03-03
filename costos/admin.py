@@ -141,14 +141,12 @@ class CostoAdmin(BaseModelAdmin, RoleBasedAccessMixin):
     def get_form(self, request, obj=None, **kwargs):
         """Customize form with widget choices from catalog tables."""
         form = super().get_form(request, obj, **kwargs)
-        from catalogos.models import CatTipo, CatUsuario
+        from catalogos.models import CatTipo
 
         # Populate choices dynamically
         tipos_choices = [(t.id, t.tipo) for t in CatTipo.objects.all()]
-        usuarios_choices = [(u.id, u.nombre) for u in CatUsuario.objects.all()]
 
         form.base_fields['id_tipo'].widget.choices = tipos_choices
-        form.base_fields['id_usuario'].widget.choices = usuarios_choices
 
         return form
 

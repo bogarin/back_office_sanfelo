@@ -32,22 +32,6 @@ class CatEstatusFactory(factory.django.DjangoModelFactory):
     descripcion = factory.Faker('text', max_nb_chars=100)
 
 
-class CatUsuarioFactory(factory.django.DjangoModelFactory):
-    """Factory for CatUsuario model."""
-
-    class Meta:
-        model = 'catalogos.CatUsuario'
-
-    nombre = factory.Faker('name')
-    usuario = factory.Sequence(lambda n: f'usuario_{n}')
-    password = factory.Faker('password')
-    fecha_baja = date(2099, 12, 31)  # Far future date
-    fecha_alta = date(2020, 1, 1)
-    activo = True
-    correo = factory.LazyAttribute(lambda obj: f'{obj.usuario}@example.com')
-    nivel = factory.Faker('word')
-
-
 class CatPeritoFactory(factory.django.DjangoModelFactory):
     """Factory for CatPerito model."""
 

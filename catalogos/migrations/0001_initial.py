@@ -251,39 +251,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='CatUsuario',
-            fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('nombre', models.CharField(max_length=125, verbose_name='Nombre')),
-                ('usuario', models.CharField(max_length=20, verbose_name='Usuario')),
-                (
-                    'password',
-                    models.CharField(
-                        blank=True,
-                        db_column='pass',
-                        max_length=24,
-                        null=True,
-                        verbose_name='Contraseña',
-                    ),
-                ),
-                ('fecha_baja', models.DateField(verbose_name='Fecha de Baja')),
-                ('fecha_alta', models.DateField(verbose_name='Fecha de Alta')),
-                ('activo', models.BooleanField(verbose_name='Activo')),
-                (
-                    'correo',
-                    models.CharField(blank=True, max_length=255, null=True, verbose_name='Correo'),
-                ),
-                ('nivel', models.CharField(max_length=60, verbose_name='Nivel')),
-            ],
-            options={
-                'verbose_name': 'Catálogo Usuario',
-                'verbose_name_plural': 'Catálogo Usuarios',
-                'db_table': 'cat_usuario',
-                'ordering': ['nombre'],
-                'managed': True,
-            },
-        ),
-        migrations.CreateModel(
             name='Cobro',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
