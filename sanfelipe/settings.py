@@ -6,12 +6,10 @@ Uses Django's built-in auth system with SQLite.
 Business data (tramites, catalogos, costos, bitacora) uses PostgreSQL.
 """
 
+import os
 from pathlib import Path
 
 import environ
-
-# Import CSP utilities for Django 6.0 Content Security Policy support
-from django.utils.csp import CSP
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -68,6 +66,9 @@ if not DEBUG:
 # For initial deployment, use REPORT_ONLY mode to identify any issues without
 # breaking functionality. After confirming everything works, switch to enforced mode.
 CSP_REPORT_MODE = env.bool('DJANGO_CSP_REPORT_ONLY', default=False)
+
+# Import CSP utilities - import here to avoid circular import issues
+from django.utils.csp import CSP
 
 if CSP_REPORT_MODE:
     # Report-only mode: Monitor violations without blocking content
@@ -173,6 +174,9 @@ else:
 # APPLICATION DEFINITION
 # =============================================================================
 
+# Testing mode flag (must be defined before INSTALLED_APPS)
+TESTING = env.bool('TESTING', default=False)
+
 INSTALLED_APPS = [
     # Django core apps
     'django.contrib.auth',
@@ -181,14 +185,16 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Django Admin
     'django.contrib.admin',
-    # Third-party apps
-    'debug_toolbar' if DEBUG else None,
+    # Third-party apps (only in DEBUG mode, not during tests)
+    'debug_toolbar' if (DEBUG and not TESTING) else None,
     # Local apps (business data in PostgreSQL, managed externally)
     'tramites',
     'catalogos',
     'bitacora',
     'costos',
     'core',
+    # Test-only models for permission testing (only during tests)
+    'tests' if TESTING else None,
 ]
 
 # Filter out None values (conditional apps)
@@ -205,7 +211,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-if DEBUG:
+if DEBUG and not TESTING:
     MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
 
 ROOT_URLCONF = 'sanfelipe.urls'
@@ -257,13 +263,11 @@ DATABASES = {
 
 # Route business apps to PostgreSQL
 # Use the comprehensive multi-database router
-DATABASE_ROUTERS = ['sanfelipe.db_router.router_instance']
+DATABASE_ROUTERS = ['core.db_router.MultiDatabaseRouter']
 
 # =============================================================================
 # CACHE
 # =============================================================================
-
-TESTING = env.bool('TESTING', default=False)
 
 # Cache only in production for performance
 # Development: No cache (simple, fast development)

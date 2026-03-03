@@ -1,26 +1,59 @@
-"""
-Database router for multi-database configuration.
-
-Routes models between SQLite (auth data) and PostgreSQL (business data)
-based on app labels.
-
-Routing Strategy:
-- SQLite ('default'): auth, contenttypes, admin, sessions, messages, staticfiles
-- PostgreSQL ('business'): catalogos, costos, bitacora, tramites, core
-
-This router implements the Django database routing API to ensure proper
-separation of concerns while maintaining compatibility with Django 6.x.
-
-Reference:
-    https://docs.djangoproject.com/en/stable/topics/db/multi-db/
-"""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from django.db.models import Model
+
+
+class BaseRouter:
+    def db_for_read(self, model: type[Model], **hints: object) -> str | None:
+        raise NotImplementedError
+
+    def db_for_write(self, model: type[Model], **hints: object) -> str | None:
+        raise NotImplementedError
+
+    def allow_relation(
+        self,
+        obj1: Model | type[Model],
+        obj2: Model | type[Model],
+        **hints: object,
+    ) -> bool | None:
+        raise NotImplementedError
+
+    def allow_migrate(
+        self,
+        db: str,
+        app_label: str,
+        model_name: str | None = None,
+        **hints: object,
+    ) -> bool:
+        raise NotImplementedError
+
+
+class TestRouter(BaseRouter):
+    def db_for_read(self, model: type[Model], **hints: object) -> str | None:
+        return 'default'
+
+    def db_for_write(self, model: type[Model], **hints: object) -> str | None:
+        return 'default'
+
+    def allow_relation(
+        self,
+        obj1: Model | type[Model],
+        obj2: Model | type[Model],
+        **hints: object,
+    ) -> bool | None:
+        return True
+
+    def allow_migrate(
+        self,
+        db: str,
+        app_label: str,
+        model_name: str | None = None,
+        **hints: object,
+    ) -> bool:
+        return db == 'default'
 
 
 class MultiDatabaseRouter:
@@ -293,8 +326,3 @@ class MultiDatabaseRouter:
             True if syncdb should run, False otherwise
         """
         return self.allow_migrate(db, model._meta.app_label)  # type: ignore[attr-defined]
-
-
-# Singleton instance for easy import in settings.py
-# Usage: DATABASE_ROUTERS = ['sanfelipe.db_router.router_instance']
-router_instance = MultiDatabaseRouter()

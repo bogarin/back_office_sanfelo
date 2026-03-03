@@ -12,7 +12,7 @@ class CatTramite(models.Model):
     """Catálogo de tipos de trámites."""
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'cat_tramite'
         verbose_name = 'Catálogo Trámite'
         verbose_name_plural = 'Catálogo Trámites'
@@ -45,7 +45,7 @@ class CatEstatus(models.Model):
     """
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'cat_estatus'
         verbose_name = 'Catálogo Estatus'
         verbose_name_plural = 'Catálogo Estatus'
@@ -66,7 +66,7 @@ class CatUsuario(models.Model):
     """Catálogo de usuarios del sistema."""
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'cat_usuario'
         verbose_name = 'Catálogo Usuario'
         verbose_name_plural = 'Catálogo Usuarios'
@@ -96,7 +96,7 @@ class CatPerito(models.Model):
     """Catálogo de peritos autorizados."""
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'cat_perito'
         verbose_name = 'Catálogo Perito'
         verbose_name_plural = 'Catálogo Peritos'
@@ -139,7 +139,7 @@ class CatActividad(models.Model):
     """Catálogo de actividades realizadas durante el trámite."""
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'cat_actividad'
         verbose_name = 'Catálogo Actividad'
         verbose_name_plural = 'Catálogo Actividades'
@@ -156,7 +156,7 @@ class CatCategoria(models.Model):
     """Catálogo de categorías de trámites."""
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'cat_categoria'
         verbose_name = 'Catálogo Categoría'
         verbose_name_plural = 'Catálogo Categorías'
@@ -173,7 +173,7 @@ class CatInciso(models.Model):
     """Catálogo de incisos presupuestarios."""
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'cat_inciso'
         verbose_name = 'Catálogo Inciso'
         verbose_name_plural = 'Catálogo Incisos'
@@ -193,7 +193,7 @@ class CatRequisito(models.Model):
     """Catálogo de requisitos para trámites."""
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'cat_requisito'
         verbose_name = 'Catálogo Requisito'
         verbose_name_plural = 'Catálogo Requisitos'
@@ -210,7 +210,7 @@ class CatTipo(models.Model):
     """Catálogo de tipos de trámites (para costos)."""
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'cat_tipo'
         verbose_name = 'Catálogo Tipo'
         verbose_name_plural = 'Catálogo Tipos'
@@ -235,7 +235,7 @@ class RelTmtCateReq(models.Model):
     """
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'rel_tmt_cate_req'
         verbose_name = 'Relación Trámite-Requisito-Categoría'
         verbose_name_plural = 'Relaciones Trámite-Requisito-Categoría'
@@ -256,7 +256,7 @@ class RelTmtCategoria(models.Model):
     """
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'rel_tmt_categoria'
         verbose_name = 'Relación Trámite-Categoría'
         verbose_name_plural = 'Relaciones Trámite-Categoría'
@@ -276,7 +276,7 @@ class RelTmtInciso(models.Model):
     """
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'rel_tmt_inciso'
         verbose_name = 'Relación Inciso-Trámite'
         verbose_name_plural = 'Relaciones Inciso-Trámite'
@@ -296,7 +296,7 @@ class RelTmtTipoReq(models.Model):
     """
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'rel_tmt_tipo_req'
         verbose_name = 'Relación Tipo-Trámite-Requisito'
         verbose_name_plural = 'Relaciones Tipo-Trámite-Requisito'
@@ -324,7 +324,7 @@ class Actividades(models.Model):
     """
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'actividades'
         verbose_name = 'Actividad'
         verbose_name_plural = 'Actividades'
@@ -353,7 +353,7 @@ class Cobro(models.Model):
     """
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'cobro'
         verbose_name = 'Cobro'
         verbose_name_plural = 'Cobros'
@@ -376,7 +376,7 @@ class RelTmtActividad(models.Model):
     """
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'rel_tmt_actividad'
         verbose_name = 'Relación Trámite-Actividad'
         verbose_name_plural = 'Relaciones Trámite-Actividad'

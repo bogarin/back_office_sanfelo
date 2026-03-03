@@ -5,6 +5,7 @@ Only contains the Tramite model as per schema definition.
 Note: This is a mapping to the external SQL schema - do NOT use Django migrations.
 """
 
+from django.conf import settings
 from django.db import models
 
 from catalogos.models import CatEstatus, CatTramite
@@ -18,7 +19,7 @@ class Tramite(models.Model):
     """
 
     class Meta:
-        managed = False
+        managed = getattr(settings, 'TESTING', False)
         db_table = 'tramite'
         verbose_name = 'Trámite'
         verbose_name_plural = 'Trámites'

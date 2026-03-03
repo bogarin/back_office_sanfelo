@@ -46,12 +46,12 @@ lint:
     uv run ruff check .
 
 # Fix auto-fixable linting issues
-lint-fix:
-    uv run ruff check --fix .
+lint-fix *ARGS:
+    uv run ruff check --fix {{ if ARGS == "" { "." } else { ARGS } }}
 
 # Format code with ruff
-format:
-    uv run ruff format .
+format *ARGS:
+    uv run ruff format {{ if ARGS == "" { "." } else { ARGS } }}
 
 # Run all checks (lint + typecheck)
 check: lint typecheck
@@ -60,9 +60,25 @@ check: lint typecheck
 shell:
     uv run manage.py shell
 
-# Test runner (if tests exist)
-test:
-    uv run manage.py test
+# Test runner with pytest
+test *ARGS:
+    TESTING=1 uv run pytest {{ARGS}}
+
+# Run tests for a specific app
+test-app APP:
+    TESTING=1 uv run pytest tests/{{APP}}/
+
+# Run tests with coverage
+test-cov *ARGS:
+    TESTING=1 uv run pytest --cov=. --cov-report=html --cov-report=term {{ARGS}}
+
+# Run tests skipping slow tests
+test-fast *ARGS:
+    TESTING=1 uv run pytest -m 'not slow' {{ARGS}}
+
+# Run tests re-creating database
+test-create-db *ARGS:
+    TESTING=1 uv run pytest --create-db {{ARGS}}
 
 # Check Django system status
 check-system:

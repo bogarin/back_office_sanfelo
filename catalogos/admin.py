@@ -32,7 +32,7 @@ from core.admin import (
     CatalogBaseAdmin,
     mark_as_active,
     mark_as_inactive,
-    OperatorPermissionMixin,
+    RoleBasedAccessMixin,
 )
 from core.admin_utils import render_activo_badge
 
@@ -42,7 +42,7 @@ from core.admin_utils import render_activo_badge
 
 
 @admin.register(CatTramite)
-class CatTramiteAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
+class CatTramiteAdmin(AuditTrailMixin, CatalogBaseAdmin, RoleBasedAccessMixin):
     """Admin interface for CatTramite model."""
 
     list_display = (
@@ -89,7 +89,7 @@ class CatTramiteAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin
 
 
 @admin.register(CatEstatus)
-class CatEstatusAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
+class CatEstatusAdmin(AuditTrailMixin, CatalogBaseAdmin, RoleBasedAccessMixin):
     """Admin interface for CatEstatus model."""
 
     list_display = ('id', 'estatus', 'responsable', 'estatus_group')
@@ -120,7 +120,7 @@ class CatEstatusAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin
 
 
 @admin.register(CatUsuario)
-class CatUsuarioAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class CatUsuarioAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for CatUsuario model."""
 
     list_display = (
@@ -165,7 +165,7 @@ class CatUsuarioAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
 
 
 @admin.register(CatPerito)
-class CatPeritoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class CatPeritoAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for CatPerito model."""
 
     list_display = (
@@ -222,7 +222,7 @@ class CatPeritoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
 
 
 @admin.register(CatActividad)
-class CatActividadAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
+class CatActividadAdmin(AuditTrailMixin, CatalogBaseAdmin, RoleBasedAccessMixin):
     """Admin interface for CatActividad model."""
 
     list_display = ('id', 'actividad')
@@ -230,7 +230,7 @@ class CatActividadAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMix
 
 
 @admin.register(CatCategoria)
-class CatCategoriaAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
+class CatCategoriaAdmin(AuditTrailMixin, CatalogBaseAdmin, RoleBasedAccessMixin):
     """Admin interface for CatCategoria model."""
 
     list_display = ('id', 'categoria')
@@ -238,7 +238,7 @@ class CatCategoriaAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMix
 
 
 @admin.register(CatInciso)
-class CatIncisoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class CatIncisoAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for CatInciso model."""
 
     list_display = ('id', 'inciso', 'descripcion')
@@ -246,7 +246,7 @@ class CatIncisoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
 
 
 @admin.register(CatRequisito)
-class CatRequisitoAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
+class CatRequisitoAdmin(AuditTrailMixin, CatalogBaseAdmin, RoleBasedAccessMixin):
     """Admin interface for CatRequisito model."""
 
     list_display = ('id', 'requisito')
@@ -254,7 +254,7 @@ class CatRequisitoAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMix
 
 
 @admin.register(CatTipo)
-class CatTipoAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
+class CatTipoAdmin(AuditTrailMixin, CatalogBaseAdmin, RoleBasedAccessMixin):
     """Admin interface for CatTipo model."""
 
     list_display = ('id', 'tipo')
@@ -267,7 +267,7 @@ class CatTipoAdmin(AuditTrailMixin, CatalogBaseAdmin, OperatorPermissionMixin):
 
 
 @admin.register(RelTmtCateReq)
-class RelTmtCateReqAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class RelTmtCateReqAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for RelTmtCateReq model."""
 
     list_display = ('id', 'id_cat_tramite', 'id_cat_requisito', 'id_cat_categoria')
@@ -276,7 +276,7 @@ class RelTmtCateReqAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixi
 
 
 @admin.register(RelTmtCategoria)
-class RelTmtCategoriaAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class RelTmtCategoriaAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for RelTmtCategoria model."""
 
     list_display = ('id', 'id_cat_tramite', 'id_cat_categoria')
@@ -285,7 +285,7 @@ class RelTmtCategoriaAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMi
 
 
 @admin.register(RelTmtInciso)
-class RelTmtIncisoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class RelTmtIncisoAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for RelTmtInciso model."""
 
     list_display = ('id', 'id_cat_inciso', 'id_cat_tramite')
@@ -294,7 +294,7 @@ class RelTmtIncisoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin
 
 
 @admin.register(RelTmtTipoReq)
-class RelTmtTipoReqAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class RelTmtTipoReqAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for RelTmtTipoReq model."""
 
     list_display = ('id', 'id_cat_tipo', 'id_cat_tramite', 'id_cat_requisito')
@@ -303,7 +303,7 @@ class RelTmtTipoReqAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixi
 
 
 @admin.register(RelTmtActividad)
-class RelTmtActividadAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class RelTmtActividadAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for RelTmtActividad model."""
 
     list_display = ('id', 'id_cat_tramite', 'id_cat_actividad')
@@ -317,7 +317,7 @@ class RelTmtActividadAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMi
 
 
 @admin.register(Actividades)
-class ActividadesAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class ActividadesAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for Actividades model."""
 
     list_display = (
@@ -377,7 +377,7 @@ class ActividadesAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin)
 
 
 @admin.register(Cobro)
-class CobroAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class CobroAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for Cobro model."""
 
     list_display = ('id', 'concepto', 'importe', 'inciso', 'id_tramite')

@@ -31,13 +31,13 @@ def render_status_badge(estatus_id, estatus_text):
         Safe HTML string for the status badge
     """
     if 100 <= estatus_id < 200:
-        badge_class = "badge-inicio"
+        badge_class = 'badge-inicio'
     elif 200 <= estatus_id < 300:
-        badge_class = "badge-proceso"
+        badge_class = 'badge-proceso'
     elif 300 <= estatus_id < 400:
-        badge_class = "badge-finalizado"
+        badge_class = 'badge-finalizado'
     else:
-        badge_class = "badge-otro"
+        badge_class = 'badge-otro'
 
     return render_badge(estatus_text, badge_class)
 
@@ -52,8 +52,8 @@ def render_activo_badge(is_activo):
         Safe HTML string for the activo badge
     """
     if is_activo:
-        return render_badge("Activo", "badge-activo")
-    return render_badge("Inactivo", "badge-inactivo")
+        return render_badge('Activo', 'badge-activo')
+    return render_badge('Inactivo', 'badge-inactivo')
 
 
 def render_pagado_badge(is_pagado):
@@ -66,8 +66,8 @@ def render_pagado_badge(is_pagado):
         Safe HTML string for the pagado badge
     """
     if is_pagado:
-        return render_badge("Pagado", "badge-success")
-    return render_badge("No Pagado", "badge-danger")
+        return render_badge('Pagado', 'badge-success')
+    return render_badge('No Pagado', 'badge-danger')
 
 
 def render_urgente_badge(is_urgente):
@@ -80,5 +80,5 @@ def render_urgente_badge(is_urgente):
         Safe HTML string for the urgente badge
     """
     if is_urgente:
-        return render_badge("⚠ Urgente", "badge-danger")
-    return render_badge("Normal", "badge-secondary")
+        return render_badge('⚠ Urgente', 'badge-danger')
+    return render_badge('Normal', 'badge-secondary')

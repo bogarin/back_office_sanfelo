@@ -28,46 +28,46 @@ class TramiteAdmin(AuditTrailMixin, BaseModelAdmin):
 
     # List display configuration
     list_display = (
-        "folio",
-        "tramite_nombre",
-        "estatus_display",
-        "importe_total",
-        "pagado",
-        "pagado_badge",
-        "urgente",
-        "urgente_badge",
-        "creado",
+        'folio',
+        'tramite_nombre',
+        'estatus_display',
+        'importe_total',
+        'pagado',
+        'pagado_badge',
+        'urgente',
+        'urgente_badge',
+        'creado',
     )
 
     # List filtering
     list_filter = (
-        "id_cat_estatus",
-        "pagado",
-        "urgente",
-        "es_propietario",
-        "creado",
-        "modificado",
+        'id_cat_estatus',
+        'pagado',
+        'urgente',
+        'es_propietario',
+        'creado',
+        'modificado',
     )
 
     # Search fields
     search_fields = (
-        "folio",
-        "nom_sol",
-        "tel_sol",
-        "correo_sol",
-        "clave_catastral",
-        "observacion",
+        'folio',
+        'nom_sol',
+        'tel_sol',
+        'correo_sol',
+        'clave_catastral',
+        'observacion',
     )
 
     # Ordering
-    ordering = ("-creado",)
+    ordering = ('-creado',)
 
     # Pagination
     list_per_page = 25
     list_max_show_all = 100
 
     # Fields that should be editable in the list view
-    list_editable = ("pagado", "urgente")
+    list_editable = ('pagado', 'urgente')
 
     # Actions
     actions = [mark_urgent, mark_not_urgent, mark_as_paid, mark_as_unpaid]
@@ -75,56 +75,56 @@ class TramiteAdmin(AuditTrailMixin, BaseModelAdmin):
     # Fieldsets for the edit form
     fieldsets = (
         (
-            "Información del Trámite",
+            'Información del Trámite',
             {
-                "fields": (
-                    "folio",
-                    "id_cat_tramite",
-                    "id_cat_estatus",
-                    "id_cat_perito",
-                    "tipo",
+                'fields': (
+                    'folio',
+                    'id_cat_tramite',
+                    'id_cat_estatus',
+                    'id_cat_perito',
+                    'tipo',
                 ),
-                "classes": ("wide",),
+                'classes': ('wide',),
             },
         ),
         (
-            "Información del Solicitante",
+            'Información del Solicitante',
             {
-                "fields": (
-                    "nom_sol",
-                    "tel_sol",
-                    "correo_sol",
-                    "clave_catastral",
-                    "es_propietario",
+                'fields': (
+                    'nom_sol',
+                    'tel_sol',
+                    'correo_sol',
+                    'clave_catastral',
+                    'es_propietario',
                 ),
-                "classes": ("wide",),
+                'classes': ('wide',),
             },
         ),
         (
-            "Información Financiera",
+            'Información Financiera',
             {
-                "fields": ("importe_total", "pagado", "urgente"),
-                "classes": ("wide",),
+                'fields': ('importe_total', 'pagado', 'urgente'),
+                'classes': ('wide',),
             },
         ),
         (
-            "Información Adicional",
+            'Información Adicional',
             {
-                "fields": ("observacion",),
-                "classes": ("wide",),
+                'fields': ('observacion',),
+                'classes': ('wide',),
             },
         ),
         (
-            "Auditoría",
+            'Auditoría',
             {
-                "fields": (("creado", "modificado"),),
-                "classes": ("collapse",),
+                'fields': (('creado', 'modificado'),),
+                'classes': ('collapse',),
             },
         ),
     )
 
     # Read-only fields
-    readonly_fields = ("folio", "creado", "modificado")
+    readonly_fields = ('folio', 'creado', 'modificado')
 
     # Custom form field widget customization
     def get_form(self, request, obj=None, **kwargs):
@@ -133,15 +133,13 @@ class TramiteAdmin(AuditTrailMixin, BaseModelAdmin):
         from catalogos.models import CatEstatus, CatPerito, CatTramite
 
         # Populate choices dynamically
-        tramites_choices = [
-            (t.id, t.nombre) for t in CatTramite.objects.filter(activo=True)
-        ]
+        tramites_choices = [(t.id, t.nombre) for t in CatTramite.objects.filter(activo=True)]
         estatus_choices = [(e.id, e.estatus) for e in CatEstatus.objects.all()]
         peritos_choices = [(p.id, p.nombre_completo) for p in CatPerito.objects.all()]
 
-        form.base_fields["id_cat_tramite"].widget.choices = tramites_choices
-        form.base_fields["id_cat_estatus"].widget.choices = estatus_choices
-        form.base_fields["id_cat_perito"].widget.choices = peritos_choices
+        form.base_fields['id_cat_tramite'].widget.choices = tramites_choices
+        form.base_fields['id_cat_estatus'].widget.choices = estatus_choices
+        form.base_fields['id_cat_perito'].widget.choices = peritos_choices
 
         return form
 
@@ -150,8 +148,8 @@ class TramiteAdmin(AuditTrailMixin, BaseModelAdmin):
         """Display tramite name from catalog."""
         return obj.tramite_display
 
-    tramite_nombre.short_description = "Tipo de Trámite"
-    tramite_nombre.admin_order_field = "id_cat_tramite"
+    tramite_nombre.short_description = 'Tipo de Trámite'
+    tramite_nombre.admin_order_field = 'id_cat_tramite'
 
     def estatus_display(self, obj):
         """Display estatus with color coding."""
@@ -193,11 +191,11 @@ class TramiteAdmin(AuditTrailMixin, BaseModelAdmin):
 
         extra_context.update(
             {
-                "total_tramites": total_tramites,
-                "tramites_urgentes": tramites_urgentes,
-                "tramites_pagados": tramites_pagados,
-                "tramites_pendientes_pago": tramites_pendientes_pago,
-                "estatus_distribution": estatus_distribution,
+                'total_tramites': total_tramites,
+                'tramites_urgentes': tramites_urgentes,
+                'tramites_pagados': tramites_pagados,
+                'tramites_pendientes_pago': tramites_pendientes_pago,
+                'estatus_distribution': estatus_distribution,
             }
         )
 

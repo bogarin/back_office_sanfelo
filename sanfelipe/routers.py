@@ -12,19 +12,19 @@ class BusinessDatabaseRouter:
     """Router for business apps to PostgreSQL."""
 
     # Apps that store business data in PostgreSQL
-    BUSINESS_APPS = {"tramites", "catalogos", "costos", "bitacora"}
+    BUSINESS_APPS = {'tramites', 'catalogos', 'costos', 'bitacora'}
 
     def db_for_read(self, model: type, **hints: Any) -> str | None:
         """Route read queries to business DB for business apps."""
         if model._meta.app_label in self.BUSINESS_APPS:
-            return "business"
-        return "default"
+            return 'business'
+        return 'default'
 
     def db_for_write(self, model: type, **hints: Any) -> str | None:
         """Route write queries to business DB for business apps."""
         if model._meta.app_label in self.BUSINESS_APPS:
-            return "business"
-        return "default"
+            return 'business'
+        return 'default'
 
     def allow_relation(self, obj1: type, obj2: type) -> bool | None:
         """Allow relations only within the same database."""
@@ -51,4 +51,4 @@ class BusinessDatabaseRouter:
         if app_label in self.BUSINESS_APPS:
             return False
         # Only migrate default (SQLite) for auth/admin
-        return db == "default"
+        return db == 'default'

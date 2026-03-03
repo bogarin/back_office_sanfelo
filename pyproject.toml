@@ -15,7 +15,12 @@ dependencies = [
 [dependency-groups]
 dev = [
     "django-debug-toolbar>=6.2.0",
+    "factory-boy>=3.3.0",
     "pyright>=1.1.408",
+    "pytest>=9.0.2",
+    "pytest-django>=4.12.0",
+    "pytest-factoryboy>=2.8.1",
+    "pytest-cov>=6.0.0",
     "ruff>=0.15.2",
 ]
 prod = [
@@ -84,3 +89,31 @@ convention = "google"
 [tool.ruff.format]
 # Use single quotes for Python
 quote-style = "single"
+
+# =============================================================================
+# Pytest Configuration
+# =============================================================================
+[tool.pytest.ini_options]
+# Use test settings
+DJANGO_SETTINGS_MODULE = 'sanfelipe.settings_test'
+django_find_project = false
+
+# Test discovery patterns
+pythonpath = ['.']
+testpaths = ['tests']
+python_files = ['test_*.py', '*_test.py']
+python_classes = ['Test*']
+python_functions = ['test_*']
+
+# Add default options
+addopts = [
+    '--reuse-db',
+    '--tb=short',
+    '--verbose',
+]
+
+# Pytest markers
+markers = [
+    'slow: marks tests as slow (deselect with -m "not slow")',
+    'integration: marks tests as integration tests',
+]

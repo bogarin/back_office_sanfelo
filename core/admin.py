@@ -30,6 +30,7 @@ admin.site.index_title = 'Panel de Administración'
 # Background Task for Audit Logging
 # =============================================================================
 
+
 @task
 def log_audit_entry_async(
     usuario_sis: str,
@@ -79,7 +80,7 @@ def log_audit_entry_async(
         )
 
         logger.info(
-            f"Successfully created audit log entry #{bitacora_entry.id} "
+            f'Successfully created audit log entry #{bitacora_entry.id} '
             f"for user '{usuario_sis}' action '{tipo_mov}'"
         )
 
@@ -88,8 +89,7 @@ def log_audit_entry_async(
     except Exception as exc:
         # Log the error but don't raise to prevent task retry loops
         logger.exception(
-            f"Failed to create audit log entry for user '{usuario_sis}' "
-            f"action '{tipo_mov}': {exc}"
+            f"Failed to create audit log entry for user '{usuario_sis}' action '{tipo_mov}': {exc}"
         )
         return None
 
@@ -97,6 +97,7 @@ def log_audit_entry_async(
 # =============================================================================
 # Custom ModelAdmin Base Classes
 # =============================================================================
+
 
 class BaseModelAdmin(admin.ModelAdmin):
     """Base ModelAdmin with common configuration for all models."""
@@ -137,6 +138,7 @@ class CatalogBaseAdmin(BaseModelAdmin):
 # =============================================================================
 # Audit Trail Mixin with Background Tasks
 # =============================================================================
+
 
 class AuditTrailMixin:
     """Mixin to add audit trail functionality to ModelAdmin using async tasks.
@@ -208,7 +210,7 @@ class AuditTrailMixin:
 
             logger.debug(
                 f"Enqueued audit log task for user '{username}' action '{action_type}' "
-                f"on {self.model._meta.verbose_name}"
+                f'on {self.model._meta.verbose_name}'
             )
 
         except Exception as exc:
@@ -236,9 +238,7 @@ class AuditTrailMixin:
 
         # Only log updates, not creates
         if change:
-            observaciones = (
-                f'Actualizado {self.model._meta.verbose_name}: {obj}'
-            )
+            observaciones = f'Actualizado {self.model._meta.verbose_name}: {obj}'
             self._enqueue_audit_log(
                 request=request,
                 action_type='UPDATE',
@@ -257,9 +257,7 @@ class AuditTrailMixin:
             obj: The model instance being deleted.
         """
         # Prepare the observaciones before deletion (while obj still exists)
-        observaciones = (
-            f'Eliminado {self.model._meta.verbose_name}: {obj}'
-        )
+        observaciones = f'Eliminado {self.model._meta.verbose_name}: {obj}'
 
         # Enqueue the background task to log the deletion
         self._enqueue_audit_log(
@@ -275,6 +273,7 @@ class AuditTrailMixin:
 # =============================================================================
 # Custom Admin Actions
 # =============================================================================
+
 
 def mark_as_active(modeladmin, request, queryset):
     """Admin action to mark selected items as active."""
@@ -353,6 +352,7 @@ mark_as_unpaid.short_description = 'Marcar como no pagados'
 # Custom Admin Site (optional for future customization)
 # =============================================================================
 
+
 class BackofficeAdminSite(admin.AdminSite):
     """Custom admin site for backoffice with specific configurations."""
 
@@ -411,8 +411,9 @@ class BackofficeAdminSite(admin.AdminSite):
 # Permission Mixins for Role-Based Access Control
 # =============================================================================
 
-class OperatorPermissionMixin:
-    """Mixin for controlling operator permissions (read-only access).
+
+class RoleBasedAccessMixin:
+    """Mixin for role-based access control.
 
     Provides role-based access control for users in the admin interface:
     - Superusers have full access
@@ -582,7 +583,7 @@ class OperatorPermissionMixin:
         return False
 
 
-class ReadOnlyModelAdmin(OperatorPermissionMixin, admin.ModelAdmin):
+class ReadOnlyModelAdmin(RoleBasedAccessMixin, admin.ModelAdmin):
     """Admin con solo permisos de lectura."""
 
     def has_add_permission(self, request):

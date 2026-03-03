@@ -12,14 +12,14 @@ from core.admin import (
     BaseModelAdmin,
     mark_as_active,
     mark_as_inactive,
-    OperatorPermissionMixin,
+    RoleBasedAccessMixin,
 )
 from core.admin_utils import render_activo_badge
 from costos.models import Costo, Uma
 
 
 @admin.register(Costo)
-class CostoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
+class CostoAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for Costo model."""
 
     # List display configuration
@@ -175,7 +175,7 @@ class CostoAdmin(AuditTrailMixin, BaseModelAdmin, OperatorPermissionMixin):
 
 
 @admin.register(Uma)
-class UmaAdmin(BaseModelAdmin, OperatorPermissionMixin):
+class UmaAdmin(BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for Uma model.
 
     Note: Only one record (id=1) should exist in this table.
@@ -211,17 +211,9 @@ class UmaAdmin(BaseModelAdmin, OperatorPermissionMixin):
 
     ultima_actualizacion.short_description = 'Última Actualización'
 
-    def has_add_permission(self, request):
-        """Only allow add if no UMA record exists."""
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return not Uma.objects.exists()
-
-    def has_delete_permission(self, request, obj=None):
-        """Disable delete permission."""
-        if request.user.groups.filter(name='Operador').exists():
-            return False
-        return False
+    # Note: has_add_permission and has_delete_permission are handled by
+    # RoleBasedAccessMixin based on user role (superuser, Administrador, Operador).
+    # No database queries are needed - permissions are role-based, not data-based.
 
     def save_model(self, request, obj, form, change):
         """Save model and update UMA using stored procedure."""

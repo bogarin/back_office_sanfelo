@@ -14,8 +14,7 @@ If custom URLs are needed in the future (e.g., API endpoints, public views),
 they can be added here.
 """
 
-
-app_name = "tramites"
+app_name = 'tramites'
 
 urlpatterns = [
     # No custom URL patterns - using Django Admin exclusively

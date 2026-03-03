@@ -1,7 +1,6 @@
 """San Felipe Backoffice Application Configuration."""
 
 from django.apps import AppConfig
-from django.contrib import admin
 
 
 class SanfelipeConfig(AppConfig):
@@ -12,6 +11,10 @@ class SanfelipeConfig(AppConfig):
 
     def ready(self):
         """Called when Django starts."""
+        # Import admin inside ready() to avoid circular imports
+        # and ensure all apps are registered before admin is imported
+        from django.contrib import admin
+
         # Configure admin site branding
         admin.site.site_header = 'San Felipe Backoffice'
         admin.site.site_title = 'San Felipe Backoffice'
