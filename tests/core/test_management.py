@@ -55,15 +55,14 @@ class TestSetupRolesCommand(TestCase):
         """Test that Operador group gets only view permissions.
 
         This test verifies that the Operador group receives only view permissions
-        for business apps (catalogos, costos, bitacora) and no add/change/delete
+        for business apps (catalogos, costos) and no add/change/delete
         permissions.
         """
         # Ensure ContentType and view permissions exist for business models
-        from bitacora.models import Bitacora
         from catalogos.models import CatTramite
         from costos.models import Costo, Uma
 
-        business_models = [CatTramite, Costo, Uma, Bitacora]
+        business_models = [CatTramite, Costo, Uma]
 
         for model in business_models:
             ct = ContentType.objects.get_for_model(model)

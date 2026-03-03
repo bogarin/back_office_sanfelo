@@ -7,7 +7,6 @@ with filtering, search, and bulk actions.
 from django.contrib import admin
 
 from core.admin import (
-    AuditTrailMixin,
     BaseModelAdmin,
     mark_as_paid,
     mark_as_unpaid,
@@ -23,7 +22,7 @@ from tramites.models import Tramite
 
 
 @admin.register(Tramite)
-class TramiteAdmin(AuditTrailMixin, BaseModelAdmin):
+class TramiteAdmin(BaseModelAdmin):
     """Admin interface for Tramite model."""
 
     # List display configuration

@@ -43,7 +43,6 @@ class TestBackofficeAdminSite(TestCase):
         self.assertTrue(self.admin_site.has_module_permission(request, 'auth'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'catalogos'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'costos'))
-        self.assertTrue(self.admin_site.has_module_permission(request, 'bitacora'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'tramites'))
 
     def test_administrador_sees_all_modules(self) -> None:
@@ -68,7 +67,6 @@ class TestBackofficeAdminSite(TestCase):
         self.assertTrue(self.admin_site.has_module_permission(request, 'auth'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'catalogos'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'costos'))
-        self.assertTrue(self.admin_site.has_module_permission(request, 'bitacora'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'tramites'))
 
     def test_operador_sees_only_business_modules(self) -> None:
@@ -92,7 +90,6 @@ class TestBackofficeAdminSite(TestCase):
         # Should see business modules
         self.assertTrue(self.admin_site.has_module_permission(request, 'catalogos'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'costos'))
-        self.assertTrue(self.admin_site.has_module_permission(request, 'bitacora'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'tramites'))
 
         # Should NOT see auth modules

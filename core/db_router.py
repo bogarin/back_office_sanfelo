@@ -96,7 +96,6 @@ class MultiDatabaseRouter:
         {
             'catalogos',
             'costos',
-            'bitacora',
             'tramites',
             'core',
         }

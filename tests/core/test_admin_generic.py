@@ -28,7 +28,6 @@ class TestAdminRegistration:
             ('catalogos', 'CatTipo'),
             ('catalogos', 'Actividades'),
             ('catalogos', 'Cobro'),
-            ('bitacora', 'Bitacora'),
         ],
     )
     def test_model_registered_in_admin(self, app_label, model_name):

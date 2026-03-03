@@ -42,7 +42,6 @@ class TestDatabaseRouter(TestCase):
     def test_business_apps_routing(self) -> None:
         """Test that business apps route to PostgreSQL (business)."""
         try:
-            from bitacora.models import Bitacora
             from catalogos.models import CatActividad
             from costos.models import Costo
             from tramites.models import Tramite
@@ -58,9 +57,6 @@ class TestDatabaseRouter(TestCase):
 
         self.assertEqual(self.router.db_for_read(Costo), 'business')
         self.assertEqual(self.router.db_for_write(Costo), 'business')
-
-        self.assertEqual(self.router.db_for_read(Bitacora), 'business')
-        self.assertEqual(self.router.db_for_write(Bitacora), 'business')
 
     def test_cross_db_relations_blocked(self) -> None:
         """Test that cross-database relations are blocked."""
@@ -104,9 +100,6 @@ class TestDatabaseRouter(TestCase):
         self.assertFalse(self.router.allow_migrate('default', 'costos'))
         self.assertFalse(self.router.allow_migrate('business', 'costos'))
 
-        self.assertFalse(self.router.allow_migrate('default', 'bitacora'))
-        self.assertFalse(self.router.allow_migrate('business', 'bitacora'))
-
         self.assertFalse(self.router.allow_migrate('default', 'core'))
         self.assertFalse(self.router.allow_migrate('business', 'core'))
 
@@ -121,7 +114,6 @@ class TestDatabaseRouter(TestCase):
         # Check business apps
         self.assertIn('catalogos', self.router.BUSINESS_APPS)
         self.assertIn('costos', self.router.BUSINESS_APPS)
-        self.assertIn('bitacora', self.router.BUSINESS_APPS)
         self.assertIn('tramites', self.router.BUSINESS_APPS)
         self.assertIn('core', self.router.BUSINESS_APPS)
 

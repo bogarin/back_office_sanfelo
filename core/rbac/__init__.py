@@ -100,7 +100,7 @@ def setup_administrador() -> Group:
 
     The Administrador group receives:
     - All auth permissions (user/group management)
-    - All permissions for business apps (catalogos, costos, bitacora, tramites)
+    - All permissions for business apps (catalogos, costos, tramites)
 
     Returns:
         The configured Administrador group
@@ -137,7 +137,7 @@ def setup_operador() -> Group:
     Setup the Operador group with view-only permissions.
 
     The Operador group receives:
-    - View-only permissions for business apps (catalogos, costos, bitacora)
+    - View-only permissions for business apps (catalogos, costos)
     - No auth permissions (cannot manage users/groups)
     - No tramites permissions
 

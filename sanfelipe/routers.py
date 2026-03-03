@@ -1,7 +1,7 @@
 """
 Database router for multi-database configuration.
 
-Routes business apps (tramites, catalogos, costos, bitacora) to PostgreSQL
+Routes business apps (tramites, catalogos, costos) to PostgreSQL
 while keeping Django's auth, admin, sessions on SQLite.
 """
 
@@ -12,7 +12,7 @@ class BusinessDatabaseRouter:
     """Router for business apps to PostgreSQL."""
 
     # Apps that store business data in PostgreSQL
-    BUSINESS_APPS = {'tramites', 'catalogos', 'costos', 'bitacora'}
+    BUSINESS_APPS = {'tramites', 'catalogos', 'costos'}
 
     def db_for_read(self, model: type, **hints: Any) -> str | None:
         """Route read queries to business DB for business apps."""

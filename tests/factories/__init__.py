@@ -9,7 +9,6 @@ from tests.factories.auth import (
     SuperUserFactory,
     UserFactory,
 )
-from tests.factories.bitacora import BitacoraFactory
 from tests.factories.catalogos import (
     ActividadesFactory,
     CatActividadFactory,
@@ -60,8 +59,6 @@ __all__ = [
     # Costos factories
     'CostoFactory',
     'UmaFactory',
-    # Bitacora factories
-    'BitacoraFactory',
     # Tramites factories
     'TramiteFactory',
 ]

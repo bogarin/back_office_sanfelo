@@ -15,7 +15,6 @@ Apps:
 - auth: User/group management via Django admin
 - catalogos: Catalogs (CatTramite, CatEstatus, etc.)
 - costos: Costs (Costo, Uma)
-- bitacora: Audit log (read-only)
 - tramites: Procedures (full access for admin only)
 """
 
@@ -43,7 +42,6 @@ ADMINISTRADOR_APPS = [
     'auth',  # User/group management
     'catalogos',  # All catalog models
     'costos',  # Cost management
-    'bitacora',  # Audit log
     'tramites',  # Procedures
 ]
 
@@ -52,7 +50,6 @@ ADMINISTRADOR_APPS = [
 OPERADOR_APPS = [
     'catalogos',
     'costos',
-    'bitacora',
 ]
 
 

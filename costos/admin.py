@@ -8,7 +8,6 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from core.admin import (
-    AuditTrailMixin,
     BaseModelAdmin,
     mark_as_active,
     mark_as_inactive,
@@ -19,7 +18,7 @@ from costos.models import Costo, Uma
 
 
 @admin.register(Costo)
-class CostoAdmin(AuditTrailMixin, BaseModelAdmin, RoleBasedAccessMixin):
+class CostoAdmin(BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for Costo model."""
 
     # List display configuration

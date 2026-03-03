@@ -110,6 +110,5 @@ class TestRoleBasedAccessMixin(TestCase):
         # Test _is_allowed_app_for_operador
         self.assertTrue(mixin._is_allowed_app_for_operador('catalogos'))
         self.assertTrue(mixin._is_allowed_app_for_operador('costos'))
-        self.assertTrue(mixin._is_allowed_app_for_operador('bitacora'))
         self.assertFalse(mixin._is_allowed_app_for_operador('tramites'))
         self.assertFalse(mixin._is_allowed_app_for_operador('auth'))
