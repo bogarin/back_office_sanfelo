@@ -408,7 +408,6 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Role-based access control groups
-OPERADOR_GROUP_NAME = 'Operador'
 ADMINISTRADOR_GROUP_NAME = 'Administrador'
 
 # CSRF trusted origins

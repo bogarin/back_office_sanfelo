@@ -8,7 +8,6 @@ understanding or modifying the RBAC system.
 Roles:
 ------
 - Administrador: Full access to all apps (auth + business apps)
-- Operador: View-only access to business apps (no auth, no tramites)
 
 Apps:
 -----
@@ -30,7 +29,6 @@ class Role:
     """Role constants matching settings."""
 
     ADMINISTRADOR = settings.ADMINISTRADOR_GROUP_NAME  # 'Administrador'
-    OPERADOR = settings.OPERADOR_GROUP_NAME  # 'Operador'
 
 
 # =============================================================================
@@ -43,13 +41,6 @@ ADMINISTRADOR_APPS = [
     'catalogos',  # All catalog models
     'costos',  # Cost management
     'tramites',  # Procedures
-]
-
-# Apps where Operador has view-only access
-# Note: tramites is excluded - operators cannot view procedures
-OPERADOR_APPS = [
-    'catalogos',
-    'costos',
 ]
 
 

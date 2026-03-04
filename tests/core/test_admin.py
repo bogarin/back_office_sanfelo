@@ -69,32 +69,6 @@ class TestBackofficeAdminSite(TestCase):
         self.assertTrue(self.admin_site.has_module_permission(request, 'costos'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'tramites'))
 
-    def test_operador_sees_only_business_modules(self) -> None:
-        """Test that Operador users can only see business modules."""
-        # Create Operador group
-        operador_group, _ = Group.objects.get_or_create(name=settings.OPERADOR_GROUP_NAME)
-
-        # Create an Operador user
-        operador_user = User.objects.create_user(
-            username='test_operator',
-            email='operator@example.com',
-            password='testpass123',
-            is_staff=True,
-        )
-        operador_user.groups.add(operador_group)
-
-        # Create a mock request with Operador user
-        request = HttpRequest()
-        request.user = operador_user
-
-        # Should see business modules
-        self.assertTrue(self.admin_site.has_module_permission(request, 'catalogos'))
-        self.assertTrue(self.admin_site.has_module_permission(request, 'costos'))
-        self.assertTrue(self.admin_site.has_module_permission(request, 'tramites'))
-
-        # Should NOT see auth modules
-        self.assertFalse(self.admin_site.has_module_permission(request, 'auth'))
-
     def test_has_permission_checks_staff_and_active(self) -> None:
         """Test that has_permission checks user is staff and active."""
         admin_site = BackofficeAdminSite()

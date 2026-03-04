@@ -42,15 +42,6 @@ def admin_group(db):
 
 
 @pytest.fixture
-def operador_group(db):
-    """Get or create the Operador group."""
-    from django.conf import settings
-    from django.contrib.auth.models import Group
-
-    return Group.objects.get_or_create(name=settings.OPERADOR_GROUP_NAME)[0]
-
-
-@pytest.fixture
 def admin_user(db, admin_group):
     """Create an administrador user."""
     user = User.objects.create_user(
@@ -60,19 +51,6 @@ def admin_user(db, admin_group):
         is_staff=True,
     )
     user.groups.add(admin_group)
-    return user
-
-
-@pytest.fixture
-def operador_user(db, operador_group):
-    """Create an operador user."""
-    user = User.objects.create_user(
-        username='test_operator',
-        email='operator@example.com',
-        password='testpass123',
-        is_staff=True,
-    )
-    user.groups.add(operador_group)
     return user
 
 
@@ -114,14 +92,4 @@ def admin_user_client(db, admin_user):
 
     client = Client()
     client.force_login(admin_user)
-    return client
-
-
-@pytest.fixture
-def operador_client(db, operador_user):
-    """Create a Django test client logged in as operador user."""
-    from django.test import Client
-
-    client = Client()
-    client.force_login(operador_user)
     return client

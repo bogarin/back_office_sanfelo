@@ -55,7 +55,7 @@ class UmaAdmin(BaseModelAdmin, RoleBasedAccessMixin):
     ultima_actualizacion.short_description = 'Última Actualización'
 
     # Note: has_add_permission and has_delete_permission are handled by
-    # RoleBasedAccessMixin based on user role (superuser, Administrador, Operador).
+    # RoleBasedAccessMixin based on user role (superuser, Administrador).
     # No database queries are needed - permissions are role-based, not data-based.
 
     def save_model(self, request, obj, form, change):

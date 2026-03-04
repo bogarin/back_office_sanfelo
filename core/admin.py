@@ -177,8 +177,7 @@ class BackofficeAdminSite(admin.AdminSite):
         Controls module visibility based on user role:
         - Superusers: can see all modules
         - Administrador: can see all modules
-        - Operador: can only see business modules (catalogos, costos, tramites)
-        - Auth/admin modules (auth, contenttypes, sessions): only visible to Administrador
+        - Other users have no access
 
         Args:
             request: The HTTP request object
@@ -195,11 +194,6 @@ class BackofficeAdminSite(admin.AdminSite):
         if request.user.groups.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists():
             return True
 
-        # Operador group sees only business modules
-        if request.user.groups.filter(name=settings.OPERADOR_GROUP_NAME).exists():
-            business_modules = {'catalogos', 'costos', 'tramites'}
-            return app_label in business_modules
-
         # Default: deny access
         return False
 
@@ -215,23 +209,8 @@ class RoleBasedAccessMixin:
     Provides role-based access control for users in the admin interface:
     - Superusers have full access
     - Administrador group users have full access
-    - Operador group users have read-only access to catalogos and costos apps
     - Other users have no access
     """
-
-    # Set of apps where operador users have view access
-    OPERADOR_VIEW_APPS: set[str] = {'catalogos', 'costos'}
-
-    def _is_operador(self, user: User) -> bool:
-        """Check if user belongs to Operador group.
-
-        Args:
-            user: Django User instance
-
-        Returns:
-            True if user is in Operador group, False otherwise
-        """
-        return user.groups.filter(name=settings.OPERADOR_GROUP_NAME).exists()
 
     def _is_administrador(self, user: User) -> bool:
         """Check if user belongs to Administrador group.
@@ -244,24 +223,13 @@ class RoleBasedAccessMixin:
         """
         return user.groups.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists()
 
-    def _is_allowed_app_for_operador(self, app_label: str) -> bool:
-        """Check if app allows read-only access for Operador users.
-
-        Args:
-            app_label: Django app label (e.g., 'catalogos', 'costos')
-
-        Returns:
-            True if app allows operador access, False otherwise
-        """
-        return app_label in self.OPERADOR_VIEW_APPS
-
     def get_queryset(self, request: HttpRequest) -> QuerySet[Model]:
         """Return the queryset with proper data filtering based on user permissions.
 
         This method controls data visibility in admin interface:
         - Superusers see all data (no filtering)
         - Administrador group users see all data (no filtering)
-        - Operador group users see all data (permissions control actions, not visibility)
+        - Other users have no access
 
         The method follows Django's pattern for queryset overrides and maintains
         proper chaining with other overrides. Permissions methods (has_view_permission,
@@ -273,7 +241,7 @@ class RoleBasedAccessMixin:
 
         Returns:
             QuerySet: The queryset filtered according to user permissions.
-                      For superusers, Administrador, and Operador groups,
+                      For superusers and Administrador groups,
                       returns the full queryset without additional filtering.
         """
         # Get the base queryset from parent classes
@@ -287,12 +255,7 @@ class RoleBasedAccessMixin:
         if self._is_administrador(request.user):
             return queryset
 
-        # Operador group users see all data
-        # (permissions will control what actions they can perform)
-        if self._is_operador(request.user):
-            return queryset
-
-        # Other users (if any) get the default queryset
+        # Other users get the default queryset (empty due to permission checks)
         return queryset
 
     def has_view_permission(self, request: HttpRequest, obj: Optional[Model] = None) -> bool:
@@ -311,10 +274,6 @@ class RoleBasedAccessMixin:
         if self._is_administrador(request.user):
             return True
 
-        if self._is_operador(request.user):
-            app_label = self.model._meta.app_label
-            return self._is_allowed_app_for_operador(app_label)
-
         return False
 
     def has_add_permission(self, request: HttpRequest) -> bool:
@@ -331,9 +290,6 @@ class RoleBasedAccessMixin:
 
         if self._is_administrador(request.user):
             return True
-
-        if self._is_operador(request.user):
-            return False
 
         return False
 
@@ -353,9 +309,6 @@ class RoleBasedAccessMixin:
         if self._is_administrador(request.user):
             return True
 
-        if self._is_operador(request.user):
-            return False
-
         return False
 
     def has_delete_permission(self, request: HttpRequest, obj: Optional[Model] = None) -> bool:
@@ -373,9 +326,6 @@ class RoleBasedAccessMixin:
 
         if self._is_administrador(request.user):
             return True
-
-        if self._is_operador(request.user):
-            return False
 
         return False
 

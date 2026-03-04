@@ -44,14 +44,6 @@ class AdminUserFactory(UserFactory):
     username = factory.Sequence(lambda n: f'admin_{n}')
 
 
-class OperadorUserFactory(UserFactory):
-    """Factory for operador staff user."""
-
-    is_staff = True
-    is_superuser = False
-    username = factory.Sequence(lambda n: f'operador_{n}')
-
-
 class GroupFactory(factory.django.DjangoModelFactory):
     """Factory for Group model."""
 

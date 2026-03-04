@@ -5,11 +5,10 @@ This module provides the core functionality for managing roles and permissions
 in the San Felipe backoffice system.
 
 Usage:
-    from core.rbac import setup_administrador, setup_operador
+    from core.rbac import setup_administrador
 
     # Setup roles
     admin_group = setup_administrador()
-    operator_group = setup_operador()
 
 For permission definitions, see: core.rbac.constants
 """
@@ -22,7 +21,6 @@ from django.contrib.contenttypes.models import ContentType
 
 from .constants import (
     ADMINISTRADOR_APPS,
-    OPERADOR_APPS,
     PermissionType,
     Role,
 )
@@ -132,52 +130,12 @@ def setup_administrador() -> Group:
         raise RuntimeError(f'Failed to configure {group_name} group: {e}') from e
 
 
-def setup_operador() -> Group:
+def setup_all_roles() -> Group:
     """
-    Setup the Operador group with view-only permissions.
-
-    The Operador group receives:
-    - View-only permissions for business apps (catalogos, costos)
-    - No auth permissions (cannot manage users/groups)
-    - No tramites permissions
+    Setup all RBAC roles (Administrador).
 
     Returns:
-        The configured Operador group
-
-    Raises:
-        RuntimeError: If group creation or permission assignment fails
-    """
-    group_name = Role.OPERADOR
-
-    try:
-        operator_group, created = get_or_create_group(group_name)
-
-        # Get only view permissions for allowed apps
-        permissions = get_view_permissions_for_apps(OPERADOR_APPS)
-
-        # Clear existing and assign new permissions
-        operator_group.permissions.clear()
-        operator_group.permissions.set(permissions)
-
-        logger.info(
-            f'Configured {group_name} group with {len(permissions)} view permissions '
-            f'for apps: {", ".join(OPERADOR_APPS)}'
-        )
-
-        return operator_group
-
-    except Exception as e:
-        logger.error(f'Failed to configure {group_name} group: {e}', exc_info=True)
-        raise RuntimeError(f'Failed to configure {group_name} group: {e}') from e
-
-
-def setup_all_roles() -> tuple[Group, Group]:
-    """
-    Setup all RBAC roles (Administrador and Operador).
-
-    Returns:
-        Tuple of (administrador_group, operador_group)
+        The configured Administrador group
     """
     admin_group = setup_administrador()
-    operator_group = setup_operador()
-    return admin_group, operator_group
+    return admin_group

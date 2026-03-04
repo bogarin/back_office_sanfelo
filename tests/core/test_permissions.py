@@ -76,39 +76,3 @@ class TestRoleBasedAccessMixin(TestCase):
         self.assertTrue(self.model_admin.has_add_permission(request))
         self.assertTrue(self.model_admin.has_change_permission(request))
         self.assertTrue(self.model_admin.has_delete_permission(request))
-
-    def test_operador_has_read_only_access(self) -> None:
-        """Test that Operador users have read-only access to allowed apps."""
-        # Get or create Operador group
-        operador_group, _ = Group.objects.get_or_create(name=settings.OPERADOR_GROUP_NAME)
-
-        # Create an Operador user
-        operador_user = User.objects.create_user(
-            username='test_operator',
-            email='operator@example.com',
-            password='testpass123',
-            is_staff=True,
-        )
-        operador_user.groups.add(operador_group)
-
-        # Create a mock request with Operador user
-        request = HttpRequest()
-        request.user = operador_user
-
-        # Can view
-        self.assertTrue(self.model_admin.has_view_permission(request))
-
-        # Cannot modify
-        self.assertFalse(self.model_admin.has_add_permission(request))
-        self.assertFalse(self.model_admin.has_change_permission(request))
-        self.assertFalse(self.model_admin.has_delete_permission(request))
-
-    def test_operator_helper_methods(self) -> None:
-        """Test helper methods for role checking."""
-        mixin = RoleBasedAccessMixin()
-
-        # Test _is_allowed_app_for_operador
-        self.assertTrue(mixin._is_allowed_app_for_operador('catalogos'))
-        self.assertTrue(mixin._is_allowed_app_for_operador('costos'))
-        self.assertFalse(mixin._is_allowed_app_for_operador('tramites'))
-        self.assertFalse(mixin._is_allowed_app_for_operador('auth'))
