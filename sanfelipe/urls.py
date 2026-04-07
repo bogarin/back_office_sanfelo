@@ -10,17 +10,15 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from core.views import health_check, home
+from core.views import health_check, admin_home
 
 urlpatterns = [
-    # Home page
-    path('', home, name='home'),
     # Health check
     path('health/', health_check, name='health-check'),
-    # Django Admin with default admin site
-    path('admin/', admin.site.urls),
-    # Future APIs can be added here
-    # path('api/reportes/', include('reportes.urls')),
+    # Auth (Django admin auth)
+    path('admin/', admin.site.urls, name='admin'),
+    # Custom home
+    path('', admin_home, name='admin-home'),
 ]
 
 # Debug configuration - only in development

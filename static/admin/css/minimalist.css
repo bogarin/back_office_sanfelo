@@ -1,0 +1,130 @@
+/**
+ * Minimalist Admin Home Styles
+ *
+ * Clean, modern styles for the custom admin home page.
+ * Responsive design with smooth transitions and hover effects.
+ */
+
+/* Base styles for minimalist home */
+.minimalist-home {
+    background-color: #f5f7fa;
+}
+
+/* Card styling */
+.minimalist-home .tramites-card {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+}
+
+.minimalist-home .tramites-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.minimalist-home .tramites-card .card-body {
+    padding: 24px;
+}
+
+.minimalist-home .tramites-card .card-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: #1f2937;
+}
+
+.minimalist-home .tramites-card .card-text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.minimalist-home .tramites-card h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Button styling */
+.minimalist-home .tramites-card .btn {
+    border-radius: 6px;
+    font-weight: 600;
+    padding: 10px 16px;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.minimalist-home .tramites-card .btn:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+/* Footer styling */
+.minimalist-home footer {
+    background-color: transparent;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 2rem;
+    margin-top: 3rem;
+}
+
+.minimalist-home footer .nav-link {
+    color: #6b7280;
+    padding: 0.5rem 1rem;
+    transition: color 0.2s ease;
+}
+
+.minimalist-home footer .nav-link:hover {
+    color: #1f2937;
+    text-decoration: none;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1024px) {
+    .minimalist-home .tramites-card {
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .minimalist-home .tramites-card h2 {
+        font-size: 2rem;
+    }
+
+    .minimalist-home .tramites-card .card-title {
+        font-size: 1rem;
+    }
+
+    .minimalist-home .tramites-card .card-text {
+        font-size: 0.8125rem;
+    }
+
+    .minimalist-home footer .nav {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .minimalist-home footer .nav-link {
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+/* Icon colors and hover effects */
+.minimalist-home .tramites-card i {
+    transition: transform 0.3s ease;
+}
+
+.minimalist-home .tramites-card:hover i {
+    transform: scale(1.1);
+}
+
+/* Counter styling */
+.minimalist-home .tramites-card h2 {
+    color: #1f2937;
+}
+
+.minimalist-home .tramites-card small.text-muted {
+    color: #9ca3af;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}

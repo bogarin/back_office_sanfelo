@@ -1,0 +1,75 @@
+{% extends "admin/base_site.html" %}
+{% load static jazzmin i18n %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/minimalist.css' %}">
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} minimalist-home{% endblock %}
+
+{% block content_title %}Panel de Trámites{% endblock %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'admin:index' %}">Home</a></li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        {% for card in listados %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card tramites-card" style="border-left: 4px solid {{ card.color }};">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <i class="fas {{ card.icono }} fa-3x" style="color: {{ card.color }};"></i>
+                        </div>
+                        <div class="text-end">
+                            <h2 class="mb-0 fw-bold">{{ card.count }}</h2>
+                            <small class="text-muted">trámites</small>
+                        </div>
+                    </div>
+                    <h5 class="card-title mb-2">{{ card.titulo }}</h5>
+                    <p class="card-text text-muted mb-3">{{ card.descripcion }}</p>
+                    <a href="{{ card.url_admin|default:card.url }}" class="btn w-100"
+                       style="background-color: {{ card.color }}; color: white;">
+                        Ver listado →
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Footer con enlaces -->
+    <footer class="mt-5 pt-4 border-top">
+        <div class="row justify-content-center">
+            <div class="col-md-12 text-center">
+                <nav class="nav justify-content-center mb-3">
+                    <a class="nav-link" href="/docs/">
+                        📚 Documentación
+                    </a>
+                    <span class="nav-link text-muted">|</span>
+                    <a class="nav-link" href="/ayuda/">
+                        ❓ Ayuda
+                    </a>
+                    <span class="nav-link text-muted">|</span>
+                    <a class="nav-link" href="/soporte/">
+                        🛠️ Soporte
+                    </a>
+                    <span class="nav-link text-muted">|</span>
+                    <a class="nav-link" href="#">
+                        ⚙️ Admin Extendido (Jazzmin)
+                    </a>
+                </nav>
+                <p class="text-muted small">
+                    © Municipio de San Felipe - Todos los derechos reservados
+                </p>
+            </div>
+        </div>
+    </footer>
+</div>
+{% endblock %}

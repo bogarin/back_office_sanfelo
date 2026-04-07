@@ -1,0 +1,1 @@
+"""Tramites app initialization."""

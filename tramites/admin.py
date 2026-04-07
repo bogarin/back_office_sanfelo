@@ -60,6 +60,34 @@ class TramiteAssignmentFilter(admin.SimpleListFilter):
         return qs
 
 
+# Custom list filter para 'finalizado'
+class TramiteFinalizadoFilter(admin.SimpleListFilter):
+    title = '¿Finalizado?'
+    parameter_name = 'finalizado'
+
+    def lookups(self, request, model_admin):
+        return [(True, 'Finalizado (3xx)')]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(id_cat_estatus__gte=300)
+        return queryset
+
+
+# Custom list filter para 'cancelado'
+class TramiteCanceladoFilter(admin.SimpleListFilter):
+    title = '¿Cancelado?'
+    parameter_name = 'cancelado'
+
+    def lookups(self, request, model_admin):
+        return [(True, 'Cancelado (304)')]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(id_cat_estatus=304)
+        return queryset
+
+
 @admin.register(Tramite)
 class TramiteAdmin(BaseModelAdmin):
     """
@@ -107,6 +135,8 @@ class TramiteAdmin(BaseModelAdmin):
         'creado',
         'modificado',
         TramiteAssignmentFilter,
+        TramiteFinalizadoFilter,
+        TramiteCanceladoFilter,
     )
 
     # Search fields
@@ -340,27 +370,44 @@ class TramiteAdmin(BaseModelAdmin):
 
     def get_actions(self, request):
         """
-        Retorna acciones según el rol del usuario.
+        Retorna acciones según estatus y rol del usuario.
 
-        Analista: Solo puede tomar trámites
-        Coordinador: Puede asignar, reasignar y liberar
+        Lógica:
+        - Analista viendo "Sin Asignar" → puede tomar
+        - Coordinador viendo "Asignados" → puede liberar
+        - Otras combinaciones → acciones existentes
         """
         actions = super().get_actions(request)
 
+        # Parsear URL params para detectar filtro activo
+        url_params = request.GET.urlencode()
+
+        # Para Analista: solo puede tomar trámites sin asignar
         if request.user.groups.filter(name='Analista').exists():
-            # Mantener solo actions de analista
-            actions = {k: v for k, v in actions.items() if k in self.actions_analista}
-            # Agregar action de tomar
-            actions['tomar_seleccionados'] = self.tomar_seleccionados
+            if 'esta_asignado=False' in url_params:
+                # Añadir acción de tomar
+                actions['tomar_seleccionados'] = self.tomar_seleccionados
+            else:
+                # Para otros listados, solo acciones de lectura
+                actions = {
+                    k: v
+                    for k, v in actions.items()
+                    if k
+                    not in [
+                        'asignar_seleccionados',
+                        'reasignar_seleccionados',
+                        'liberar_seleccionados',
+                    ]
+                }
 
+        # Para Coordinador: puede liberar asignados
         elif request.user.groups.filter(name='Coordinador').exists():
-            # Mantener solo actions de coordinador
-            actions = {k: v for k, v in actions.items() if k in self.actions_coordinador}
-            # Agregar actions de coordinador
-            actions['asignar_seleccionados'] = self.asignar_seleccionados
-            actions['reasignar_seleccionados'] = self.reasignar_seleccionados
-            actions['liberar_seleccionados'] = self.liberar_seleccionados
+            if 'esta_asignado=True' in url_params:
+                # Añadir acción de liberar
+                actions['liberar_seleccionados'] = self.liberar_seleccionados
+            # Mantener acciones de asignación existentes
 
+        # Admin/Superuser: todas las acciones disponibles
         return actions
 
     # ========== ACTIONS PARA ANALISTA ==========

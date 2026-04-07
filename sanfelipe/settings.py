@@ -248,57 +248,38 @@ JAZZMIN_SETTINGS = {
     # Title on the login screen (19 chars max) (defaults to current_admin_site.site_header if absent or None)
     'site_header': 'San Felipe',
     # Title on the brand (19 chars max) (defaults to current_admin_site.site_header if absent or None)
-    'site_brand': 'Trámites en Línea',
+    'site_brand': 'Ventanilla Urbana Digital',
     # Logo to use for your site, must be present in static files, used for brand on top left
-    'site_logo': 'sf_logo.jpg',
+    # 'site_logo': 'sf_logo.jpg',
     # Logo to use for your site, must be present in static files, used for login form logo (defaults to site_logo)
     # "login_logo": None,
     # Logo to use for login form in dark themes (defaults to login_logo)
     # "login_logo_dark": None,
     # CSS classes that are applied to the logo above
-    'site_logo_classes': 'img-circle',
+    # 'site_logo_classes': 'img-circle',
     # Relative path to a favicon for your site, will default to site_logo if absent (ideally 32x32 px)
     # "site_icon": None,
     # Welcome text on the login screen
-    'welcome_sign': 'Sistema de Trámites en Línea - Municipio de San Felipe',
+    'welcome_sign': 'Ventanilla Urbana Digital - Municipio de San Felipe',
     # Copyright on the footer
     'copyright': 'Municipio de San Felipe - Todos los derechos reservados',
     # Hide unnecessary apps from admin menu
-    'hide_apps': ['auth', 'sessions'],
-    'topmenu_links': [
-        # Url that gets reversed (Permissions can be added)
-        {'name': 'Panel del control', 'url': 'admin:index', 'permissions': ['auth.view_user']},
-        {'model': 'buzon.AsignacionTramite'},
-        {'model': 'catalogos.CatActividad'},
-        # App with dropdown menu to all its models pages (Permissions checked against models)
-        {'app': 'tramites', 'name': 'Trámites', 'permissions': ['tramites.view_tramite']},
-    ],
-    # Custom menu for Buzón de Trámites
-    'custom_menu': [
-        {
-            'model': 'tramites.Tramite',
-            'label': '📋 Buzón de Trámites',
-            'icon': 'fa fa-inbox',
-        },
-        {
-            'model': 'buzon.AsignacionTramite',
-            'label': '🔄 Gestión de Asignaciones',
-            'icon': 'fa fa-exchange-alt',
-        },
-    ],
+    # 'hide_apps': ['auth', 'sessions'],
     # Dashboard sections
-    'dashboard': [
-        {
-            'name': '📋 Buzón de Trámites',
-            'app': 'tramites',
-            'models': ('tramites.Tramite',),
-        },
-        {
-            'name': '🔄 Asignaciones',
-            'app': 'buzon',
-            'models': ('buzon.AsignacionTramite',),
-        },
-    ],
+    # 'dashboard': [
+    #     {
+    #         'name': '📋 Buzón de Trámites',
+    #         'app': 'tramites',
+    #         'models': ('tramites.Tramite',),
+    #     },
+    #     {
+    #         'name': '🔄 Asignaciones',
+    #         'app': 'buzon',
+    #         'models': ('buzon.AsignacionTramite',),
+    #     },
+    # ],
+    # 'show_sidebar': False,
+    # 'show_ui_builder': True,
 }
 
 # =============================================================================
@@ -486,6 +467,16 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
+# URLs de autenticación
+# LOGIN_URL: URL a la que redirige el decorador @login_required cuando no hay usuario autenticado
+LOGIN_URL = 'admin:login'
+
+# LOGIN_REDIRECT_URL: URL a la que redirige después de login exitoso
+LOGIN_REDIRECT_URL = 'admin:index'
+
+# LOGOUT_REDIRECT_URL: URL a la que redirige después de logout
+LOGOUT_REDIRECT_URL = 'admin:login'
+
 # Role-based access control groups
 ADMINISTRADOR_GROUP_NAME = 'Administrador'
 COORDINADOR_GROUP_NAME = 'Coordinador'
@@ -546,6 +537,14 @@ TRAMITE_PRIORIDADES = (
 
 # Pagination
 DEFAULT_PAGE_SIZE = env.int('DJANGO_DEFAULT_PAGE_SIZE', default=25)
+
+# Statistics cache timeout (in seconds)
+# Reduces round-trip queries to external database
+# Default: 5 minutes (300 seconds)
+TRAMITE_STATS_CACHE_TIMEOUT = env.int(
+    'TRAMITE_STATS_CACHE_TIMEOUT',
+    default=300,  # 5 minutes
+)
 
 # =============================================================================
 # SANITY CHECK
