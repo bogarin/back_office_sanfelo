@@ -94,8 +94,6 @@ class MultiDatabaseRouter:
     # Business domain apps that use PostgreSQL (business data)
     BUSINESS_APPS: frozenset[str] = frozenset(
         {
-            'catalogos',
-            'costos',
             'tramites',
             'core',
             'buzon',  # Buzón de Trámites - gestiona asignaciones (stores user IDs as integers)

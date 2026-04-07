@@ -1,29 +1,28 @@
 """
-Tests for catalogos models.
+Tests for catalog models (now in tramites app).
 
 This module contains tests for:
-- All catalog models (CatTramite, CatEstatus, etc.)
-- Model string representations
+- Catalog model string representations
 - Model properties and methods
 """
 
 from django.test import TestCase
 
 from tests.factories import (
-    CatPeritoFactory,
     ActividadesFactory,
+    PeritoFactory,
 )
 
 
-class TestCatPerito(TestCase):
-    """Test suite for CatPerito model."""
+class TestPerito(TestCase):
+    """Test suite for Perito model."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.perito = CatPeritoFactory()
+        self.perito = PeritoFactory()
 
     def test_str_representation(self):
-        """Test string representation of CatPerito."""
+        """Test string representation of Perito."""
         expected = f'{self.perito.paterno} {self.perito.materno} {self.perito.nombre}'
         self.assertEqual(str(self.perito), expected)
 

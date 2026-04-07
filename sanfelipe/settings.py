@@ -3,7 +3,7 @@ Django settings for sanfelipe project.
 
 Microservice for San Felipe Government Backoffice.
 Uses Django's built-in auth system with SQLite.
-Business data (tramites, catalogos, costos) uses PostgreSQL.
+Business data (tramites, buzon) uses PostgreSQL.
 """
 
 from pathlib import Path
@@ -189,8 +189,6 @@ INSTALLED_APPS = [
     'debug_toolbar' if (DEBUG and not TESTING) else None,
     # Local apps (business data in PostgreSQL, managed externally)
     'tramites',
-    'catalogos',
-    'costos',
     'core',
     'buzon',  # Buzón de Trámites - gestiona asignaciones de trámites a analistas
     # Test-only models for permission testing (only during tests)
@@ -288,9 +286,9 @@ JAZZMIN_SETTINGS = {
 
 # Multi-database configuration:
 # - default (SQLite): Django auth, admin, sessions, messages, staticfiles, debug_toolbar
-# - business (PostgreSQL): tramites, catalogos, costos, core (business data)
+# - business (PostgreSQL): tramites, buzon, core (business data)
 #
-# The database router (sanfelipe.db_router.MultiDatabaseRouter) routes queries
+# The database router (core.db_router.MultiDatabaseRouter) routes queries
 # to the appropriate database based on the app label.
 #
 # Business tables are managed externally (managed=False), so Django won't

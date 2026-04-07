@@ -46,7 +46,7 @@ def get_content_types_for_apps(app_labels: List[str]) -> List[ContentType]:
     Get all ContentType objects for the given app labels.
 
     Args:
-        app_labels: List of Django app labels (e.g., ['catalogos', 'costos'])
+        app_labels: List of Django app labels (e.g., ['tramites', 'buzon'])
 
     Returns:
         List of ContentType objects
@@ -98,7 +98,7 @@ def setup_administrador() -> Group:
 
     The Administrador group receives:
     - All auth permissions (user/group management)
-    - All permissions for business apps (catalogos, costos, tramites)
+    - All permissions for business apps (tramites, buzon)
 
     Returns:
         The configured Administrador group

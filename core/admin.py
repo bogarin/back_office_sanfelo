@@ -161,8 +161,8 @@ class BackofficeAdminSite(admin.AdminSite):
         """Customize app list ordering."""
         app_list = super().get_app_list(request, app_label)
 
-        # Reorder apps: tramites first, then catalogs, then others
-        order = {'tramites': 0, 'catalogos': 1, 'costos': 2}
+        # Reorder apps: tramites first, then others
+        order = {'tramites': 0, 'buzon': 1}
         app_list.sort(key=lambda x: order.get(x['app_label'], 999))
 
         return app_list

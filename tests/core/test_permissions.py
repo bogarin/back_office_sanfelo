@@ -24,13 +24,13 @@ class TestRoleBasedAccessMixin(TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         try:
-            from catalogos.models import CatTramite
+            from tramites.models import TramiteCatalogo
 
             # Create a ModelAdmin with RoleBasedAccessMixin
             class TestModelAdmin(RoleBasedAccessMixin, admin.ModelAdmin):
                 pass
 
-            self.model_admin = TestModelAdmin(CatTramite, admin.site)  # type: ignore
+            self.model_admin = TestModelAdmin(TramiteCatalogo, admin.site)  # type: ignore
         except ImportError:
             self.skipTest('Business models not available')
 

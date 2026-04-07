@@ -34,7 +34,7 @@ class AsignacionTramiteAdmin(BaseModelAdmin):
 
     list_filter = (
         'fecha_asignacion',
-        'tramite__id_cat_estatus',
+        'tramite__estatus',
     )
 
     search_fields = (
@@ -103,17 +103,16 @@ class AsignacionTramiteAdmin(BaseModelAdmin):
 
     def tramite_estatus(self, obj):
         """Muestra el estatus del trámite."""
-        # Intentar obtener el estatus desde cat_estatus
-        from catalogos.models import CatEstatus
+        from tramites.models import TramiteEstatus
 
         try:
-            estatus = CatEstatus.objects.get(id=obj.tramite.id_cat_estatus)
+            estatus = TramiteEstatus.objects.get(id=obj.tramite.estatus_id)
             return estatus.estatus
-        except CatEstatus.DoesNotExist:
-            return f'ID {obj.tramite.id_cat_estatus}'
+        except TramiteEstatus.DoesNotExist:
+            return f'ID {obj.tramite.estatus_id}'
 
     tramite_estatus.short_description = 'Estatus'
-    tramite_estatus.admin_order_field = 'tramite__id_cat_estatus'
+    tramite_estatus.admin_order_field = 'tramite__estatus'
 
     def analista_con_carga(self, obj):
         """Muestra el analista con badge de carga."""

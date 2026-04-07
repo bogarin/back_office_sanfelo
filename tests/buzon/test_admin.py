@@ -9,7 +9,7 @@ import pytest
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.admin.sites import AdminSite
-from tramites.models import Tramite, CatEstatus
+from tramites.models import Tramite, TramiteEstatus, TramiteCatalogo
 from buzon.models import AsignacionTramite
 
 User = get_user_model()
@@ -46,35 +46,47 @@ def analista(db, analista_group):
 
 
 @pytest.fixture
+def catalogo(db):
+    """Fixture para crear un catálogo de trámite."""
+    return TramiteCatalogo.objects.create(id=1, nombre='Test Catálogo', activo=True)
+
+
+@pytest.fixture
 def estatus_presentado(db):
     """Fixture para crear estatus PRESENTADO (201)."""
-    return CatEstatus.objects.create(id=201, estatus='PRESENTADO', responsable='Sistema')
+    return TramiteEstatus.objects.create(id=201, estatus='PRESENTADO', responsable='Sistema')
 
 
 @pytest.fixture
-def tramite_presentado(db, estatus_presentado):
+def tramite_presentado(db, estatus_presentado, catalogo):
     """Fixture para crear un trámite en estado PRESENTADO."""
     return Tramite.objects.create(
-        folio='T-001', nom_sol='Juan Pérez', id_cat_estatus=estatus_presentado.id, id_cat_tramite=1
+        folio='T-001',
+        nom_sol='Juan Pérez',
+        estatus_id=estatus_presentado.id,
+        tramite_catalogo=catalogo,
     )
 
 
 @pytest.fixture
-def tramite2_presentado(db, estatus_presentado):
+def tramite2_presentado(db, estatus_presentado, catalogo):
     """Fixture para crear otro trámite en estado PRESENTADO."""
     return Tramite.objects.create(
-        folio='T-002', nom_sol='María López', id_cat_estatus=estatus_presentado.id, id_cat_tramite=1
+        folio='T-002',
+        nom_sol='María López',
+        estatus_id=estatus_presentado.id,
+        tramite_catalogo=catalogo,
     )
 
 
 @pytest.fixture
-def tramite3_presentado(db, estatus_presentado):
+def tramite3_presentado(db, estatus_presentado, catalogo):
     """Fixture para crear tercer trámite en estado PRESENTADO."""
     return Tramite.objects.create(
         folio='T-003',
         nom_sol='Pedro García',
-        id_cat_estatus=estatus_presentado.id,
-        id_cat_tramite=1,
+        estatus_id=estatus_presentado.id,
+        tramite_catalogo=catalogo,
     )
 
 
@@ -246,8 +258,8 @@ def test_avoid_n_plus_one_queries(
         Tramite.objects.create(
             folio=f'T-{i:03d}',
             nom_sol=f'Persona {i}',
-            id_cat_estatus=tramite_presentado.id_cat_estatus,
-            id_cat_tramite=1,
+            estatus_id=tramite_presentado.estatus_id,
+            tramite_catalogo_id=1,
         )
 
     request = MockRequest(user=analista)
@@ -288,8 +300,8 @@ def test_esta_asignado_list_filter_si(admin_instance, analista, tramite_presenta
     tramite2 = Tramite.objects.create(
         folio='T-100',
         nom_sol='Test User',
-        id_cat_estatus=tramite_presentado.id_cat_estatus,
-        id_cat_tramite=1,
+        estatus_id=tramite_presentado.estatus_id,
+        tramite_catalogo_id=1,
     )
 
     # Verificar que trámite sin asignar NO aparece

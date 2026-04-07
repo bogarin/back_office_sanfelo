@@ -1,47 +1,47 @@
-"""Factories for catalogos models."""
+"""Factories for catalog models (now in tramites app)."""
 
 import factory
 from datetime import date
 
-from catalogos.models import (
-    CatEstatus,
-    CatPerito,
-    CatTramite,
+from tramites.models import (
     Actividades,
+    Perito,
+    TramiteCatalogo,
+    TramiteEstatus,
 )
 
 
-class CatTramiteFactory(factory.django.DjangoModelFactory):
-    """Factory for CatTramite model."""
+class TramiteCatalogoFactory(factory.django.DjangoModelFactory):
+    """Factory for TramiteCatalogo model."""
 
     class Meta:
-        model = 'catalogos.CatTramite'
+        model = 'tramites.TramiteCatalogo'
 
     nombre = factory.Faker('word')
     descripcion = factory.Faker('text', max_nb_chars=200)
     area = factory.Faker('word')
     respuesta_dias = factory.Faker('random_int', min=1, max=60)
-    pago_inicial = factory.Faker('pyfloat')
+    pago_inicial = True
     url = factory.Faker('url')
     activo = True
 
 
-class CatEstatusFactory(factory.django.DjangoModelFactory):
-    """Factory for CatEstatus model."""
+class TramiteEstatusFactory(factory.django.DjangoModelFactory):
+    """Factory for TramiteEstatus model."""
 
     class Meta:
-        model = 'catalogos.CatEstatus'
+        model = 'tramites.TramiteEstatus'
 
     estatus = factory.Sequence(lambda n: f'Estatus {n}')
-    responsable = factory.Faker('boolean')
+    responsable = factory.Faker('name')
     descripcion = factory.Faker('text', max_nb_chars=200)
 
 
-class CatPeritoFactory(factory.django.DjangoModelFactory):
-    """Factory for CatPerito model."""
+class PeritoFactory(factory.django.DjangoModelFactory):
+    """Factory for Perito model."""
 
     class Meta:
-        model = 'catalogos.CatPerito'
+        model = 'tramites.Perito'
 
     paterno = factory.Faker('last_name')
     materno = factory.Faker('last_name')
@@ -60,13 +60,22 @@ class ActividadesFactory(factory.django.DjangoModelFactory):
     """Factory for Actividades model."""
 
     class Meta:
-        model = 'catalogos.Actividades'
+        model = 'tramites.Actividades'
 
-    id_tramite = factory.Sequence(lambda n: n)
-    id_cat_actividad = factory.Sequence(lambda n: n)
-    id_cat_estatus = factory.Sequence(lambda n: n)
+    tramite = factory.SubFactory('tests.factories.TramiteFactory')
+    actividad = factory.SubFactory('tests.factories.ActividadFactory')
+    estatus = factory.SubFactory('tests.factories.TramiteEstatusFactory')
     fecha_inicio = date(2024, 1, 1)
     fecha_fin = date(2024, 1, 31)
     id_cat_usuario = factory.Sequence(lambda n: n)
     secuencia = factory.Sequence(lambda n: n)
     observacion = factory.Faker('text', max_nb_chars=200)
+
+
+class ActividadFactory(factory.django.DjangoModelFactory):
+    """Factory for Actividad (catálogo) model."""
+
+    class Meta:
+        model = 'tramites.Actividad'
+
+    actividad = factory.Sequence(lambda n: f'Actividad {n}')

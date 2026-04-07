@@ -11,54 +11,60 @@ Tests for AsignacionTramite model including:
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
-from tramites.models import Tramite, CatEstatus
+from tramites.models import Tramite, TramiteEstatus, TramiteCatalogo
 from buzon.models import AsignacionTramite
 
 User = get_user_model()
 
 
 @pytest.fixture
+def catalogo(db):
+    """Fixture para crear un catálogo de trámite."""
+    return TramiteCatalogo.objects.create(id=1, nombre='Test Catálogo', activo=True)
+
+
+@pytest.fixture
 def estatus_presentado(db):
     """Fixture para crear estatus PRESENTADO (201)."""
-    return CatEstatus.objects.create(id=201, estatus='PRESENTADO', responsable='Sistema')
+    return TramiteEstatus.objects.create(id=201, estatus='PRESENTADO', responsable='Sistema')
 
 
 @pytest.fixture
 def estatus_borrador(db):
     """Fixture para crear estatus BORRADOR (101)."""
-    return CatEstatus.objects.create(id=101, estatus='BORRADOR', responsable='Sistema')
+    return TramiteEstatus.objects.create(id=101, estatus='BORRADOR', responsable='Sistema')
 
 
 @pytest.fixture
-def tramite_presentado(db, estatus_presentado):
+def tramite_presentado(db, estatus_presentado, catalogo):
     """Fixture para crear un trámite en estado PRESENTADO."""
     return Tramite.objects.create(
         folio='T-001',
         nom_sol='Juan Pérez',
-        id_cat_estatus=201,
-        id_cat_tramite=1,
+        estatus_id=estatus_presentado.id,
+        tramite_catalogo=catalogo,
     )
 
 
 @pytest.fixture
-def tramite_borrador(db, estatus_borrador):
+def tramite_borrador(db, estatus_borrador, catalogo):
     """Fixture para crear un trámite en estado BORRADOR."""
     return Tramite.objects.create(
         folio='T-002',
         nom_sol='María López',
-        id_cat_estatus=101,
-        id_cat_tramite=1,
+        estatus_id=estatus_borrador.id,
+        tramite_catalogo=catalogo,
     )
 
 
 @pytest.fixture
-def tramite(db, estatus_presentado):
+def tramite(db, estatus_presentado, catalogo):
     """Fixture genérico para crear un trámite."""
     return Tramite.objects.create(
         folio='T-999',
         nom_sol='Test User',
-        id_cat_estatus=estatus_presentado.id,
-        id_cat_tramite=1,
+        estatus_id=estatus_presentado.id,
+        tramite_catalogo=catalogo,
     )
 
 
@@ -102,19 +108,26 @@ def test_asignar_tramite_con_estatus_borrador_falla(tramite_borrador, analista):
     assert 'proceso activo' in str(exc_info.value).lower()
 
 
-def test_asignar_tramite_con_estados_proceso_funciona(tramite, estatus_presentado, analista):
+def test_asignar_tramite_con_estados_proceso_funciona(
+    tramite, estatus_presentado, analista, catalogo
+):
     """Test que se pueden asignar trámites en todos los estados 200s."""
     from buzon.services import asignar_tramite
     from buzon.models import ESTADOS_PERMITIDOS_PARA_ASIGNACION
 
     # Crear un trámite diferente para cada estado para evitar conflictos
     for estado_id in ESTADOS_PERMITIDOS_PARA_ASIGNACION:
+        # Asegurar que existe el TramiteEstatus para este estado
+        TramiteEstatus.objects.get_or_create(
+            id=estado_id,
+            defaults={'estatus': f'ESTADO_{estado_id}', 'responsable': 'Sistema'},
+        )
         # Crear un nuevo trámite con el estado específico
         tramite_test = Tramite.objects.create(
             folio=f'T-TEST-{estado_id}',
             nom_sol=f'Test User {estado_id}',
-            id_cat_estatus=estado_id,
-            id_cat_tramite=1,
+            estatus_id=estado_id,
+            tramite_catalogo=catalogo,
         )
 
         asignacion = asignar_tramite(
@@ -159,14 +172,14 @@ def test_unique_constraint_preiene_asignaciones_duplicadas(tramite_presentado, a
     # Primera asignación
     asignacion1 = AsignacionTramite.objects.create(
         tramite=tramite_presentado,
-        analista=analista,
+        analista_id=analista.id,
     )
 
     # Intentar crear duplicado debe fallar
     with pytest.raises(IntegrityError):
         AsignacionTramite.objects.create(
             tramite=tramite_presentado,
-            analista=analista,
+            analista_id=analista.id,
         )
 
 
@@ -189,7 +202,7 @@ def test_liberar_tramite_elimina_asignacion(tramite_presentado, analista, coordi
     assert AsignacionTramite.objects.filter(tramite=tramite_presentado).count() == 0
 
 
-def test_limite_de_asignaciones_por_analista(tramite, analista, coordinador, db):
+def test_limite_de_asignaciones_por_analista(tramite, analista, coordinador, catalogo, db):
     """Test que se respeta el límite de asignaciones por analista."""
     from buzon.services import asignar_tramite, AnalistaConMuchasAsignacionesError
     from django.conf import settings as django_settings
@@ -210,8 +223,8 @@ def test_limite_de_asignaciones_por_analista(tramite, analista, coordinador, db)
         tramite2 = Tramite.objects.create(
             folio='T-002',
             nom_sol='Test User 2',
-            id_cat_estatus=tramite.id_cat_estatus,
-            id_cat_tramite=1,
+            estatus_id=tramite.estatus_id,
+            tramite_catalogo=catalogo,
         )
         asignar_tramite(
             tramite=tramite2,
@@ -223,8 +236,8 @@ def test_limite_de_asignaciones_por_analista(tramite, analista, coordinador, db)
         tramite3 = Tramite.objects.create(
             folio='T-003',
             nom_sol='Test User 3',
-            id_cat_estatus=tramite.id_cat_estatus,
-            id_cat_tramite=1,
+            estatus_id=tramite.estatus_id,
+            tramite_catalogo=catalogo,
         )
         with pytest.raises(AnalistaConMuchasAsignacionesError):
             asignar_tramite(
@@ -243,7 +256,7 @@ def test_clean_valida_estados(tramite_borrador, analista):
 
     asignacion = AsignacionTramite(
         tramite=tramite_borrador,
-        analista=analista,
+        analista_id=analista.id,
     )
 
     with pytest.raises(ValidationError) as exc_info:
@@ -257,7 +270,7 @@ def test_str_representation(tramite, analista):
     """Test que el método __str__ devuelve el formato correcto."""
     asignacion = AsignacionTramite.objects.create(
         tramite=tramite,
-        analista=analista,
+        analista_id=analista.id,
     )
 
     expected_str = f'{tramite.folio} → {analista.username}'
@@ -271,7 +284,7 @@ def test_fecha_asignacion_auto_now(tramite, analista):
 
     asignacion = AsignacionTramite.objects.create(
         tramite=tramite,
-        analista=analista,
+        analista_id=analista.id,
     )
 
     assert asignacion.fecha_asignacion is not None

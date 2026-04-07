@@ -104,17 +104,17 @@ class AsignacionTramite(models.Model):
             ValidationError: Si el trámite no puede ser asignado
         """
         # Solo asignar trámites en estados 200s (proceso activo)
-        estatus_id = self.tramite.id_cat_estatus if self.tramite else None
+        estatus_id = self.tramite.estatus_id if self.tramite else None
 
         if estatus_id not in ESTADOS_PERMITIDOS_PARA_ASIGNACION:
-            # Intentar obtener el nombre del estatus desde cat_estatus
-            from catalogos.models import CatEstatus
+            # Intentar obtener el nombre del estatus desde tramite_estatus
+            from tramites.models import TramiteEstatus
 
             estatus_nombre = 'DESCONOCIDO'
             try:
-                estatus = CatEstatus.objects.get(id=estatus_id)
+                estatus = TramiteEstatus.objects.get(id=estatus_id)
                 estatus_nombre = estatus.estatus
-            except CatEstatus.DoesNotExist:
+            except TramiteEstatus.DoesNotExist:
                 estatus_nombre = f'ID {estatus_id}'
 
             raise ValidationError(

@@ -44,13 +44,11 @@ class TestTramite(TestCase):
     def test_model_fields(self):
         """Test Tramite model fields."""
         self.assertIsNotNone(self.tramite.folio)
-        self.assertIsNotNone(self.tramite.id_cat_tramite)
-        self.assertIsNotNone(self.tramite.id_cat_estatus)
-        self.assertIsNotNone(self.tramite.clave_catastral)
+        self.assertIsNotNone(self.tramite.tramite_catalogo_id)
+        self.assertIsNotNone(self.tramite.estatus_id)
         self.assertIsNotNone(self.tramite.es_propietario)
         self.assertIsNotNone(self.tramite.nom_sol)
         self.assertIsNotNone(self.tramite.pagado)
-        self.assertIsNotNone(self.tramite.urgente)
 
     def test_folio_unique(self):
         """Test that folio is unique."""
@@ -105,18 +103,18 @@ class TestTramiteManager(TestCase):
     def test_get_statistics(self):
         """Test get_statistics returns all counts."""
         # Create tramites with different statuses
-        from tests.factories import CatEstatusFactory
+        from tests.factories import TramiteEstatusFactory
 
         # Create statuses
-        estatus_pendiente = CatEstatusFactory(id=101, estatus='Pendiente')
-        estatus_finalizado = CatEstatusFactory(id=300, estatus='Finalizado')
-        estatus_cancelado = CatEstatusFactory(id=304, estatus='Cancelado')
+        estatus_pendiente = TramiteEstatusFactory(id=101, estatus='Pendiente')
+        estatus_finalizado = TramiteEstatusFactory(id=300, estatus='Finalizado')
+        estatus_cancelado = TramiteEstatusFactory(id=304, estatus='Cancelado')
 
         # Create tramites
-        TramiteFactory(id_cat_estatus=estatus_pendiente.id)  # 1
-        TramiteFactory(id_cat_estatus=estatus_finalizado.id)  # 1
-        TramiteFactory(id_cat_estatus=estatus_finalizado.id)  # 2
-        TramiteFactory(id_cat_estatus=estatus_cancelado.id)  # 1
+        TramiteFactory(estatus=estatus_pendiente)  # 1
+        TramiteFactory(estatus=estatus_finalizado)  # 1
+        TramiteFactory(estatus=estatus_finalizado)  # 2
+        TramiteFactory(estatus=estatus_cancelado)  # 1
 
         stats = Tramite.objects.get_statistics()
 

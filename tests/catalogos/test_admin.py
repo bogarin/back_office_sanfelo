@@ -1,29 +1,29 @@
 """
-Tests for catalogos admin configuration.
+Tests for catalog admin configuration (now in tramites app).
 
 NOTE: Generic admin tests are in tests/core/test_admin_generic.py
-This file contains only tests specific to catalogos that are not covered by generics.
+This file contains only tests specific to catalog admins not covered by generics.
 """
 
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
 
-from catalogos.admin import ActividadesAdmin, CatPeritoAdmin
-from catalogos.models import Actividades, CatPerito
-from tests.factories import ActividadesFactory, CatPeritoFactory
+from tests.factories import ActividadesFactory, PeritoFactory
+from tramites.admin import ActividadesAdmin, PeritoAdmin
+from tramites.models import Actividades, Perito
 
 
-class TestCatPeritoAdmin(TestCase):
-    """Test suite for CatPeritoAdmin specific tests."""
+class TestPeritoAdmin(TestCase):
+    """Test suite for PeritoAdmin specific tests."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.site = AdminSite()
-        self.admin = CatPeritoAdmin(CatPerito, self.site)
-        self.perito = CatPeritoFactory()
+        self.admin = PeritoAdmin(Perito, self.site)
+        self.perito = PeritoFactory()
 
     def test_admin_registered(self):
-        """Test that CatPerito is registered with admin."""
+        """Test that Perito admin is configured."""
         self.assertIsNotNone(self.admin)
 
 
@@ -37,5 +37,5 @@ class TestActividadesAdmin(TestCase):
         self.actividades = ActividadesFactory()
 
     def test_admin_registered(self):
-        """Test that Actividades is registered with admin."""
+        """Test that Actividades admin is configured."""
         self.assertIsNotNone(self.admin)

@@ -27,18 +27,115 @@ from buzon.services import (
 )
 from core.admin import (
     BaseModelAdmin,
+    RoleBasedAccessMixin,
+    mark_as_active,
+    mark_as_inactive,
 )
 from core.admin_utils import (
+    render_activo_badge,
     render_pagado_badge,
     render_status_badge,
     render_urgente_badge,
 )
-from tramites.models import Tramite
-
-# Import catalog models for lookups
-from catalogos.models import CatEstatus
+from tramites.models import (
+    Actividades,
+    Perito,
+    Tramite,
+    TramiteCatalogo,
+    TramiteEstatus,
+)
 
 User = get_user_model()
+
+
+# =============================================================================
+# Catalog Admins (migrated from catalogos app)
+# =============================================================================
+
+
+# Perito model - kept for internal use, not registered in admin
+# @admin.register(Perito)
+class PeritoAdmin(BaseModelAdmin, RoleBasedAccessMixin):
+    """Admin interface for Perito model."""
+
+    list_display = (
+        'nombre_completo',
+        'telefono',
+        'correo',
+        'estatus',
+        'estatus_badge',
+        'cedula',
+    )
+    list_filter = ('estatus',)
+    search_fields = ('nombre', 'paterno', 'materno', 'correo', 'cedula', 'rfc')
+    list_editable = ('estatus',)
+    actions = [mark_as_active, mark_as_inactive]
+
+    fieldsets = (
+        (
+            'Información Personal',
+            {
+                'fields': (
+                    ('nombre', 'paterno', 'materno'),
+                    ('rfc', 'cedula'),
+                ),
+            },
+        ),
+        (
+            'Contacto',
+            {
+                'fields': (
+                    'telefono',
+                    'celular',
+                    'correo',
+                    'domicilio',
+                    'colonia',
+                ),
+            },
+        ),
+        (
+            'Configuración',
+            {
+                'fields': (
+                    'estatus',
+                    ('fecha_registro', 'revalidacion'),
+                ),
+            },
+        ),
+    )
+
+    def estatus_badge(self, obj):
+        """Display estatus status as badge."""
+        return render_activo_badge(obj.estatus)
+
+    estatus_badge.short_description = 'Estado'
+    estatus_badge.admin_order_field = 'estatus'
+    estatus_badge.allow_tags = True
+
+
+@admin.register(Actividades)
+class ActividadesAdmin(BaseModelAdmin, RoleBasedAccessMixin):
+    """Admin interface for Actividades model."""
+
+    list_display = (
+        'id',
+        'tramite',
+        'actividad',
+        'estatus',
+        'fecha_inicio',
+        'fecha_fin',
+        'id_cat_usuario',
+        'secuencia',
+        'observacion',
+    )
+    list_filter = ('fecha_inicio', 'fecha_fin')
+    search_fields = ('observacion',)
+    ordering = ('-secuencia',)
+
+
+# =============================================================================
+# Custom list filters for Tramite
+# =============================================================================
 
 
 # Custom list filter para 'esta_asignado'
@@ -70,7 +167,7 @@ class TramiteFinalizadoFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(id_cat_estatus__gte=300)
+            return queryset.filter(estatus_id__gte=300)
         return queryset
 
 
@@ -84,8 +181,13 @@ class TramiteCanceladoFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(id_cat_estatus=304)
+            return queryset.filter(estatus_id=304)
         return queryset
+
+
+# =============================================================================
+# Tramite Admin
+# =============================================================================
 
 
 @admin.register(Tramite)
@@ -94,12 +196,11 @@ class TramiteAdmin(BaseModelAdmin):
     Admin personalizado para el Buzón de Trámites.
 
     Características:
-    - Usa annotate() para evitar N+1 queries
+    - Usa select_related() para evitar N+1 queries
     - Filtra trámites según rol del usuario
     - Implementa permisos UPDATE granulares por rol
     - Implementa batch actions para Analista (tomar) y Coordinador (asignar)
     - Muestra analista asignado en cada trámite
-    - Mantiene toda la funcionalidad existente (badges, fieldsets, etc.)
 
     Lógica de filtrado (SELECT):
     - Admin/Superuser: Ve TODO
@@ -116,7 +217,7 @@ class TramiteAdmin(BaseModelAdmin):
     list_display = (
         'folio',
         'tramite_nombre',
-        'estatus_display',
+        'estatus_columna',
         'importe_total',
         'pagado',
         'pagado_badge',
@@ -128,7 +229,7 @@ class TramiteAdmin(BaseModelAdmin):
 
     # List filtering
     list_filter = (
-        'id_cat_estatus',
+        'estatus',
         'pagado',
         'urgente',
         'es_propietario',
@@ -166,9 +267,9 @@ class TramiteAdmin(BaseModelAdmin):
             {
                 'fields': (
                     'folio',
-                    'id_cat_tramite',
-                    'id_cat_estatus',
-                    'id_cat_perito',
+                    'tramite_catalogo',
+                    'estatus',
+                    'perito',
                     'tipo',
                 ),
                 'classes': ('wide',),
@@ -217,8 +318,8 @@ class TramiteAdmin(BaseModelAdmin):
         """
         Filtra trámites según rol del usuario de forma eficiente.
 
-        Usa annotate() para evitar N+1 queries.
-        Una sola query SQL por página.
+        Usa select_related() para evitar N+1 queries en catálogos
+        y annotate() para la relación cross-database con AsignacionTramite.
 
         Lógica de SELECT por rol:
         - Admin/Superuser: Ve TODO
@@ -226,14 +327,24 @@ class TramiteAdmin(BaseModelAdmin):
         - Analista: Ve SUS trámites + trámites libres
 
         Returns:
-            QuerySet: Trámites filtrados según rol
+            QuerySet: Trámites filtrados según rol con todas las anotaciones
         """
-        queryset = super().get_queryset(request)
+        from django.db.models import Value
+        from django.db.models.functions import Coalesce
+
+        queryset = super().get_queryset(request).select_related('tramite_catalogo', 'estatus')
         user = request.user
 
         # Annotate con flag de asignación (cross-database safe)
         queryset = queryset.annotate(
             esta_asignado_flag=Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk'))),
+        )
+
+        # Annotate con analista asignado (cross-database safe)
+        queryset = queryset.annotate(
+            analista_asignado_id=Subquery(
+                AsignacionTramite.objects.filter(tramite=OuterRef('pk')).values('analista_id')[:1]
+            )
         )
 
         # Admin/Superuser: Ve TODO
@@ -325,17 +436,24 @@ class TramiteAdmin(BaseModelAdmin):
 
         super().save_model(request, obj, form, change)
 
-    # Custom display methods (existentes + nuevo analista_asignado)
+    # Custom display methods
     def tramite_nombre(self, obj):
-        """Display tramite name from catalog."""
-        return obj.tramite_display
+        """Display tramite name from catalog (via select_related)."""
+        return (
+            obj.tramite_catalogo.nombre
+            if obj.tramite_catalogo
+            else (f'ID {obj.tramite_catalogo_id}')
+        )
 
     tramite_nombre.short_description = 'Tipo de Trámite'
-    tramite_nombre.admin_order_field = 'id_cat_tramite'
+    tramite_nombre.admin_order_field = 'tramite_catalogo'
 
-    def estatus_display(self, obj):
-        """Display estatus with color coding."""
-        return render_status_badge(obj.id_cat_estatus, obj.estatus_display)
+    def estatus_columna(self, obj):
+        """Display estatus with color coding (via select_related)."""
+        estatus_display = obj.estatus.estatus if obj.estatus else f'ID {obj.estatus_id}'
+        return render_status_badge(obj.estatus_id, estatus_display)
+
+    estatus_columna.short_description = 'Estatus'
 
     def pagado_badge(self, obj):
         """Display pagado status as badge."""
@@ -349,11 +467,17 @@ class TramiteAdmin(BaseModelAdmin):
         """
         Muestra el analista asignado (o '📦 Libre').
 
-        Usa lazy loading para evitar cross-database joins.
+        Usa el ID del analista anotado para evitar queries adicionales.
         """
-        analista = obtener_analista_asignado(obj)
-        if analista:
-            return f'👤 {analista.username}'
+        analista_id = getattr(obj, 'analista_asignado_id', None)
+
+        if analista_id:
+            try:
+                analista = User.objects.get(id=analista_id)
+                return f'👤 {analista.username}'
+            except User.DoesNotExist:
+                return f'📦 ID: {analista_id}'
+
         return '📦 Libre'
 
     analista_asignado.short_description = 'Asignado a'
@@ -500,8 +624,6 @@ class TramiteAdmin(BaseModelAdmin):
         analistas = User.objects.filter(groups__name='Analista')
 
         # Calculate load for each analyst (cross-database safe)
-        from buzon.models import AsignacionTramite
-
         analistas_con_carga = []
         for analista in analistas:
             carga = AsignacionTramite.objects.filter(analista_id=analista.id).count()
@@ -542,57 +664,57 @@ class TramiteAdmin(BaseModelAdmin):
 
     # Custom change list view (mantener estadísticas existentes)
     def changelist_view(self, request, extra_context=None):
-        """Add statistics to change list view."""
+        """
+        Add statistics to change list view with optimized queries.
+
+        Optimizaciones:
+        - Usa TramiteManager.get_statistics() con caching para stats principales
+        - Agregación single query para distribución por estatus
+        - Fetch de TramiteEstatus en una sola query
+        """
         extra_context = extra_context or {}
 
-        # Calculate statistics
-        total_tramites = Tramite.objects.count()
-        tramites_urgentes = Tramite.objects.filter(urgente=True).count()
-        tramites_pagados = Tramite.objects.filter(pagado=True).count()
-        tramites_pendientes_pago = Tramite.objects.filter(pagado=False).count()
+        # Use cached statistics from TramiteManager (much faster!)
+        stats = Tramite.objects.get_statistics()
 
-        # Get status distribution using Django ORM (Pythonic and database-agnostic)
-        # Aggregate counts by status (efficient single query to business DB)
-        estatus_counts = (
-            Tramite.objects.values('id_cat_estatus')
-            .annotate(total=Count('id'))
-            .order_by('id_cat_estatus')
+        # Get status distribution with optimized aggregation (single query)
+        estatus_distribution = (
+            Tramite.objects.values('estatus_id').annotate(total=Count('id')).order_by('estatus_id')
         )
 
-        # Fetch all statuses once (efficient single query to business DB)
-        all_estatus = {e.id: e.estatus for e in CatEstatus.objects.all()}
+        # Fetch all statuses once (single query to business DB)
+        all_estatus = {e.id: e.estatus for e in TramiteEstatus.objects.all()}
 
         # Combine data in Python (avoids N+1 queries, maintains format)
-        estatus_distribution = [
+        estatus_distribution_list = [
             (cat_id, all_estatus.get(cat_id, f'ID {cat_id}'), total)
-            for cat_id, total in estatus_counts.values_list('id_cat_estatus', 'total')
+            for cat_id, total in estatus_distribution.values_list('estatus_id', 'total')
         ]
 
         extra_context.update(
             {
-                'total_tramites': total_tramites,
-                'tramites_urgentes': tramites_urgentes,
-                'tramites_pagados': tramites_pagados,
-                'tramites_pendientes_pago': tramites_pendientes_pago,
-                'estatus_distribution': estatus_distribution,
+                'total_tramites': stats['total'],
+                'tramites_urgentes': stats.get('urgentes', 0),
+                'tramites_pagados': stats.get('pagados', 0),
+                'tramites_pendientes_pago': stats['total'] - stats.get('pagados', 0),
+                'estatus_distribution': estatus_distribution_list,
             }
         )
 
         return super().changelist_view(request, extra_context=extra_context)
 
-    # Custom form field widget customization (mantener existente)
+    # Custom form field widget customization
     def get_form_customized(self, request, obj=None, **kwargs):
         """Customize form with widget choices from catalog tables."""
         form = super().get_form(request, obj, **kwargs)
-        from catalogos.models import CatEstatus, CatPerito, CatTramite
 
         # Populate choices dynamically
-        tramites_choices = [(t.id, t.nombre) for t in CatTramite.objects.filter(activo=True)]
-        estatus_choices = [(e.id, e.estatus) for e in CatEstatus.objects.all()]
-        peritos_choices = [(p.id, p.nombre_completo) for p in CatPerito.objects.all()]
+        tramites_choices = [(t.id, t.nombre) for t in TramiteCatalogo.objects.filter(activo=True)]
+        estatus_choices = [(e.id, e.estatus) for e in TramiteEstatus.objects.all()]
+        peritos_choices = [(p.id, p.nombre_completo) for p in Perito.objects.all()]
 
-        form.base_fields['id_cat_tramite'].widget.choices = tramites_choices
-        form.base_fields['id_cat_estatus'].widget.choices = estatus_choices
-        form.base_fields['id_cat_perito'].widget.choices = peritos_choices
+        form.base_fields['tramite_catalogo'].widget.choices = tramites_choices
+        form.base_fields['estatus'].widget.choices = estatus_choices
+        form.base_fields['perito'].widget.choices = peritos_choices
 
         return form

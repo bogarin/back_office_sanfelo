@@ -12,9 +12,7 @@ Roles:
 Apps:
 -----
 - auth: User/group management via Django admin
-- catalogos: Catalogs (CatTramite, CatEstatus, etc.)
-- costos: Costs (Costo, Uma)
-- tramites: Procedures (full access for admin only)
+- tramites: Procedures and all catalog models (TramiteCatalogo, TramiteEstatus, etc.)
 """
 
 from django.conf import settings
@@ -38,9 +36,7 @@ class Role:
 # Apps where Administrador has full access (all permissions: add, change, delete, view)
 ADMINISTRADOR_APPS = [
     'auth',  # User/group management
-    'catalogos',  # All catalog models
-    'costos',  # Cost management
-    'tramites',  # Procedures
+    'tramites',  # Procedures and catalog models
 ]
 
 

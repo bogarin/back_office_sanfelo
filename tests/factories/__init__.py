@@ -9,12 +9,12 @@ from tests.factories.auth import (
     UserFactory,
 )
 from tests.factories.catalogos import (
-    CatTramiteFactory,
-    CatEstatusFactory,
-    CatPeritoFactory,
+    ActividadFactory,
     ActividadesFactory,
+    PeritoFactory,
+    TramiteCatalogoFactory,
+    TramiteEstatusFactory,
 )
-from tests.factories.costos import CostoFactory, UmaFactory
 from tests.factories.tramites import TramiteFactory
 
 __all__ = [
@@ -25,25 +25,12 @@ __all__ = [
     'GroupFactory',
     'PermissionFactory',
     'ContentTypeFactory',
-    # Catalogos factories
-    'CatTramiteFactory',
-    'CatEstatusFactory',
-    'CatPeritoFactory',
-    'CatActividadFactory',
-    'CatCategoriaFactory',
-    'CatIncisoFactory',
-    'CatRequisitoFactory',
-    'CatTipoFactory',
-    'RelTmtCateReqFactory',
-    'RelTmtCategoriaFactory',
-    'RelTmtIncisoFactory',
-    'RelTmtTipoReqFactory',
+    # Catalog factories
+    'TramiteCatalogoFactory',
+    'TramiteEstatusFactory',
+    'PeritoFactory',
+    'ActividadFactory',
     'ActividadesFactory',
-    'CobroFactory',
-    'RelTmtActividadFactory',
-    # Costos factories
-    'CostoFactory',
-    'UmaFactory',
     # Tramites factories
     'TramiteFactory',
 ]

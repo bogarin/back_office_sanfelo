@@ -1,6 +1,5 @@
 """Factory-boy factories for tramites models."""
 
-
 import factory
 
 
@@ -11,9 +10,8 @@ class TramiteFactory(factory.django.DjangoModelFactory):
         model = 'tramites.Tramite'
 
     folio = factory.Sequence(lambda n: f'TRAM-{n:06d}')
-    id_cat_tramite = factory.Sequence(lambda n: n)
-    id_cat_estatus = 101  # Default status
-    id_cat_perito = factory.Sequence(lambda n: n)
+    tramite_catalogo = factory.SubFactory('tests.factories.TramiteCatalogoFactory')
+    estatus = factory.SubFactory('tests.factories.TramiteEstatusFactory')
     clave_catastral = factory.Faker('bothify', text='???####-??-####-#')
     es_propietario = True
     nom_sol = factory.Faker('name')

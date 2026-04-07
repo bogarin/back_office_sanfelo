@@ -15,9 +15,7 @@ class TestAdminRegistration:
         'app_label,model_name',
         [
             ('tramites', 'Tramite'),
-            ('costos', 'Uma'),
-            ('catalogos', 'CatPerito'),
-            ('catalogos', 'Actividades'),
+            ('tramites', 'Actividades'),
         ],
     )
     def test_model_registered_in_admin(self, app_label, model_name):
