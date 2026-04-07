@@ -9,16 +9,17 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 
-from core.views import health_check, admin_home
+from core.views import health_check
 
 urlpatterns = [
     # Health check
     path('health/', health_check, name='health-check'),
-    # Auth (Django admin auth)
-    path('admin/', admin.site.urls, name='admin'),
-    # Custom home
-    path('', admin_home, name='admin-home'),
+    # Django admin (uses custom admin/index.html template override)
+    path('admin/', admin.site.urls),
+    # Redirect root to admin dashboard
+    path('', RedirectView.as_view(url='/admin/', permanent=True), name='admin-home'),
 ]
 
 # Debug configuration - only in development

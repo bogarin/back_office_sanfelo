@@ -1,0 +1,22 @@
+{% extends "admin/base.html" %}
+{% load i18n jazzmin %}
+
+{% block footer %}
+{% if not is_popup %}
+<footer class="app-footer">
+    <div class="float-end d-none d-sm-inline">
+        <b>{% trans 'Jazzmin version' %}</b> {% get_jazzmin_version %}
+    </div>
+    {% autoescape off %}
+        <strong>{% trans 'Copyright' %} &copy; {% now 'Y' %} {{ jazzmin_settings.copyright }}.</strong> {% trans 'All rights reserved.' %}
+    {% endautoescape %}
+    <nav class="nav justify-content-center mt-1">
+        <a class="nav-link small" href="/docs/">📚 Documentación</a>
+        <span class="nav-link small text-muted">|</span>
+        <a class="nav-link small" href="/ayuda/">❓ Ayuda</a>
+        <span class="nav-link small text-muted">|</span>
+        <a class="nav-link small" href="/soporte/">🛠️ Soporte</a>
+    </nav>
+</footer>
+{% endif %}
+{% endblock %}
