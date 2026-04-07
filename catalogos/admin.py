@@ -4,9 +4,7 @@ Provides admin interface for managing catalog tables
 with appropriate filtering, search, and inline configurations.
 """
 
-from django.conf import settings
 from django.contrib import admin
-from django.utils.html import format_html
 
 from catalogos.models import (
     Actividades,
@@ -14,9 +12,9 @@ from catalogos.models import (
 )
 from core.admin import (
     BaseModelAdmin,
+    RoleBasedAccessMixin,
     mark_as_active,
     mark_as_inactive,
-    RoleBasedAccessMixin,
 )
 from core.admin_utils import render_activo_badge
 
@@ -24,11 +22,13 @@ from core.admin_utils import render_activo_badge
 # CATALOG TABLES (cat_*)
 # ============================================================================
 
-# Note: According to PLAN.md, most catalog models should NOT be registered in admin.
-# Only Actividades is registered, and CatPerito is kept for internal use.
+# Note: All catalog models are NOT registered in admin.
+# Catalog tables are read-only and managed externally.
+# Admin access is disabled to prevent accidental modifications.
 
 
-@admin.register(CatPerito)
+# CatPerito model - kept for internal use, not registered in admin
+# @admin.register(CatPerito)
 class CatPeritoAdmin(BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for CatPerito model."""
 
@@ -90,29 +90,22 @@ class CatPeritoAdmin(BaseModelAdmin, RoleBasedAccessMixin):
     estatus_badge.allow_tags = True
 
 
-@admin.register(Actividades)
+# Actividades model - not registered in admin (read-only catalog)
+# @admin.register(Actividades)
 class ActividadesAdmin(BaseModelAdmin, RoleBasedAccessMixin):
     """Admin interface for Actividades model."""
 
     list_display = (
         'id',
-        'descripcion',
-        'observaciones',
-        'activo',
-        'activo_badge',
-        'fecha_actualiza',
-        'actualizado_por',
+        'id_tramite',
+        'id_cat_actividad',
+        'id_cat_estatus',
+        'fecha_inicio',
+        'fecha_fin',
+        'id_cat_usuario',
+        'secuencia',
+        'observacion',
     )
-    list_filter = ('activo', 'fecha_actualiza')
-    search_fields = ('descripcion', 'observaciones')
-    list_editable = ('activo',)
-    actions = [mark_as_active, mark_as_inactive]
-    ordering = ('-fecha_actualiza',)
-
-    def activo_badge(self, obj):
-        """Display activo status as badge."""
-        return render_activo_badge(obj.activo)
-
-    activo_badge.short_description = 'Estado'
-    activo_badge.admin_order_field = 'activo'
-    activo_badge.allow_tags = True
+    list_filter = ('fecha_inicio', 'fecha_fin')
+    search_fields = ('observacion',)
+    ordering = ('-secuencia',)

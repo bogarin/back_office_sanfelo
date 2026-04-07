@@ -42,6 +42,24 @@ def admin_group(db):
 
 
 @pytest.fixture
+def coordinador_group(db):
+    """Get or create the Coordinador group."""
+    from django.conf import settings
+    from django.contrib.auth.models import Group
+
+    return Group.objects.get_or_create(name=settings.COORDINADOR_GROUP_NAME)[0]
+
+
+@pytest.fixture
+def analista_group(db):
+    """Get or create the Analista group."""
+    from django.conf import settings
+    from django.contrib.auth.models import Group
+
+    return Group.objects.get_or_create(name=settings.ANALISTA_GROUP_NAME)[0]
+
+
+@pytest.fixture
 def admin_user(db, admin_group):
     """Create an administrador user."""
     user = User.objects.create_user(

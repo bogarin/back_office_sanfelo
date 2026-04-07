@@ -206,10 +206,25 @@ class BackofficeAdminSite(admin.AdminSite):
 class RoleBasedAccessMixin:
     """Mixin for role-based access control.
 
-    Provides role-based access control for users in the admin interface:
-    - Superusers have full access
-    - Administrador group users have full access
-    - Other users have no access
+    Provides role-based access control for users in admin interface:
+    - Superusers: Acceso completo (SELECT + UPDATE a todo)
+    - Administrador group: Acceso completo (SELECT + UPDATE a todo)
+    - Coordinador group: Ve todos los trámites (SELECT), puede UPDATE cualquier trámite, asignar/reasignar
+    - Analista group: Ve sus trámites + libres (SELECT restringido), UPDATE solo sus trámites, auto-asignar
+    - Other users: Sin acceso
+
+    For Tramite model specifically, the access rules are:
+    SELECT permissions (data visibility):
+    - Superuser: Ve TODO
+    - Administrador: Ve TODO
+    - Coordinador: Ve TODO (para poder reasignar)
+    - Analista: Ve SUS trámites + trámites libres
+
+    UPDATE permissions (modify data):
+    - Superuser: UPDATE a TODO
+    - Administrador: UPDATE a TODO
+    - Coordinador: UPDATE a TODO
+    - Analista: UPDATE solo a SUS trámites
     """
 
     def _is_administrador(self, user: User) -> bool:
@@ -222,6 +237,38 @@ class RoleBasedAccessMixin:
             True if user is in Administrador group, False otherwise
         """
         return user.groups.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists()
+
+    def _is_coordinador(self, user: User) -> bool:
+        """Check if user belongs to Coordinador group.
+
+        Coordinadores pueden:
+        - Ver todos los trámites (SELECT)
+        - Asignar y reasignar trámites
+        - Modificar cualquier trámite (UPDATE)
+
+        Args:
+            user: Django User instance
+
+        Returns:
+            True if user is in Coordinador group, False otherwise
+        """
+        return user.groups.filter(name=settings.COORDINADOR_GROUP_NAME).exists()
+
+    def _is_analista(self, user: User) -> bool:
+        """Check if user belongs to Analista group.
+
+        Analistas pueden:
+        - Ver sus trámites asignados + trámites libres (SELECT restringido)
+        - Auto-asignarse trámites libres
+        - Modificar solo sus trámites asignados (UPDATE)
+
+        Args:
+            user: Django User instance
+
+        Returns:
+            True if user is in Analista group, False otherwise
+        """
+        return user.groups.filter(name=settings.ANALISTA_GROUP_NAME).exists()
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Model]:
         """Return the queryset with proper data filtering based on user permissions.

@@ -6,7 +6,6 @@ Uses Django's built-in auth system with SQLite.
 Business data (tramites, catalogos, costos) uses PostgreSQL.
 """
 
-import os
 from pathlib import Path
 
 import environ
@@ -193,6 +192,7 @@ INSTALLED_APPS = [
     'catalogos',
     'costos',
     'core',
+    'buzon',  # Buzón de Trámites - gestiona asignaciones de trámites a analistas
     # Test-only models for permission testing (only during tests)
     'tests' if TESTING else None,
 ]
@@ -236,6 +236,70 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'sanfelipe.wsgi.application'
 ASGI_APPLICATION = 'sanfelipe.asgi.application'
+
+# =============================================================================
+# DJAZZO-JAZZMIN CONFIGURATION
+# =============================================================================
+
+# Django-Jazzmin configuration for admin interface customization
+JAZZMIN_SETTINGS = {
+    # title of the window (Will default to current_admin_site.site_title if absent or None)
+    'site_title': 'Municipio de San Felipe',
+    # Title on the login screen (19 chars max) (defaults to current_admin_site.site_header if absent or None)
+    'site_header': 'San Felipe',
+    # Title on the brand (19 chars max) (defaults to current_admin_site.site_header if absent or None)
+    'site_brand': 'Trámites en Línea',
+    # Logo to use for your site, must be present in static files, used for brand on top left
+    'site_logo': 'sf_logo.jpg',
+    # Logo to use for your site, must be present in static files, used for login form logo (defaults to site_logo)
+    # "login_logo": None,
+    # Logo to use for login form in dark themes (defaults to login_logo)
+    # "login_logo_dark": None,
+    # CSS classes that are applied to the logo above
+    'site_logo_classes': 'img-circle',
+    # Relative path to a favicon for your site, will default to site_logo if absent (ideally 32x32 px)
+    # "site_icon": None,
+    # Welcome text on the login screen
+    'welcome_sign': 'Sistema de Trámites en Línea - Municipio de San Felipe',
+    # Copyright on the footer
+    'copyright': 'Municipio de San Felipe - Todos los derechos reservados',
+    # Hide unnecessary apps from admin menu
+    'hide_apps': ['auth', 'sessions'],
+    'topmenu_links': [
+        # Url that gets reversed (Permissions can be added)
+        {'name': 'Panel del control', 'url': 'admin:index', 'permissions': ['auth.view_user']},
+        {'model': 'buzon.AsignacionTramite'},
+        {'model': 'catalogos.CatActividad'},
+        # App with dropdown menu to all its models pages (Permissions checked against models)
+        {'app': 'tramites', 'name': 'Trámites', 'permissions': ['tramites.view_tramite']},
+    ],
+    # Custom menu for Buzón de Trámites
+    'custom_menu': [
+        {
+            'model': 'tramites.Tramite',
+            'label': '📋 Buzón de Trámites',
+            'icon': 'fa fa-inbox',
+        },
+        {
+            'model': 'buzon.AsignacionTramite',
+            'label': '🔄 Gestión de Asignaciones',
+            'icon': 'fa fa-exchange-alt',
+        },
+    ],
+    # Dashboard sections
+    'dashboard': [
+        {
+            'name': '📋 Buzón de Trámites',
+            'app': 'tramites',
+            'models': ('tramites.Tramite',),
+        },
+        {
+            'name': '🔄 Asignaciones',
+            'app': 'buzon',
+            'models': ('buzon.AsignacionTramite',),
+        },
+    ],
+}
 
 # =============================================================================
 # DATABASE
@@ -385,6 +449,21 @@ LOGGING = {
             'level': 'WARNING',  # Reduce autoreload noise in development
             'propagate': False,
         },
+        'django.template': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Reduce template noise in development
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'INFO',  # Show only important request info
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Only show security warnings
+            'propagate': False,
+        },
         'sanfelipe': {
             'handlers': ['console', 'file'] if not DEBUG else ['console'],
             'level': LOG_LEVEL,
@@ -409,6 +488,11 @@ AUTHENTICATION_BACKENDS = [
 
 # Role-based access control groups
 ADMINISTRADOR_GROUP_NAME = 'Administrador'
+COORDINADOR_GROUP_NAME = 'Coordinador'
+ANALISTA_GROUP_NAME = 'Analista'
+
+# Buzón de Trámites settings
+MAX_TRAMITES_POR_ANALISTA = env.int('MAX_TRAMITES_POR_ANALISTA', default=50)
 
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = env.list(

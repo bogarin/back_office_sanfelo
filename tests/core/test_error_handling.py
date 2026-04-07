@@ -23,6 +23,5 @@ class TestRBACErrorHandling(TestCase):
         except Exception:
             self.fail('setup_roles should not raise exception for missing permissions')
 
-        # Groups should still be created
+        # Administrador group should be created
         self.assertTrue(Group.objects.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists())
-        self.assertTrue(Group.objects.filter(name=settings.OPERADOR_GROUP_NAME).exists())

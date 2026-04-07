@@ -1,0 +1,46 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+  {% if balance_recomendado %}
+    <div class="alert alert-info mb-3">
+      <h4>📊 Balance de Carga - Recomendaciones</h4>
+
+      <div class="row">
+        <div class="col-md-6">
+          <h5>✅ Analistas Disponibles (menos carga)</h5>
+          <ul>
+            {% for analista in analistas_disponibles %}
+              <li>
+                <strong>{{ analista.username }}</strong>:
+                {{ analista.carga_tramites }} trámites asignados
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="col-md-6">
+          <h5>⚠️ Analistas Saturados (más carga)</h5>
+          <ul>
+            {% for analista in analistas_saturados %}
+              <li>
+                <strong>{{ analista.username }}</strong>:
+                {{ analista.carga_tramites }} trámites asignados
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <hr>
+
+      <p class="mb-0">
+        <small>
+          💡 <strong>Tip:</strong> Usa la acción "⚖️ Reasignar a analista con menos carga"
+          para balancear automáticamente los trámites seleccionados.
+        </small>
+      </p>
+    </div>
+  {% endif %}
+
+  {{ block.super }}
+{% endblock %}

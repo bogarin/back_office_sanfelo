@@ -98,6 +98,7 @@ class MultiDatabaseRouter:
             'costos',
             'tramites',
             'core',
+            'buzon',  # Buzón de Trámites - gestiona asignaciones (stores user IDs as integers)
         }
     )
 
@@ -297,8 +298,13 @@ class MultiDatabaseRouter:
             >>> router.allow_migrate('default', 'tramites', 'tramite')
             False
         """
-        # Business apps: never migrate (managed=False, external DB)
+        # Business apps: handle differently
         if self._is_business_app(app_label):
+            # Special case: buzon app needs migrations on business DB
+            # (it stores user IDs as integers to avoid cross-database relations)
+            if app_label == 'buzon':
+                return db == self.BUSINESS_DB
+            # Other business apps: never migrate (managed=False, external DB)
             return False
 
         # Auth apps: only migrate on SQLite (default)
