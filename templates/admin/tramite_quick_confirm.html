@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div class="assignment-form" style="max-width:500px;margin:20px 0;padding:20px;border:1px solid #ddd;border-radius:5px;background:#f9f9f9;">
+    {% block tramite_info %}
+    <p>
+        <strong>Folio:</strong> {{ tramite.folio }}<br>
+        <strong>Solicitante:</strong> {{ tramite.nom_sol }}<br>
+        <strong>Tipo:</strong> {{ tramite.tramite_display }}
+    </p>
+    {% endblock %}
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="button default" style="margin-right:10px;">
+            {{ action_label }}
+        </button>
+        <a href="../" class="button">❌ Cancelar</a>
+    </form>
+</div>
+{% endblock %}

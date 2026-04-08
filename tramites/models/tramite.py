@@ -6,12 +6,11 @@ by SQL triggers. Uses ForeignKey for catalog lookups (db_column preserves
 the original column names in PostgreSQL).
 """
 
+from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
 from django.db.models import Exists, OuterRef
-from django.apps import apps
-
 
 # =============================================================================
 # Custom Manager for Tramite Statistics
@@ -67,7 +66,7 @@ class TramiteManager(models.Manager):
         Returns:
             int: Total number of trámites
         """
-        return self._get_cached_count('total', lambda: self.all())
+        return self._get_cached_count('total', self.all)
 
     def get_sin_asignar_count(self) -> int:
         """Get count of trámites without assignment.
@@ -292,8 +291,6 @@ class Tramite(models.Model):
     @property
     def tramite_display(self) -> str:
         """Get display name for tramite from related TramiteCatalogo."""
-        return (
-            self.tramite_catalogo.nombre
-            if self.tramite_catalogo
-            else (f'ID {self.tramite_catalogo_id}')
-        )
+        if self.tramite_catalogo:
+            return self.tramite_catalogo.nombre
+        return f'ID {self.tramite_catalogo.pk}'
