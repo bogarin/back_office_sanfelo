@@ -4,15 +4,17 @@ Admin interface for buzon app.
 Provides admin interface for managing tramite assignments to analysts.
 """
 
+from django.conf import settings
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
 from buzon.models import AsignacionTramite
 from buzon.services import liberar_tramite, obtener_carga_analistas, reasignar_tramite
 from core.admin import BaseModelAdmin
+from tramites.models import TramiteEstatus
 
 
-@admin.register(AsignacionTramite)
+# @admin.register(AsignacionTramite)
 class AsignacionTramiteAdmin(BaseModelAdmin):
     """
     Admin interface para gestión de asignaciones.
@@ -103,8 +105,6 @@ class AsignacionTramiteAdmin(BaseModelAdmin):
 
     def tramite_estatus(self, obj):
         """Muestra el estatus del trámite."""
-        from tramites.models import TramiteEstatus
-
         try:
             estatus = TramiteEstatus.objects.get(id=obj.tramite.estatus_id)
             return estatus.estatus
@@ -116,7 +116,6 @@ class AsignacionTramiteAdmin(BaseModelAdmin):
 
     def analista_con_carga(self, obj):
         """Muestra el analista con badge de carga."""
-        from buzon.models import AsignacionTramite
 
         # Use property to get User instance
         analista = obj.analista
@@ -150,7 +149,7 @@ class AsignacionTramiteAdmin(BaseModelAdmin):
     observacion_truncada.short_description = 'Observación'
 
     # Actions
-    actions = ['liberar_seleccionados', 'reasignar_a_analista_disponible']
+    actions = ('liberar_seleccionados', 'reasignar_a_analista_disponible')
 
     @admin.action(description='🗑️ Liberar trámites seleccionados')
     def liberar_seleccionados(self, request, queryset):
@@ -213,8 +212,6 @@ class AsignacionTramiteAdmin(BaseModelAdmin):
 
     # Solo visible para Coordinador
     def has_module_permission(self, request):
-        from django.conf import settings
-
         return (
             request.user.is_superuser
             or request.user.is_staff

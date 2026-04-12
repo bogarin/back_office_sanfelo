@@ -10,8 +10,13 @@ from pathlib import Path
 
 import environ
 
+from .security import configure_security
+from .tenancy import configure_tenancy
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# settings/ is now a package, so we need to go up 3 levels instead of 2
+# From: sanfelipe/settings/__init__.py -> sanfelipe/ -> project root
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Environment configuration
 env = environ.Env()
@@ -32,149 +37,30 @@ except FileNotFoundError:
 # SECURITY SETTINGS
 # =============================================================================
 
-SECRET_KEY = env('DJANGO_SECRET_KEY')
-DEBUG = env.bool('DJANGO_DEBUG', default=False)
+# Configure security settings from dedicated security module
+# This includes SECRET_KEY, DEBUG, ALLOWED_HOSTS, CSP, and production security headers
+security_config = configure_security(env)
 
-# Intranet deployment - adjust ALLOWED_HOSTS accordingly
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['*'])
-
-# Security settings for intranet (relaxed, no SSL needed)
-if not DEBUG:
-    SECURE_CONTENT_TYPE_NOSNIFF = env.bool('DJANGO_SECURE_CONTENT_TYPE_NOSNIFF', default=True)
-    SECURE_BROWSER_XSS_FILTER = env.bool('DJANGO_SECURE_BROWSER_XSS_FILTER', default=True)
-    X_FRAME_OPTIONS = 'DENY'
-
-    # Intranet - may not have SSL
-    SECURE_SSL_REDIRECT = env.bool('DJANGO_SECURE_SSL_REDIRECT', default=False)
-    SESSION_COOKIE_SECURE = env.bool('DJANGO_SESSION_COOKIE_SECURE', default=False)
-    CSRF_COOKIE_SECURE = env.bool('DJANGO_CSRF_COOKIE_SECURE', default=False)
+# Apply all security settings to the module namespace
+for key, value in security_config.items():
+    globals()[key] = value
 
 # =============================================================================
-# CONTENT SECURITY POLICY (CSP) - Django 6.0 Native Support
+# TENANCY SETTINGS
 # =============================================================================
 
-# CSP is a powerful security feature that helps prevent XSS attacks and other
-# content injection attacks by defining which content sources are trusted.
-#
-# Security Benefits:
-# - Prevents execution of unauthorized scripts (XSS mitigation)
-# - Controls which external resources can be loaded (scripts, styles, images, fonts)
-# - Blocks unauthorized content injection
-# - Provides violation reporting for monitoring and debugging
-#
-# For initial deployment, use REPORT_ONLY mode to identify any issues without
-# breaking functionality. After confirming everything works, switch to enforced mode.
-CSP_REPORT_MODE = env.bool('DJANGO_CSP_REPORT_ONLY', default=False)
+# Configure tenancy settings from dedicated tenancy module
+# This includes site branding, content, and department-specific limits
+tenancy_config = configure_tenancy(env)
 
-# Import CSP utilities - import here to avoid circular import issues
-from django.utils.csp import CSP
-
-if CSP_REPORT_MODE:
-    # Report-only mode: Monitor violations without blocking content
-    # This is recommended for initial deployment to identify any issues
-    SECURE_CSP_REPORT_ONLY = {
-        # Default fallback for all content types
-        # 'self' allows resources from the same origin only
-        'default-src': [CSP.SELF],
-        # Script sources: Only allow scripts from same origin with nonce support
-        # NONCE allows inline scripts with a valid nonce attribute
-        # This is more secure than 'unsafe-inline' as it explicitly whitelists scripts
-        'script-src': [CSP.SELF, CSP.NONCE],
-        # Style sources: Allow styles from same origin and inline styles
-        # Note: Django admin uses some inline styles, so UNSAFE_INLINE is needed
-        # For better security, consider using NONCE for inline styles
-        'style-src': [CSP.SELF, CSP.UNSAFE_INLINE],
-        # Image sources: Allow images from same origin and data: URIs
-        # data: URIs are commonly used for base64-encoded images in Django admin
-        'img-src': [CSP.SELF, 'data:'],
-        # Font sources: Only allow fonts from same origin
-        # Django admin loads fonts from static files
-        'font-src': [CSP.SELF],
-        # Connect sources: Restrict AJAX/Fetch requests to same origin
-        'connect-src': [CSP.SELF],
-        # Object sources: Block all plugins (Flash, Java, etc.)
-        # This prevents plugin-based XSS attacks
-        'object-src': [CSP.NONE],
-        # Media sources: Restrict audio/video to same origin
-        'media-src': [CSP.SELF],
-        # Frame sources: Block all iframes unless explicitly needed
-        # Prevents clickjacking attacks
-        'frame-src': [CSP.NONE],
-        # Frame ancestors: Prevent page from being embedded in frames
-        # Works with X-Frame-Options middleware for clickjacking protection
-        'frame-ancestors': [CSP.SELF],
-        # Base URI: Restrict base tag to same origin
-        'base-uri': [CSP.SELF],
-        # Form action: Restrict form submissions to same origin
-        'form-action': [CSP.SELF],
-        # Manifest: Restrict app manifests to same origin
-        'manifest-src': [CSP.SELF],
-        # Report violations to this endpoint (optional, for monitoring)
-        # Uncomment and configure if you want to collect CSP violation reports
-        # "report-uri": ["/csp-violation-report/"],
-        # "report-to": ["csp-endpoint"],
-    }
-
-    # No enforced policy in report-only mode
-    SECURE_CSP = None
-else:
-    # Enforced mode: Actively block non-compliant content
-    # Use this after confirming no issues in report-only mode
-    SECURE_CSP = {
-        # Default fallback for all content types
-        # 'self' allows resources from the same origin only
-        'default-src': [CSP.SELF],
-        # Script sources: Only allow scripts from same origin with nonce support
-        # NONCE allows inline scripts with a valid nonce attribute
-        # This is more secure than 'unsafe-inline' as it explicitly whitelists scripts
-        'script-src': [CSP.SELF, CSP.NONCE],
-        # Style sources: Allow styles from same origin and inline styles
-        # Note: Django admin uses some inline styles, so UNSAFE_INLINE is needed
-        # For better security, consider using NONCE for inline styles
-        'style-src': [CSP.SELF, CSP.UNSAFE_INLINE],
-        # Image sources: Allow images from same origin and data: URIs
-        # data: URIs are commonly used for base64-encoded images in Django admin
-        'img-src': [CSP.SELF, 'data:'],
-        # Font sources: Only allow fonts from same origin
-        # Django admin loads fonts from static files
-        'font-src': [CSP.SELF],
-        # Connect sources: Restrict AJAX/Fetch requests to same origin
-        'connect-src': [CSP.SELF],
-        # Object sources: Block all plugins (Flash, Java, etc.)
-        # This prevents plugin-based XSS attacks
-        'object-src': [CSP.NONE],
-        # Media sources: Restrict audio/video to same origin
-        'media-src': [CSP.SELF],
-        # Frame sources: Block all iframes unless explicitly needed
-        # Prevents clickjacking attacks
-        'frame-src': [CSP.NONE],
-        # Frame ancestors: Prevent page from being embedded in frames
-        # Works with X-Frame-Options middleware for clickjacking protection
-        'frame-ancestors': [CSP.SELF],
-        # Base URI: Restrict base tag to same origin
-        'base-uri': [CSP.SELF],
-        # Form action: Restrict form submissions to same origin
-        'form-action': [CSP.SELF],
-        # Manifest: Restrict app manifests to same origin
-        'manifest-src': [CSP.SELF],
-        # Report violations to this endpoint (optional, for monitoring)
-        # Uncomment and configure if you want to collect CSP violation reports
-        # "report-uri": ["/csp-violation-report/"],
-        # "report-to": ["csp-endpoint"],
-    }
-
-    # No report-only policy when enforcing
-    SECURE_CSP_REPORT_ONLY = None
-
-# Note: The resulting CSP header will look like:
-# Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-SECRET'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; media-src 'self'; frame-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; manifest-src 'self'
+# Apply all tenancy settings to the module namespace
+for key, value in tenancy_config.items():
+    globals()[key] = value
 
 # =============================================================================
 # APPLICATION DEFINITION
 # =============================================================================
 
-# Testing mode flag (must be defined before INSTALLED_APPS)
-TESTING = env.bool('TESTING', default=False)
 
 INSTALLED_APPS = [
     # Django core apps
@@ -235,50 +121,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'sanfelipe.wsgi.application'
 ASGI_APPLICATION = 'sanfelipe.asgi.application'
 
-# =============================================================================
-# DJAZZO-JAZZMIN CONFIGURATION
-# =============================================================================
-
-# Django-Jazzmin configuration for admin interface customization
-JAZZMIN_SETTINGS = {
-    # title of the window (Will default to current_admin_site.site_title if absent or None)
-    'site_title': 'Municipio de San Felipe',
-    # Title on the login screen (19 chars max) (defaults to current_admin_site.site_header if absent or None)
-    'site_header': 'San Felipe',
-    # Title on the brand (19 chars max) (defaults to current_admin_site.site_header if absent or None)
-    'site_brand': 'Ventanilla Urbana Digital',
-    # Logo to use for your site, must be present in static files, used for brand on top left
-    # 'site_logo': 'sf_logo.jpg',
-    # Logo to use for your site, must be present in static files, used for login form logo (defaults to site_logo)
-    # "login_logo": None,
-    # Logo to use for login form in dark themes (defaults to login_logo)
-    # "login_logo_dark": None,
-    # CSS classes that are applied to the logo above
-    # 'site_logo_classes': 'img-circle',
-    # Relative path to a favicon for your site, will default to site_logo if absent (ideally 32x32 px)
-    # "site_icon": None,
-    # Welcome text on the login screen
-    'welcome_sign': 'Ventanilla Urbana Digital - Municipio de San Felipe',
-    # Copyright on the footer
-    'copyright': 'Municipio de San Felipe - Todos los derechos reservados',
-    # Hide unnecessary apps from admin menu
-    # 'hide_apps': ['auth', 'sessions'],
-    # Dashboard sections
-    # 'dashboard': [
-    #     {
-    #         'name': '📋 Buzón de Trámites',
-    #         'app': 'tramites',
-    #         'models': ('tramites.Tramite',),
-    #     },
-    #     {
-    #         'name': '🔄 Asignaciones',
-    #         'app': 'buzon',
-    #         'models': ('buzon.AsignacionTramite',),
-    #     },
-    # ],
-    # 'show_sidebar': False,
-    # 'show_ui_builder': True,
-}
 
 # =============================================================================
 # DATABASE
@@ -479,9 +321,6 @@ LOGOUT_REDIRECT_URL = 'admin:login'
 ADMINISTRADOR_GROUP_NAME = 'Administrador'
 COORDINADOR_GROUP_NAME = 'Coordinador'
 ANALISTA_GROUP_NAME = 'Analista'
-
-# Buzón de Trámites settings
-MAX_TRAMITES_POR_ANALISTA = env.int('MAX_TRAMITES_POR_ANALISTA', default=50)
 
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = env.list(
