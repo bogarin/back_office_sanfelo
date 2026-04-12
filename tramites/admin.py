@@ -9,10 +9,10 @@ Integrates with Buzón de Trámites system for analyst assignment.
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Exists, OuterRef, Subquery
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest
 from django.shortcuts import redirect, render
-from django.urls import path, reverse
-from django.utils.html import format_html_join
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 # Try to import ACTION_CHECKBOX_NAME, fallback to a known value
 try:
@@ -250,6 +250,10 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
     # Ordering
     ordering = ('-creado',)
 
+    # Extra media (JS for quick action buttons in changelist)
+    class Media:
+        js = ('admin/js/quick_actions.js',)
+
     # Fields that should be editable in list view
     # list_editable = ('pagado', 'urgente')
 
@@ -453,36 +457,16 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         return {}
 
-    # ========== CUSTOM URLS FOR QUICK ACTIONS ==========
-
-    def get_urls(self):
-        """Register custom URLs for single-row quick actions."""
-        custom_urls = [
-            path(
-                '<path:object_id>/asignar/',
-                self.admin_site.admin_view(self.quick_asignar_view),
-                name='tramites_tramite_asignar',
-            ),
-            path(
-                '<path:object_id>/tomar/',
-                self.admin_site.admin_view(self.quick_tomar_view),
-                name='tramites_tramite_tomar',
-            ),
-            path(
-                '<path:object_id>/liberar/',
-                self.admin_site.admin_view(self.quick_liberar_view),
-                name='tramites_tramite_liberar',
-            ),
-        ]
-        return custom_urls + super().get_urls()
-
     def acciones_disponibles(self, obj: Tramite):
         """
-        Render quick action buttons based on tramite state and user role.
+        Render quick action buttons that reuse batch actions.
 
-        Context-aware:
-        - Admin/Coordinador: Asignar (libre) / Reasignar+Liberar (asignado)
-        - Analista: Tomar (libre, solo si está filtrando "Sin asignar")
+        Uses ``<a>`` links with ``data-action`` and ``data-pk`` attributes.
+        An event-delegation script (injected by ``changelist_view``) listens
+        for clicks on these links and submits the parent changelist form
+        with the correct action + selected object.
+
+        CSP-safe: no inline ``onclick`` handlers; the script tag uses a nonce.
         """
         request = getattr(self, '_request', None)
         if request is None:
@@ -491,181 +475,43 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         user = request.user
         esta_asignado = getattr(obj, 'esta_asignado_flag', False)
 
-        # Build (url, label) tuples for each applicable action
-        buttons: list[tuple[str, str]] = []
-
         is_admin = user.is_superuser or user.is_staff
         is_coordinador = user.groups.filter(name='Coordinador').exists()
         is_analista = user.groups.filter(name='Analista').exists()
 
+        # (action_name, label) pairs for the applicable actions
+        actions_map: list[tuple[str, str]] = []
+
         if is_admin or is_coordinador:
-            asignar_url = reverse('admin:tramites_tramite_asignar', args=[obj.pk])
-            liberar_url = reverse('admin:tramites_tramite_liberar', args=[obj.pk])
-
             if esta_asignado:
-                buttons.append((liberar_url, '🗑️ Liberar'))
-                buttons.append((asignar_url, '🔄 Reasignar'))
+                actions_map.append(('liberar_seleccionados', '🗑️ Liberar'))
+                actions_map.append(('asignar_seleccionados', '🔄 Reasignar'))
             else:
-                buttons.append((asignar_url, '👤 Asignar'))
-
+                actions_map.append(('asignar_seleccionados', '👤 Asignar'))
         elif is_analista and not esta_asignado:
-            tomar_url = reverse('admin:tramites_tramite_tomar', args=[obj.pk])
-            buttons.append((tomar_url, '📌 Tomar'))
+            actions_map.append(('tomar_seleccionados', '📌 Tomar'))
 
-        if not buttons:
+        if not actions_map:
             return '—'
 
-        return format_html_join(
-            ' ',
-            '<a href="{}" class="button" style="padding:2px 10px;font-size:11px;white-space:nowrap;">{}</a>',
-            buttons,
-        )
+        buttons = []
+        for action_name, label in actions_map:
+            buttons.append(
+                format_html(
+                    '<a href="#" class="button quick-action" '
+                    'data-action="{}" data-pk="{}" '
+                    'style="padding:2px 10px;font-size:11px;white-space:nowrap;margin-right:4px;">'
+                    '{}</a>',
+                    action_name,
+                    obj.pk,
+                    label,
+                )
+            )
+
+        return mark_safe(' '.join(buttons))
 
     acciones_disponibles.short_description = 'Acciones Rápidas'
     acciones_disponibles.allow_tags = True
-
-    # ========== QUICK ACTION VIEWS ==========
-
-    def _get_tramite_or_redirect(self, request: HttpRequest, object_id: str):
-        """Fetch a tramite by ID or return a redirect with an error message."""
-        tramite = self.get_object(request, object_id)
-        if tramite is None:
-            msg = f'Tramite con ID {object_id} no encontrado.'
-            self.message_user(request, msg, messages.ERROR)
-        return tramite
-
-    def _get_analistas_con_carga(self):
-        """Fetch all analysts with their current assignment load."""
-        analistas = User.objects.filter(groups__name='Analista')
-        return [
-            {
-                'analista': a,
-                'carga': AsignacionTramite.objects.filter(analista_id=a.id).count(),
-            }
-            for a in analistas
-        ]
-
-    def quick_asignar_view(self, request: HttpRequest, object_id: str) -> HttpResponse:
-        """
-        Quick action: assign a single tramite to an analyst.
-
-        GET: shows analyst selection form (reuses asignar_tramites.html).
-        POST: assigns tramite and redirects to changelist.
-        """
-        tramite = self._get_tramite_or_redirect(request, object_id)
-        if tramite is None:
-            return redirect('../')
-
-        if request.method == 'POST':
-            analista_id = request.POST.get('analista')
-            observacion = request.POST.get('observacion', '')
-            try:
-                analista = User.objects.get(id=analista_id)
-            except User.DoesNotExist:
-                messages.error(request, '❌ Analista no encontrado.')
-                return redirect(request.get_full_path())
-
-            try:
-                asignar_tramite(
-                    tramite=tramite,
-                    analista=analista,
-                    asignado_por=request.user,
-                    observacion=observacion,
-                )
-                messages.success(
-                    request,
-                    f'✅ Trámite {tramite.folio} asignado a {analista.username}',
-                )
-            except (EstadoNoPermitidoError, TramiteNoAsignableError) as exc:
-                messages.error(request, f'❌ Error: {exc}')
-
-            return redirect('../')
-
-        # GET: analyst selection form
-        context = {
-            'title': f'Asignar trámite {tramite.folio}',
-            'analistas_con_carga': self._get_analistas_con_carga(),
-            'queryset': Tramite.objects.filter(pk=tramite.pk),
-            'action_checkbox_name': ACTION_CHECKBOX_NAME,
-            'opts': self.model._meta,
-            'action_name': 'quick_asignar',
-        }
-        return render(request, 'admin/asignar_tramites.html', context)
-
-    def quick_tomar_view(self, request: HttpRequest, object_id: str) -> HttpResponse:
-        """
-        Quick action: analyst self-assigns a tramite.
-
-        GET: shows confirmation page.
-        POST: self-assigns tramite and redirects to changelist.
-        """
-        tramite = self._get_tramite_or_redirect(request, object_id)
-        if tramite is None:
-            return redirect('../')
-
-        if not request.user.groups.filter(name='Analista').exists():
-            messages.error(request, '❌ Solo los analistas pueden tomar trámites.')
-            return redirect('../')
-
-        if request.method == 'POST':
-            try:
-                asignar_tramite(
-                    tramite=tramite,
-                    analista=request.user,
-                    asignado_por=request.user,
-                    observacion='Auto-asignado por analista (acción rápida)',
-                )
-                messages.success(
-                    request,
-                    f'✅ Has tomado el trámite {tramite.folio}',
-                )
-            except (EstadoNoPermitidoError, TramiteNoAsignableError) as exc:
-                messages.error(request, f'❌ Error: {exc}')
-            except Exception as exc:
-                messages.error(request, f'❌ Error inesperado: {exc}')
-
-            return redirect('../')
-
-        # GET: confirmation
-        context = {
-            'title': f'¿Tomar trámite {tramite.folio}?',
-            'tramite': tramite,
-            'opts': self.model._meta,
-            'action_label': '📌 Tomar trámite',
-        }
-        return render(request, 'admin/tramite_quick_confirm.html', context)
-
-    def quick_liberar_view(self, request: HttpRequest, object_id: str) -> HttpResponse:
-        """
-        Quick action: release a tramite from its current analyst.
-
-        GET: shows confirmation page.
-        POST: releases tramite and redirects to changelist.
-        """
-        tramite = self._get_tramite_or_redirect(request, object_id)
-        if tramite is None:
-            return redirect('../')
-
-        if request.method == 'POST':
-            try:
-                liberar_tramite(tramite)
-                messages.success(
-                    request,
-                    f'✅ Trámite {tramite.folio} liberado',
-                )
-            except Exception as exc:
-                messages.error(request, f'❌ Error: {exc}')
-
-            return redirect('../')
-
-        # GET: confirmation
-        context = {
-            'title': f'¿Liberar trámite {tramite.folio}?',
-            'tramite': tramite,
-            'opts': self.model._meta,
-            'action_label': '🗑️ Liberar trámite',
-        }
-        return render(request, 'admin/tramite_quick_confirm.html', context)
 
     # ========== BATCH ACTIONS ==========
 
@@ -836,6 +682,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                 'tramites_pagados': stats.get('pagados', 0),
                 'tramites_pendientes_pago': stats['total'] - stats.get('pagados', 0),
                 'estatus_distribution': estatus_distribution_list,
+                'quick_action_js': True,
             }
         )
 

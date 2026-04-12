@@ -8,15 +8,12 @@ Configures the admin interface for the backoffice with:
 """
 
 import logging
-from datetime import date
-from typing import Optional
 
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.db.models import Model, QuerySet
 from django.http import HttpRequest
-from django.tasks import task
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +31,10 @@ admin.site.index_title = 'Panel de Administración'
 class BaseModelAdmin(admin.ModelAdmin):
     """Base ModelAdmin with common configuration for all models."""
 
+    save_on_top = True
     # Pagination
     list_per_page = 25
     list_max_show_all = 100
-
-    def __init__(self, model, admin_site):
-        super().__init__(model, admin_site)
-        # Enable save_on_top for better UX
-        self.save_on_top = True
 
     # class Media:
     #     css = {
@@ -335,7 +328,7 @@ class RoleBasedAccessMixin:
         # Other users get the default queryset (empty due to permission checks)
         return queryset
 
-    def has_view_permission(self, request: HttpRequest, obj: Optional[Model] = None) -> bool:
+    def has_view_permission(self, request: HttpRequest, obj: Model | None = None) -> bool:
         """Check if user has view permission for this model.
 
         Args:
@@ -364,7 +357,7 @@ class RoleBasedAccessMixin:
 
         return bool(self._is_administrador(request.user))
 
-    def has_change_permission(self, request: HttpRequest, obj: Optional[Model] = None) -> bool:
+    def has_change_permission(self, request: HttpRequest, obj: Model | None = None) -> bool:
         """Check if user has change permission for this model.
 
         Args:
@@ -379,7 +372,7 @@ class RoleBasedAccessMixin:
 
         return bool(self._is_administrador(request.user))
 
-    def has_delete_permission(self, request: HttpRequest, obj: Optional[Model] = None) -> bool:
+    def has_delete_permission(self, request: HttpRequest, obj: Model | None = None) -> bool:
         """Check if user has delete permission for this model.
 
         Args:
