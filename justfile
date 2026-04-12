@@ -83,3 +83,8 @@ test-create-db *ARGS:
 # Check Django system status
 check-system:
     uv run manage.py check
+
+# Build docker container
+container-build *ARGS:
+    #!/bin/bash
+    podman build -t sanfelipe-backoffice:latest {{ARGS}} .

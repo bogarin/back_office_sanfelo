@@ -19,7 +19,6 @@ db.sqlite3
 db.sqlite3-journal
 media/
 staticfiles/
-/static/
 
 # Environment files (copy the one you need in Dockerfile or Dockerfile.production)
 .env
