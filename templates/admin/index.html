@@ -6,15 +6,9 @@
 <link rel="stylesheet" type="text/css" href="{% static 'admin/css/minimalist.css' %}">
 {% endblock %}
 
-{% block bodyclass %}{{ block.super }} minimalist-home{% endblock %}
 
 {% block content_title %}Panel de Trámites{% endblock %}
 
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="{% url 'admin:index' %}">Home</a></li>
-</ol>
-{% endblock %}
 
 {% block content %}
 {% tramite_dashboard_cards %}

@@ -79,6 +79,9 @@ def configure_tenancy(env: Env) -> dict:
         'welcome_sign': tenancy_settings['BACKOFFICE_WELCOME_SIGN'],
         # Copyright on the footer
         'copyright': tenancy_settings['BACKOFFICE_COPYRIGHT'],
+        # Bootstrap theme with badge styles (solar has .badge, .badge-primary, etc.)
+        'theme': 'vendor/bootswatch/solar/bootstrap.min.css',
+        "custom_css": "admin/css/backoffice.css",
         'show_sidebar': True,
         'navigation_expanded': False,
         'related_modal_active': True,
@@ -91,7 +94,7 @@ def configure_tenancy(env: Env) -> dict:
                     'url': 'make_messages',
                     # any font-awesome icon
                     'icon': 'fas fa-comments',
-                    # a list of permissions the user must have to see this link (optional)
+                    # a list of permissions of user must have to see this link (optional)
                     'permissions': ['books.view_book'],
                 },
                 {
@@ -100,7 +103,7 @@ def configure_tenancy(env: Env) -> dict:
                     'url': 'make_messages',
                     # any font-awesome icon
                     'icon': 'fas fa-comments',
-                    # a list of permissions the user must have to see this link (optional)
+                    # a list of permissions of user must have to see this link (optional)
                     'permissions': ['books.view_book'],
                 },
                 {
@@ -109,7 +112,7 @@ def configure_tenancy(env: Env) -> dict:
                     'url': 'make_messages',
                     # any font-awesome icon
                     'icon': 'fas fa-comments',
-                    # a list of permissions the user must have to see this link (optional)
+                    # a list of permissions of user must have to see this link (optional)
                     'permissions': ['books.view_book'],
                 },
                 {
@@ -118,7 +121,7 @@ def configure_tenancy(env: Env) -> dict:
                     'url': 'make_messages',
                     # any font-awesome icon
                     'icon': 'fas fa-comments',
-                    # a list of permissions the user must have to see this link (optional)
+                    # a list of permissions of user must have to see this link (optional)
                     'permissions': ['books.view_book'],
                 },
                 {
@@ -127,7 +130,7 @@ def configure_tenancy(env: Env) -> dict:
                     'url': 'make_messages',
                     # any font-awesome icon
                     'icon': 'fas fa-comments',
-                    # a list of permissions the user must have to see this link (optional)
+                    # a list of permissions of user must have to see this link (optional)
                     'permissions': ['books.view_book'],
                 },
             ]

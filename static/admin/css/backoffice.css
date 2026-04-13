@@ -31,13 +31,13 @@ html[data-theme="light"],
     color-scheme: light;
 }
 
-/* Hard override for the branding text to ensure white contrast */
+/* Hard override for branding text to ensure white contrast */
 html[data-theme="light"] #branding #site-name a {
     color: #ffffff !important;
     text-shadow: none; /* Removes any fuzzy orange shadows */
 }
 
-/* Keeps the orange as a decorative accent on the icon only */
+/* Keeps the orange as a decorative accent on icon only */
 .theme-toggle {
     color: var(--accent);
 }
@@ -45,4 +45,120 @@ html[data-theme="light"] #branding #site-name a {
 #content-related .module h2 {
     background: var(--header-bg);
     color: var(--header-link-color);
+}
+
+/* =============================================================================
+ * Badge styles para Django Admin
+ *
+ * Añade estilos de Bootstrap para badges que no están
+ * incluidos en el tema Bootswatch "solar" de Jazzmin.
+ *
+ * Debe cargarse DESPUÉS de bootstrap.min.css para sobrescribir
+ * las clases de badge que faltan.
+ * ============================================================================= */
+
+/* =============================================================================
+ * Badge Base (solar theme ya tiene esto, pero por seguridad lo redefinimos)
+ * ============================================================================= */
+
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+/* =============================================================================
+ * Badge Color Variants (Bootstrap estándar)
+ * ============================================================================= */
+
+/* Secondary - Gris */
+.badge-secondary {
+    color: #fff;
+    background-color: #6c757d;
+}
+
+/* Primary - Azul */
+.badge-primary {
+    color: #fff;
+    background-color: #0d6efd;
+}
+
+/* Success - Verde */
+.badge-success {
+    color: #fff;
+    background-color: #198754;
+}
+
+/* Info - Cyan */
+.badge-info {
+    color: #fff;
+    background-color: #0dcaf0;
+}
+
+/* Warning - Amarillo (texto negro para contraste) */
+.badge-warning {
+    color: #000;
+    background-color: #ffc107;
+}
+
+/* Danger - Rojo */
+.badge-danger {
+    color: #fff;
+    background-color: #dc3545;
+}
+
+/* Light - Gris claro */
+.badge-light {
+    color: #212529;
+    background-color: #f8f9fa;
+}
+
+/* Dark - Gris oscuro */
+.badge-dark {
+    color: #fff;
+    background-color: #343a40;
+}
+
+/* =============================================================================
+ * Estatus Badge Custom Classes (para render_status_badge())
+ * ============================================================================= */
+
+.badge-inicio {
+    color: #fff;
+    background-color: #6c757d;
+}
+
+.badge-proceso {
+    color: #fff;
+    background-color: #0dcaf0;
+}
+
+.badge-finalizado {
+    color: #fff;
+    background-color: #198754;
+}
+
+.badge-otro {
+    color: #fff;
+    background-color: #343a40;
+}
+
+/* =============================================================================
+ * Activo/Inactivo Badge Custom Classes (para render_activo_badge())
+ * ============================================================================= */
+
+.badge-activo {
+    color: #fff;
+    background-color: #198754;
+}
+
+.badge-inactivo {
+    color: #fff;
+    background-color: #6c757d;
 }

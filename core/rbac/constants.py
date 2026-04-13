@@ -1,13 +1,15 @@
 """
 Role-Based Access Control (RBAC) constants and permission definitions.
 
-This module is the central, authoritative source for defining what permissions
-each role has in the system. It should be the first place to look when
-understanding or modifying the RBAC system.
+This module is central, authoritative source for defining what permissions
+each role has in system. It should be first place to look when
+understanding or modifying RBAC system.
 
 Roles:
 ------
 - Administrador: Full access to all apps (auth + business apps)
+- Coordinador: Full access to tramites app, can assign/reassign
+- Analista: Limited access to own trámites + free trámites
 
 Apps:
 -----

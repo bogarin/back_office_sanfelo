@@ -1,0 +1,88 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb my-3">
+  <li class="breadcrumb-item"><a href="{% url 'admin:index' %}">{% trans 'Home' %}</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'admin:app_list' app_label='auth' %}">{% trans 'Authentication' %}</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'admin:auth_user_changelist' %}">{% trans 'Users' %}</a></li>
+  <li class="breadcrumb-item active">{% trans 'Asignar Rol' %}</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <h1 class="h3 mb-4 text-gray-800">{% trans "Asignar Rol a Usuarios" %}</h1>
+
+      <!-- Usuarios Seleccionados -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">{% trans "Usuarios Seleccionados" %}</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="thead-light">
+                <tr>
+                  <th>{% trans "Usuario" %}</th>
+                  <th>{% trans "Email" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr>
+                  <td>{{ user.get_full_name|default:user.username }}</td>
+                  <td>{{ user.email }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seleccionar Rol -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">{% trans "Seleccionar Rol" %}</h6>
+        </div>
+        <div class="card-body">
+          <form method="post" id="role-form">
+            {% csrf_token %}
+
+            <div class="form-group">
+              {% for role in role_groups %}
+              <div class="form-check form-check-radio form-check-inline mb-2">
+                <label class="form-check-label">
+                  <input class="form-check-input" type="radio" name="role" value="{{ role.value }}" {% if forloop.first %}checked{% endif %}>
+                  <span class="form-check-sign"></span>
+                  {{ role.name }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+
+            <div class="mt-4">
+              <button type="submit" class="btn btn-primary btn-icon-split">
+                <span class="icon text-white-50">
+                  <i class="fas fa-check"></i>
+                </span>
+                <span class="text">{% trans 'Asignar Rol' %}</span>
+              </button>
+              <a href="{% url 'admin:auth_user_changelist' %}" class="btn btn-secondary btn-icon-split ml-2">
+                <span class="icon text-white-50">
+                  <i class="fas fa-times"></i>
+                </span>
+                <span class="text">{% trans 'Cancelar' %}</span>
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

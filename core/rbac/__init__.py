@@ -1,14 +1,14 @@
 """
 Role-Based Access Control (RBAC) module.
 
-This module provides the core functionality for managing roles and permissions
-in the San Felipe backoffice system.
+This module provides core functionality for managing roles and permissions
+in San Felipe backoffice system.
 
 Usage:
-    from core.rbac import setup_administrador
+    from core.rbac import setup_all_roles
 
-    # Setup roles
-    admin_group = setup_administrador()
+    # Setup all roles (Administrador, Coordinador, Analista)
+    admin_group, coordinador_group, analista_group = setup_all_roles()
 
 For permission definitions, see: core.rbac.constants
 """
@@ -16,6 +16,7 @@ For permission definitions, see: core.rbac.constants
 import logging
 from typing import List, Optional
 
+from django.conf import settings
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 
@@ -130,12 +131,79 @@ def setup_administrador() -> Group:
         raise RuntimeError(f'Failed to configure {group_name} group: {e}') from e
 
 
-def setup_all_roles() -> Group:
+def setup_coordinador() -> Group:
     """
-    Setup all RBAC roles (Administrador).
+    Setup Coordinador group.
+
+    The Coordinador group receives:
+    - No explicit permissions (access controlled by code in RoleBasedAccessMixin)
 
     Returns:
-        The configured Administrador group
+        The configured Coordinador group
+
+    Raises:
+        RuntimeError: If group creation fails
+    """
+    group_name = settings.COORDINADOR_GROUP_NAME
+
+    try:
+        coordinador_group, _ = get_or_create_group(group_name)
+
+        # Coordinador has no explicit permissions - access is controlled by code
+        # RoleBasedAccessMixin and TramiteAdmin enforce permissions dynamically
+
+        logger.info(f'Configured {group_name} group (permissions controlled by code)')
+
+        return coordinador_group
+
+    except Exception as e:
+        logger.error(f'Failed to configure {group_name} group: {e}', exc_info=True)
+        raise RuntimeError(f'Failed to configure {group_name} group: {e}') from e
+
+
+def setup_analista() -> Group:
+    """
+    Setup Analista group.
+
+    The Analista group receives:
+    - No explicit permissions (access controlled by code in RoleBasedAccessMixin)
+
+    Returns:
+        The configured Analista group
+
+    Raises:
+        RuntimeError: If group creation fails
+    """
+    group_name = settings.ANALISTA_GROUP_NAME
+
+    try:
+        analista_group, _ = get_or_create_group(group_name)
+
+        # Analista has no explicit permissions - access is controlled by code
+        # RoleBasedAccessMixin and TramiteAdmin enforce permissions dynamically
+
+        logger.info(f'Configured {group_name} group (permissions controlled by code)')
+
+        return analista_group
+
+    except Exception as e:
+        logger.error(f'Failed to configure {group_name} group: {e}', exc_info=True)
+        raise RuntimeError(f'Failed to configure {group_name} group: {e}') from e
+
+
+def setup_all_roles() -> tuple[Group, Group, Group]:
+    """
+    Setup all RBAC roles (Administrador, Coordinador, Analista).
+
+    Returns:
+        Tuple of (Administrador, Coordinador, Analista) groups
     """
     admin_group = setup_administrador()
-    return admin_group
+    coordinador_group = setup_coordinador()
+    analista_group = setup_analista()
+
+    logger.info(
+        f'Configured all roles: {admin_group.name}, {coordinador_group.name}, {analista_group.name}'
+    )
+
+    return admin_group, coordinador_group, analista_group

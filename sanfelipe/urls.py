@@ -11,13 +11,15 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
 
-from core.views import health_check
+from core.views import asignar_rol, health_check
 
 urlpatterns = [
     # Health check
     path('health/', health_check, name='health-check'),
     # Django admin (uses custom admin/index.html template override)
     path('admin/', admin.site.urls),
+    # Custom admin views - must be before admin.site.urls
+    path('admin/auth/user/asignar-rol/', asignar_rol, name='asignar-rol'),
     # Redirect root to admin dashboard
     path('', RedirectView.as_view(url='/admin/', permanent=True), name='admin-home'),
 ]

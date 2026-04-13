@@ -1,9 +1,14 @@
 """
-Django management command to create Administrator groups.
+Django management command to create RBAC roles.
 
 This command is a thin wrapper around core.rbac functions. The permission
 definitions are centralized in core/rbac/constants.py for visibility
 and maintainability.
+
+Creates three roles:
+- Administrador: Full permissions on auth and tramites apps
+- Coordinador: No explicit permissions (access controlled by code)
+- Analista: No explicit permissions (access controlled by code)
 
 Usage:
     python manage.py setup_roles
@@ -18,10 +23,10 @@ from core.rbac.constants import ADMINISTRADOR_APPS
 
 
 class Command(BaseCommand):
-    """Create Administrator group with appropriate permissions."""
+    """Create all RBAC roles with appropriate permissions."""
 
     help = (
-        'Create Administrator group with appropriate permissions. '
+        'Create all RBAC roles (Administrador, Coordinador, Analista). '
         'See core/rbac/constants.py for permission definitions.'
     )
 
@@ -29,13 +34,30 @@ class Command(BaseCommand):
         """Execute the role setup command."""
         self.stdout.write(self.style.SUCCESS('Starting role setup...'))
 
-        # Setup Administrador group
-        admin_group = setup_all_roles()
+        # Setup all roles (Administrador, Coordinador, Analista)
+        admin_group, coordinador_group, analista_group = setup_all_roles()
+
+        # Display Administrador details
         admin_perms = admin_group.permissions.count()
         self.stdout.write(
             self.style.SUCCESS(
-                f'Configured {admin_group.name} group with {admin_perms} permissions '
+                f'  - {admin_group.name}: {admin_perms} permissions '
                 f'(apps: {", ".join(ADMINISTRADOR_APPS)})'
+            )
+        )
+
+        # Display Coordinador details
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'  - {coordinador_group.name}: '
+                'permissions controlled by code (RoleBasedAccessMixin)'
+            )
+        )
+
+        # Display Analista details
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'  - {analista_group.name}: permissions controlled by code (RoleBasedAccessMixin)'
             )
         )
 
