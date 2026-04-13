@@ -81,17 +81,18 @@ def configure_tenancy(env: Env) -> dict:
         'copyright': tenancy_settings['BACKOFFICE_COPYRIGHT'],
         # Bootstrap theme with badge styles (solar has .badge, .badge-primary, etc.)
         'theme': 'vendor/bootswatch/solar/bootstrap.min.css',
-        "custom_css": "admin/css/backoffice.css",
+        'custom_css': 'admin/css/backoffice.css',
         'show_sidebar': True,
         'navigation_expanded': False,
         'related_modal_active': True,
         'hide_apps': ['contenttypes', 'sessions', 'admin', 'tramites'],
+        'hide_models': ['auth.group'],
         'custom_links': {
             'Trámites': [
                 {
                     'name': 'Todos',
                     # url name e.g `admin:index`, relative urls e.g `/admin/index` or absolute urls e.g `https://domain.com/admin/index`
-                    'url': 'make_messages',
+                    'url': 'admin:tramites_tramite_changelist',
                     # any font-awesome icon
                     'icon': 'fas fa-comments',
                     # a list of permissions of user must have to see this link (optional)

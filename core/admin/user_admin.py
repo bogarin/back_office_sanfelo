@@ -8,37 +8,43 @@ Provides a custom User admin with role-based display:
 
 from django import forms
 from django.conf import settings
-from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.forms import AdminUserCreationForm, UserChangeForm
+from django.contrib.auth.hashers import UNUSABLE_PASSWORD_PREFIX
+from django.contrib.auth.models import Group
 from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 
 from core.admin_utils import render_badge
 
+UserModel = get_user_model()
 
-class CustomUserAddForm(forms.Form):
-    """Form for adding users with role assignment."""
 
-    username = forms.CharField(
-        label='Nombre de usuario',
-        max_length=150,
-        required=True,
-    )
-    email = forms.EmailField(
-        label='Correo electrónico',
-        required=True,
-    )
-    password1 = forms.CharField(
-        label='Contraseña',
-        widget=forms.PasswordInput,
-        required=True,
-    )
-    password2 = forms.CharField(
-        label='Confirmar contraseña',
-        widget=forms.PasswordInput,
-        required=True,
-    )
+class CustomReadOnlyPasswordHashWidget(forms.Widget):
+    """Custom widget for readonly password hash field."""
+    template_name = 'core/widgets/read_only_password_hash.html'
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+
+        # Determine if password is usable
+        usable_password = value and not value.startswith(UNUSABLE_PASSWORD_PREFIX)
+
+        # Set button label
+        context['button_label'] = (
+            _('Reset password') if usable_password else _('Set password')
+        )
+
+        # Set password URL (will be overridden by admin if available)
+        context['password_url'] = '../../password/'
+
+        return context
+
+
+class CustomUserAddForm(AdminUserCreationForm):
+    """Form for adding users with role assignment in admin."""
+
     role = forms.ChoiceField(
         choices=[
             ('', 'Seleccionar rol...'),
@@ -47,6 +53,10 @@ class CustomUserAddForm(forms.Form):
         widget=forms.RadioSelect,
         required=True,
     )
+
+    class Meta(AdminUserCreationForm.Meta):
+        model = UserModel
+        fields = ('username', 'last_name', 'first_name', 'email')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -58,34 +68,93 @@ class CustomUserAddForm(forms.Form):
         ]
         self.fields['role'].initial = settings.ANALISTA_GROUP_NAME
 
-    def clean_username(self):
-        """Validate username is unique."""
-        username = self.cleaned_data.get('username')
-        if User.objects.filter(username=username).exists():
-            raise forms.ValidationError('Ya existe un usuario con este nombre de usuario.')
-        return username
-
     def clean_email(self):
         """Validate email is unique."""
         email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
+        if UserModel.objects.filter(email=email).exists():
             raise forms.ValidationError('Ya existe un usuario con este correo electrónico.')
         return email
 
-    def clean_password2(self):
-        """Validate passwords match."""
-        password1 = self.cleaned_data.get('password1')
-        password2 = self.cleaned_data.get('password2')
-        if password1 and password2 and password1 != password2:
-            raise forms.ValidationError('Las contraseñas no coinciden.')
-        return password2
+    def save(self, commit=True):
+        """Save user with role assignment."""
+        user = super().save(commit=False)
 
-    def clean_password1(self):
-        """Validate password length."""
-        password1 = self.cleaned_data.get('password1')
-        if password1 and len(password1) < 8:
-            raise forms.ValidationError('La contraseña debe tener al menos 8 caracteres.')
-        return password1
+        # Store role for later if commit=False
+        role = self.cleaned_data.get('role')
+        if role:
+            group = Group.objects.filter(name=role).first()
+            if group:
+                self._role_group = group
+
+        # Save the user (parent class handles password hashing)
+        if commit:
+            user.save()
+            # Add to group if stored
+            if hasattr(self, '_role_group') and self._role_group:
+                user.groups.add(self._role_group)
+
+        return user
+
+    def save_m2m(self):
+        """Handle many-to-many relationships including role assignment."""
+        # Add user to the assigned role group
+        if hasattr(self, '_role_group') and self._role_group and hasattr(self.instance, 'pk'):
+            self.instance.groups.add(self._role_group)
+
+
+class CustomUserChangeForm(UserChangeForm):
+    """Form for editing users with role assignment in admin."""
+    role = forms.ChoiceField(
+        choices=[
+            ('', 'Sin rol'),
+        ],
+        label='Rol',
+        widget=forms.Select,
+        required=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Use custom widget for password field
+        if 'password' in self.fields:
+            self.fields['password'].widget = CustomReadOnlyPasswordHashWidget()
+
+        # Disable username field when editing existing user
+        if self.instance and self.instance.pk and 'username' in self.fields:
+            self.fields['username'].disabled = True
+            self.fields['username'].help_text = _(
+                'El nombre de usuario no se puede cambiar después de crearlo.'
+            )
+
+        # Disable is_staff field as it's managed by roles
+        if 'is_staff' in self.fields:
+            self.fields['is_staff'].disabled = True
+            self.fields['is_staff'].help_text = _(
+                'Este campo se gestiona automáticamente al asignar un rol.'
+            )
+
+        # Set role choices dynamically based on available groups
+        self.fields['role'].choices = [
+            ('', 'Sin rol'),
+            (settings.ADMINISTRADOR_GROUP_NAME, 'Administrador'),
+            (settings.COORDINADOR_GROUP_NAME, 'Coordinador'),
+            (settings.ANALISTA_GROUP_NAME, 'Analista'),
+        ]
+
+        # Get current role from user's groups
+        if self.instance and self.instance.pk:
+            if self.instance.is_superuser:
+                self.fields['role'].initial = 'superuser'
+                self.fields['role'].choices = [('superusuario', 'Superusuario')] + self.fields['role'].choices[1:]
+            elif self.instance.groups.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists():
+                self.fields['role'].initial = settings.ADMINISTRADOR_GROUP_NAME
+            elif self.instance.groups.filter(name=settings.COORDINADOR_GROUP_NAME).exists():
+                self.fields['role'].initial = settings.COORDINADOR_GROUP_NAME
+            elif self.instance.groups.filter(name=settings.ANALISTA_GROUP_NAME).exists():
+                self.fields['role'].initial = settings.ANALISTA_GROUP_NAME
+            else:
+                self.fields['role'].initial = ''
 
 
 class BackofficeUserAdmin(UserAdmin):
@@ -108,41 +177,89 @@ class BackofficeUserAdmin(UserAdmin):
         'is_active',
         'groups',
     )
+    fieldsets = (
+        (None, {
+            "fields": (
+                "username",
+                ("first_name", "last_name"),
+                "password",
+                "email",
+                "role",
+            )}),
+        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+    )
+
+    # Fields to show in the add form
+    add_fieldsets = (
+        (
+            None,
+            {
+                'classes': ('wide',),
+                'fields': (
+                    'username',
+                    ('first_name', 'last_name'),  # Render on the same row
+                    'email',
+                    'password1',
+                    'password2',
+                    'role',
+                ),
+            },
+        ),
+    )
 
     # Disable is_staff in the change form for editing users
     def get_form(self, request, obj=None, **kwargs):
         """
-        Disable is_staff for editing users.
+        Return CustomUserAddForm for new users, CustomUserChangeForm for edits.
 
-        When editing an existing user, disable is_staff field as it's managed by roles.
+        When adding a new user, return CustomUserAddForm with role selection.
+        When editing an existing user, return CustomUserChangeForm with role management.
         """
-        form = super().get_form(request, obj, **kwargs)
-
-        if obj is not None:  # Editing an existing user
-            if 'is_staff' in form.base_fields:
-                form.base_fields['is_staff'].disabled = True
-                form.base_fields['is_staff'].help_text = _(
-                    'Este campo se gestiona automáticamente al asignar un rol.'
-                )
-
-        return form
+        if obj is None:
+            return CustomUserAddForm
+        return CustomUserChangeForm
 
     def save_model(self, request, obj, form, change):
         """
-        Save user and assign selected role.
+        Save user and manage role assignment.
 
-        When adding a new user, assign the default role and set is_staff=True.
-        When editing, preserve the super method behavior.
+        When adding a new user, assign the role selected in the form.
+        When editing an existing user, update the role based on form selection.
+        Users created via this admin are not staff - they access the system
+        through front-end views, not the Django admin.
         """
         super().save_model(request, obj, form, change)
 
-        if not change:  # Adding a new user
-            # Assign default role (Analista) to new users
-            group = Group.objects.filter(name=settings.ANALISTA_GROUP_NAME).first()
+        # Handle role assignment
+        role = form.cleaned_data.get('role') if hasattr(form, 'cleaned_data') else None
+
+        if change:  # Editing an existing user
+            # Clear existing role groups
+            obj.groups.remove(
+                *obj.groups.filter(
+                    name__in=[
+                        settings.ADMINISTRADOR_GROUP_NAME,
+                        settings.COORDINADOR_GROUP_NAME,
+                        settings.ANALISTA_GROUP_NAME,
+                    ]
+                )
+            )
+
+            # Add new role group
+            if role and role != '' and role != 'superuser':
+                group = Group.objects.filter(name=role).first()
+                if group:
+                    obj.groups.add(group)
+        else:  # Adding a new user
+            # Assign role or fallback to default
+            if role:
+                group = Group.objects.filter(name=role).first()
+            else:
+                # Fallback to default role (Analista)
+                group = Group.objects.filter(name=settings.ANALISTA_GROUP_NAME).first()
+
             if group:
                 obj.groups.add(group)
-                obj.is_staff = True
-                obj.save()
 
     # Add role as the first ordering field
     ordering = ('is_superuser', 'groups__name', 'username')
@@ -208,7 +325,7 @@ class BackofficeUserAdmin(UserAdmin):
         """
         queryset.update(is_active=False)
 
-    def usuario(self, obj: User) -> str:
+    def usuario(self, obj: UserModel) -> str:
         """
         Display user's full name or username.
 
@@ -218,12 +335,12 @@ class BackofficeUserAdmin(UserAdmin):
         Returns:
             str: Full name if available, otherwise username
         """
-        full_name = f'{obj.first_name} {obj.last_name}'.strip()
+        full_name = f'{obj.get_full_name()}'.strip()
         return full_name if full_name else obj.username
 
     usuario.short_description = _('Usuario')
 
-    def rol(self, obj: User) -> str:
+    def rol(self, obj: UserModel) -> str:
         """
         Display user role as a badge.
 
