@@ -1,22 +1,39 @@
-"""
-URL configuration for tramites app.
-
-NOTE: This project uses Django Admin almost exclusively for backoffice UI.
-All tramite management is done through the Django Admin interface at /admin/.
-
-No custom URL patterns are needed as the Django Admin provides:
-- List and manage tramites at /admin/tramites/tramite/
-- Create new tramites through the admin interface
-- Edit existing tramites with full control
-- Delete with confirmation
-
-If custom URLs are needed in the future (e.g., API endpoints, public views),
-they can be added here.
-"""
+from django.urls import path, reverse_lazy
+from django.views.generic import RedirectView
 
 app_name = 'tramites'
 
 urlpatterns = [
-    # No custom URL patterns - using Django Admin exclusively
-    # Admin interface: /admin/tramites/tramite/
+    path(
+        'sin_asignar/',
+        RedirectView.as_view(
+            url=reverse_lazy('admin:tramites_tramite_changelist', query={'asignado': 'False'}),
+            permanent=True,
+        ),
+        name='sin-asignar',
+    ),
+    path(
+        'asignados/',
+        RedirectView.as_view(
+            url=reverse_lazy('admin:tramites_tramite_changelist', query={'asignado': 'True'}),
+            permanent=True,
+        ),
+        name='asignados',
+    ),
+    path(
+        'finalizados/',
+        RedirectView.as_view(
+            url=reverse_lazy('admin:tramites_tramite_changelist', query={'finalizado': 'True'}),
+            permanent=True,
+        ),
+        name='finalizados',
+    ),
+    path(
+        'cancelados/',
+        RedirectView.as_view(
+            url=reverse_lazy('admin:tramites_tramite_changelist', query={'cancelado': 'True'}),
+            permanent=True,
+        ),
+        name='cancelados',
+    ),
 ]

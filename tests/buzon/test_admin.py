@@ -140,10 +140,10 @@ def test_queryset_coordinador_ve_todo(
     assert tramite2_presentado in queryset
 
 
-def test_queryset_analista_solo_sus_tramites_mas_libres(
+def test_queryset_analista_solo_sus_tramites_mas_sin_asignar(
     admin_instance, analista, tramite_presentado, tramite2_presentado, tramite3_presentado, db
 ):
-    """Test que Analista ve sus trámites + trámites libres."""
+    """Test que Analista ve sus trámites + trámites sin asignar."""
     from buzon.services import asignar_tramite
 
     # Asignar trámite a otro analista
@@ -165,7 +165,7 @@ def test_queryset_analista_solo_sus_tramites_mas_libres(
     # Verificar que analista ve su trámite
     assert tramite_presentado in queryset
 
-    # Verificar que analista ve trámites libres
+    # Verificar que analista ve trámites sin asignar
     assert tramite3_presentado in queryset
 
     # Verificar que analista NO ve trámite de otro
@@ -232,7 +232,7 @@ def test_analista_asignado_columna(admin_instance, analista, tramite_presentado,
     # Sin asignación - obtener tramite del queryset anotado
     queryset = admin_instance.get_queryset(request)
     tramite_annotated = queryset.get(pk=tramite_presentado.pk)
-    assert admin_instance.analista_asignado(tramite_annotated) == '📦 Libre'
+    assert admin_instance.analista_asignado(tramite_annotated) == '📦 Sin Asignar'
 
     # Con asignación
     asignar_tramite(
@@ -311,7 +311,7 @@ def test_esta_asignado_list_filter_si(admin_instance, analista, tramite_presenta
 def test_esta_asignado_list_filter_no(
     admin_instance, analista, tramite_presentado, tramite2_presentado, db
 ):
-    """Test que el filtro 'esta_asignado=no' funciona correctamente."""
+    """Test que el filtro 'esta_asignado=False' funciona correctamente."""
     from buzon.services import asignar_tramite
 
     # Asignar trámite
@@ -329,7 +329,7 @@ def test_esta_asignado_list_filter_no(
     filtro = TramiteAssignmentFilter(None, {'esta_asignado': 'no'}, Tramite, admin_instance)
     filtrado_no = filtro.queryset(request, queryset)
 
-    # Verificar que hay trámites libres en el resultado
+    # Verificar que hay trámites sin asignar en el resultado
     # Nota: Debido a cómo funciona el filtrado combinado, puede que el comportamiento
     # no sea exactamente el esperado. Lo importante es que el filtro no genere errores.
     assert len(filtrado_no) >= 0  # Solo verificamos que no hay errores

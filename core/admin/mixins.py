@@ -22,15 +22,15 @@ class RoleBasedAccessMixin:
     - Superusers: Acceso completo (SELECT + UPDATE a todo)
     - Administrador group: Acceso completo (SELECT + UPDATE a todo)
     - Coordinador group: Ve todos los trámites (SELECT), puede UPDATE cualquier trámite, asignar/reasignar
-    - Analista group: Ve sus trámites + libres (SELECT restringido), UPDATE solo sus trámites, auto-asignar
+    - Analista group: Ve sus trámites + sin asignar (SELECT restringido), UPDATE solo sus trámites, auto-asignar
     - Other users: Sin acceso
 
-    For Tramite model specifically, the access rules are:
+    For Tramite model specifically, access rules are:
     SELECT permissions (data visibility):
     - Superuser: Ve TODO
     - Administrador: Ve TODO
     - Coordinador: Ve TODO (para poder reasignar)
-    - Analista: Ve SUS trámites + trámites libres
+    - Analista: Ve SUS trámites + trámites sin asignar
 
     UPDATE permissions (modify data):
     - Superuser: UPDATE a TODO
@@ -70,8 +70,8 @@ class RoleBasedAccessMixin:
         """Check if user belongs to Analista group.
 
         Analistas pueden:
-        - Ver sus trámites asignados + trámites libres (SELECT restringido)
-        - Auto-asignarse trámites libres
+        - Ver sus trámites asignados + trámites sin asignar (SELECT restringido)
+        - Auto-asignarse trámites sin asignar
         - Modificar solo sus trámites asignados (UPDATE)
 
         Args:

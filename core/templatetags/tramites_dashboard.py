@@ -42,7 +42,7 @@ def tramite_dashboard_cards():
             {
                 'titulo': '📦 Sin Asignar',
                 'descripcion': 'Trámites disponibles para asignación',
-                'url': _url('admin:tramites_tramite_changelist', {'esta_asignado': False}),
+                'url': _url('admin:tramites_tramite_changelist', {'asignado': False}),
                 'icono': 'fa-box-open',
                 'count': stats['sin_asignar'],
                 'color': '#d97706',
@@ -50,7 +50,7 @@ def tramite_dashboard_cards():
             {
                 'titulo': '👤 Asignados',
                 'descripcion': 'Trámites asignados a analistas',
-                'url': _url('admin:tramites_tramite_changelist', {'esta_asignado': True}),
+                'url': _url('admin:tramites_tramite_changelist', {'asignado': True}),
                 'icono': 'fa-user-check',
                 'count': stats['asignados'],
                 'color': '#059669',

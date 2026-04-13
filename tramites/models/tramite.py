@@ -281,12 +281,14 @@ class Tramite(models.Model):
     modificado = models.DateTimeField(auto_now=True, verbose_name='Modificado')
 
     def __str__(self) -> str:
-        return self.folio
+        return str(self.folio)
 
     @property
     def estatus_display(self) -> str:
         """Get display name for estatus from related TramiteEstatus."""
-        return self.estatus.estatus if self.estatus else f'ID {self.estatus_id}'
+        if not self.estatus:
+            return 'DESCONOCIDO'
+        return self.estatus.estatus.replace('_', ' ')
 
     @property
     def tramite_display(self) -> str:

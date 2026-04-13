@@ -94,43 +94,43 @@ def configure_tenancy(env: Env) -> dict:
                     # url name e.g `admin:index`, relative urls e.g `/admin/index` or absolute urls e.g `https://domain.com/admin/index`
                     'url': 'admin:tramites_tramite_changelist',
                     # any font-awesome icon
-                    'icon': 'fas fa-comments',
+                    'icon': 'fas fa-list',
                     # a list of permissions of user must have to see this link (optional)
                     'permissions': ['books.view_book'],
                 },
                 {
                     'name': 'Sin asignar',
                     # url name e.g `admin:index`, relative urls e.g `/admin/index` or absolute urls e.g `https://domain.com/admin/index`
-                    'url': 'make_messages',
+                    'url': 'tramites:sin-asignar',
                     # any font-awesome icon
-                    'icon': 'fas fa-comments',
+                    'icon': 'fas fa-inbox',
                     # a list of permissions of user must have to see this link (optional)
                     'permissions': ['books.view_book'],
                 },
                 {
                     'name': 'Asignados',
                     # url name e.g `admin:index`, relative urls e.g `/admin/index` or absolute urls e.g `https://domain.com/admin/index`
-                    'url': 'make_messages',
+                    'url': 'tramites:asignados',
                     # any font-awesome icon
-                    'icon': 'fas fa-comments',
+                    'icon': 'fas fa-user-check',
                     # a list of permissions of user must have to see this link (optional)
                     'permissions': ['books.view_book'],
                 },
                 {
                     'name': 'Finalizados',
                     # url name e.g `admin:index`, relative urls e.g `/admin/index` or absolute urls e.g `https://domain.com/admin/index`
-                    'url': 'make_messages',
+                    'url': 'tramites:finalizados',
                     # any font-awesome icon
-                    'icon': 'fas fa-comments',
+                    'icon': 'fas fa-check-circle',
                     # a list of permissions of user must have to see this link (optional)
                     'permissions': ['books.view_book'],
                 },
                 {
                     'name': 'Cancelados',
                     # url name e.g `admin:index`, relative urls e.g `/admin/index` or absolute urls e.g `https://domain.com/admin/index`
-                    'url': 'make_messages',
+                    'url': 'tramites:cancelados',
                     # any font-awesome icon
-                    'icon': 'fas fa-comments',
+                    'icon': 'fas fa-times-circle',
                     # a list of permissions of user must have to see this link (optional)
                     'permissions': ['books.view_book'],
                 },

@@ -139,23 +139,25 @@ class ActividadesAdmin(BaseModelAdmin, RoleBasedAccessMixin):
 # =============================================================================
 
 
-# Custom list filter para 'esta_asignado'
+# Custom list filter para 'asignado'
 class TramiteAssignmentFilter(admin.SimpleListFilter):
     title = '¿Asignado?'
-    parameter_name = 'esta_asignado'
+    parameter_name = 'asignado'
 
     def lookups(self, request, model_admin):
         return (
             (True, 'Asignado'),
-            (False, 'Libre'),
+            (False, 'Sin Asignar'),
         )
 
     def queryset(self, request, queryset):
-        if self.value():
-            qs = queryset.filter(Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk'))))
-        else:
-            qs = queryset.filter(~Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk'))))
-        return qs
+        if self.value() == 'True':
+            return queryset.filter(Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk'))))
+        elif self.value() == 'False':
+            return queryset.filter(
+                ~Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk')))
+            )
+        return queryset
 
 
 # Custom list filter para 'finalizado'
@@ -206,7 +208,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
     Lógica de filtrado (SELECT):
     - Admin/Superuser: Ve TODO
     - Coordinador: Ve TODO (asignados + no asignados) para poder reasignar
-    - Analista: Ve SUS trámites + trámites libres
+    - Analista: Ve SUS trámites + trámites sin asignar
 
     Acciones disponibles por rol:
     - Admin/Superuser: Todas
@@ -337,7 +339,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         Lógica de SELECT por rol:
         - Admin/Superuser: Ve TODO
         - Coordinador: Ve TODO (para poder reasignar)
-        - Analista: Ve SUS trámites + trámites libres
+        - Analista: Ve SUS trámites + trámites sin asignar
 
         Returns:
             QuerySet: Trámites filtrados según rol con todas las anotaciones
@@ -366,7 +368,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         if user.groups.filter(name='Coordinador').exists():
             return queryset
 
-        # Analista: Ve SUS trámites + trámites libres
+        # Analista: Ve SUS trámites + trámites sin asignar
         if user.groups.filter(name='Analista').exists():
             # Trámites asignados a este analista (usando analista_id)
             tramites_mios = queryset.filter(
@@ -375,12 +377,12 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                 )
             )
 
-            # Trámites NO asignados a NADIE (libres)
+            # Trámites NO asignados a NADIE (sin asignar)
             tramites_libres = queryset.filter(
                 ~Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk')))
             )
 
-            # Combinar: MÍOS | LIBRES
+            # Combinar: MÍOS | SIN ASIGNAR
             return tramites_mios | tramites_libres
 
         # Otros: No ven nada
@@ -401,7 +403,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
     def analista_asignado(self, obj: Tramite):
         """
-        Muestra el analista asignado (o '📦 Libre').
+        Muestra el analista asignado (o '📦 Sin Asignar').
 
         Usa el ID del analista anotado para evitar queries adicionales.
         """
@@ -414,7 +416,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             except User.DoesNotExist:
                 return f'📦 ID: {analista_id}'
 
-        return '📦 Libre'
+        return '📦 Sin Asignar'
 
     analista_asignado.short_description = 'Asignado a'
 
@@ -444,14 +446,14 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         # Analista: solo puede tomar trámites sin asignar
         if user.groups.filter(name='Analista').exists():
-            if 'esta_asignado=False' in url_params:
+            if 'asignado=False' in url_params:
                 return {k: v for k, v in actions.items() if k == 'tomar_seleccionados'}
             return {}
 
         # Coordinador: acciones contextuales
         if user.groups.filter(name='Coordinador').exists():
             coordinador_actions = {'asignar_seleccionados', 'reasignar_seleccionados'}
-            if 'esta_asignado=True' in url_params:
+            if 'asignado=True' in url_params:
                 coordinador_actions.add('liberar_seleccionados')
             return {k: v for k, v in actions.items() if k in coordinador_actions}
 
