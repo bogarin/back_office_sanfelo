@@ -9,8 +9,9 @@ import pytest
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.admin.sites import AdminSite
-from tramites.models import Tramite, TramiteEstatus, TramiteCatalogo
+from tramites.models import Actividades, Tramite, TramiteEstatus, TramiteCatalogo, Actividad
 from buzon.models import AsignacionTramite
+from tests.factories import TramiteFactory
 
 User = get_user_model()
 
@@ -39,7 +40,7 @@ def coordinador(db, coordinador_group):
 
 @pytest.fixture
 def analista(db, analista_group):
-    """Fixture para crear un usuario analista."""
+    """Fixture para crear un usuario分析师."""
     user = User.objects.create_user(username='analista', email='analista@test.com', password='pass')
     user.groups.add(analista_group)
     return user
@@ -52,42 +53,78 @@ def catalogo(db):
 
 
 @pytest.fixture
+def actividad(db):
+    """Fixture para crear una actividad."""
+    return Actividad.objects.create(id=1, actividad='Test Actividad')
+
+
+@pytest.fixture
 def estatus_presentado(db):
     """Fixture para crear estatus PRESENTADO (201)."""
     return TramiteEstatus.objects.create(id=201, estatus='PRESENTADO', responsable='Sistema')
 
 
 @pytest.fixture
-def tramite_presentado(db, estatus_presentado, catalogo):
+def tramite_presentado(db, estatus_presentado, catalogo, actividad):
     """Fixture para crear un trámite en estado PRESENTADO."""
-    return Tramite.objects.create(
+    tramite = TramiteFactory.create(
         folio='T-001',
         nom_sol='Juan Pérez',
-        estatus_id=estatus_presentado.id,
         tramite_catalogo=catalogo,
     )
+    # Create Actividades record to set estatus
+    Actividades.objects.create(
+        tramite=tramite,
+        actividad=actividad,
+        estatus=estatus_presentado,
+        secuencia=1,
+        fecha_inicio='2024-01-01',
+        fecha_fin='2024-01-31',
+        id_cat_usuario=0,
+    )
+    return tramite
 
 
 @pytest.fixture
-def tramite2_presentado(db, estatus_presentado, catalogo):
+def tramite2_presentado(db, estatus_presentado, catalogo, actividad):
     """Fixture para crear otro trámite en estado PRESENTADO."""
-    return Tramite.objects.create(
+    tramite = TramiteFactory.create(
         folio='T-002',
         nom_sol='María López',
-        estatus_id=estatus_presentado.id,
         tramite_catalogo=catalogo,
     )
+    # Create Actividades record to set estatus
+    Actividades.objects.create(
+        tramite=tramite,
+        actividad=actividad,
+        estatus=estatus_presentado,
+        secuencia=1,
+        fecha_inicio='2024-01-01',
+        fecha_fin='2024-01-31',
+        id_cat_usuario=0,
+    )
+    return tramite
 
 
 @pytest.fixture
-def tramite3_presentado(db, estatus_presentado, catalogo):
+def tramite3_presentado(db, estatus_presentado, catalogo, actividad):
     """Fixture para crear tercer trámite en estado PRESENTADO."""
-    return Tramite.objects.create(
+    tramite = TramiteFactory.create(
         folio='T-003',
         nom_sol='Pedro García',
-        estatus_id=estatus_presentado.id,
         tramite_catalogo=catalogo,
     )
+    # Create Actividades record to set estatus
+    Actividades.objects.create(
+        tramite=tramite,
+        actividad=actividad,
+        estatus=estatus_presentado,
+        secuencia=1,
+        fecha_inicio='2024-01-01',
+        fecha_fin='2024-01-31',
+        id_cat_usuario=0,
+    )
+    return
 
 
 class MockRequest:
@@ -255,11 +292,19 @@ def test_avoid_n_plus_one_queries(
 
     # Crear varios trámites (usar folios diferentes para evitar conflictos)
     for i in range(10, 20):
-        Tramite.objects.create(
+        tramite = TramiteFactory.create(
             folio=f'T-{i:03d}',
             nom_sol=f'Persona {i}',
-            estatus_id=tramite_presentado.estatus_id,
             tramite_catalogo_id=1,
+        )
+        # Create Actividades record to set estatus
+        Actividades.objects.create(
+            tramite=tramite,
+            estatus_id=tramite_presentado.estatus_id,
+            secuencia=1,
+            fecha_inicio='2024-01-01',
+            fecha_fin='2024-01-31',
+            id_cat_usuario=0,
         )
 
     request = MockRequest(user=analista)
@@ -297,12 +342,12 @@ def test_esta_asignado_list_filter_si(admin_instance, analista, tramite_presenta
     assert tramite_presentado in filtrado_si
 
     # Crear trámite sin asignar
-    tramite2 = Tramite.objects.create(
+    tramite2 = TramiteFactory.create(
         folio='T-100',
         nom_sol='Test User',
-        estatus_id=tramite_presentado.estatus_id,
         tramite_catalogo_id=1,
     )
+    # No Actividades = no estatus
 
     # Verificar que trámite sin asignar NO aparece
     assert tramite2 not in filtrado_si

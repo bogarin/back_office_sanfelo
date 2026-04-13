@@ -121,17 +121,15 @@ class ActividadesAdmin(BaseModelAdmin, RoleBasedAccessMixin):
     list_display = (
         'id',
         'tramite',
-        'actividad',
         'estatus',
-        'fecha_inicio',
-        'fecha_fin',
-        'id_cat_usuario',
-        'secuencia',
+        'backoffice_user_id',
         'observacion',
+        'timestamp',
     )
-    list_filter = ('fecha_inicio', 'fecha_fin')
+    list_filter = ('timestamp',)
     search_fields = ('observacion',)
-    ordering = ('-secuencia',)
+    ordering = ('-timestamp',)
+    raw_id_fields = ('tramite', 'estatus')
 
 
 # =============================================================================
@@ -170,7 +168,7 @@ class TramiteFinalizadoFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(estatus_id__gte=300)
+            return queryset.filter(_estatus_id__gte=300)
         return queryset
 
 
@@ -184,7 +182,21 @@ class TramiteCanceladoFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(estatus_id=304)
+            return queryset.filter(_estatus_id=304)
+        return queryset
+
+
+# Custom list filter para estatus (derived from Actividades)
+class TramiteEstatusFilter(admin.SimpleListFilter):
+    title = 'Estatus'
+    parameter_name = 'estatus'
+
+    def lookups(self, request, model_admin):
+        return [(e.id, e.estatus) for e in TramiteEstatus.objects.all()]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(_estatus_id=self.value())
         return queryset
 
 
@@ -229,7 +241,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
     # List filtering
     list_filter = (
-        'estatus',
+        TramiteEstatusFilter,
         'pagado',
         'urgente',
         'es_propietario',
@@ -267,7 +279,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                 'fields': (
                     'folio',
                     'tramite_catalogo',
-                    'estatus',
+                    'estatus_display',
                     'perito',
                     'tipo',
                 ),
@@ -315,7 +327,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         'folio',
         'tramite_catalogo',
         'clave_catastral',
-        'estatus',
+        'estatus_display',
         'es_propietario',
         'nom_sol',
         'tel_sol',
@@ -345,8 +357,20 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             QuerySet: Trámites filtrados según rol con todas las anotaciones
         """
 
-        queryset = super().get_queryset(request).select_related('tramite_catalogo', 'estatus')
+        queryset = super().get_queryset(request).select_related('tramite_catalogo')
         user = request.user
+
+        # Annotate with estatus_id from latest Actividades (cross-database safe)
+        # Use .annotate() directly since Manager's with_estatus() isn't available on admin's queryset
+        from django.db.models import OuterRef, Subquery
+        from tramites.models.actividades import Actividades
+
+        subquery = Subquery(
+            Actividades.objects.filter(tramite=OuterRef('pk'))
+            .order_by('-timestamp')
+            .values_list('estatus_id')[:1]
+        )
+        queryset = queryset.annotate(_estatus_id=subquery)
 
         # Annotate con flag de asignación (cross-database safe)
         queryset = queryset.annotate(
@@ -663,8 +687,21 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         stats = Tramite.objects.get_statistics()
 
         # Get status distribution with optimized aggregation (single query)
+        # Uses inline subquery since Manager's with_estatus() method
+        # isn't available when called on class
+        from django.db.models import OuterRef, Subquery, Count
+        from tramites.models.actividades import Actividades
+
+        subquery = Subquery(
+            Actividades.objects.filter(tramite=OuterRef('pk'))
+            .order_by('-timestamp')
+            .values_list('estatus_id')[:1]
+        )
         estatus_distribution = (
-            Tramite.objects.values('estatus_id').annotate(total=Count('id')).order_by('estatus_id')
+            Tramite.objects.annotate(_estatus_id=subquery)
+            .values('_estatus_id')
+            .annotate(total=Count('id'))
+            .order_by('_estatus_id')
         )
 
         # Fetch all statuses once (single query to business DB)
@@ -673,7 +710,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         # Combine data in Python (avoids N+1 queries, maintains format)
         estatus_distribution_list = [
             (cat_id, all_estatus.get(cat_id, f'ID {cat_id}'), total)
-            for cat_id, total in estatus_distribution.values_list('estatus_id', 'total')
+            for cat_id, total in estatus_distribution.values_list('_estatus_id', 'total')
         ]
 
         ctx = dict(extra_context) if extra_context else {}
@@ -697,11 +734,9 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         # Populate choices dynamically
         tramites_choices = [(t.id, t.nombre) for t in TramiteCatalogo.objects.filter(activo=True)]
-        estatus_choices = [(e.id, e.estatus) for e in TramiteEstatus.objects.all()]
         peritos_choices = [(p.id, p.nombre_completo) for p in Perito.objects.all()]
 
         form.base_fields['tramite_catalogo'].widget.choices = tramites_choices
-        form.base_fields['estatus'].widget.choices = estatus_choices
         form.base_fields['perito'].widget.choices = peritos_choices
 
         return form

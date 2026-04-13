@@ -34,10 +34,7 @@ class AsignacionTramiteAdmin(BaseModelAdmin):
         'observacion_truncada',
     )
 
-    list_filter = (
-        'fecha_asignacion',
-        'tramite__estatus',
-    )
+    list_filter = ('fecha_asignacion',)
 
     search_fields = (
         'tramite__folio',
@@ -104,15 +101,17 @@ class AsignacionTramiteAdmin(BaseModelAdmin):
     tramite_folio.admin_order_field = 'tramite__folio'
 
     def tramite_estatus(self, obj):
-        """Muestra el estatus del trámite."""
+        """Muestra el estatus del trámite (from latest Actividades)."""
+        estatus_id = obj.tramite.estatus_id
+        if estatus_id is None:
+            return '—'
         try:
-            estatus = TramiteEstatus.objects.get(id=obj.tramite.estatus_id)
+            estatus = TramiteEstatus.objects.get(id=estatus_id)
             return estatus.estatus
         except TramiteEstatus.DoesNotExist:
-            return f'ID {obj.tramite.estatus_id}'
+            return f'ID {estatus_id}'
 
     tramite_estatus.short_description = 'Estatus'
-    tramite_estatus.admin_order_field = 'tramite__estatus'
 
     def analista_con_carga(self, obj):
         """Muestra el analista con badge de carga."""

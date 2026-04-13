@@ -11,8 +11,9 @@ Tests for AsignacionTramite model including:
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
-from tramites.models import Tramite, TramiteEstatus, TramiteCatalogo
+from tramites.models import Actividades, Tramite, TramiteEstatus, TramiteCatalogo, Actividad
 from buzon.models import AsignacionTramite
+from tests.factories import TramiteFactory
 
 User = get_user_model()
 
@@ -21,6 +22,12 @@ User = get_user_model()
 def catalogo(db):
     """Fixture para crear un catálogo de trámite."""
     return TramiteCatalogo.objects.create(id=1, nombre='Test Catálogo', activo=True)
+
+
+@pytest.fixture
+def actividad(db):
+    """Fixture para crear una actividad."""
+    return Actividad.objects.create(id=1, actividad='Test Actividad')
 
 
 @pytest.fixture
@@ -36,36 +43,66 @@ def estatus_borrador(db):
 
 
 @pytest.fixture
-def tramite_presentado(db, estatus_presentado, catalogo):
+def tramite_presentado(db, estatus_presentado, catalogo, actividad):
     """Fixture para crear un trámite en estado PRESENTADO."""
-    return Tramite.objects.create(
+    tramite = TramiteFactory.create(
         folio='T-001',
         nom_sol='Juan Pérez',
-        estatus_id=estatus_presentado.id,
         tramite_catalogo=catalogo,
     )
+    # Create Actividades record to set estatus
+    Actividades.objects.create(
+        tramite=tramite,
+        actividad=actividad,
+        estatus=estatus_presentado,
+        secuencia=1,
+        fecha_inicio='2024-01-01',
+        fecha_fin='2024-01-31',
+        id_cat_usuario=0,
+    )
+    return tramite
 
 
 @pytest.fixture
-def tramite_borrador(db, estatus_borrador, catalogo):
+def tramite_borrador(db, estatus_borrador, catalogo, actividad):
     """Fixture para crear un trámite en estado BORRADOR."""
-    return Tramite.objects.create(
+    tramite = TramiteFactory.create(
         folio='T-002',
         nom_sol='María López',
-        estatus_id=estatus_borrador.id,
         tramite_catalogo=catalogo,
     )
+    # Create Actividades record to set estatus
+    Actividades.objects.create(
+        tramite=tramite,
+        actividad=actividad,
+        estatus=estatus_borrador,
+        secuencia=1,
+        fecha_inicio='2024-01-01',
+        fecha_fin='2024-01-31',
+        id_cat_usuario=0,
+    )
+    return tramite
 
 
 @pytest.fixture
-def tramite(db, estatus_presentado, catalogo):
+def tramite(db, estatus_presentado, catalogo, actividad):
     """Fixture genérico para crear un trámite."""
-    return Tramite.objects.create(
+    tramite = TramiteFactory.create(
         folio='T-999',
         nom_sol='Test User',
-        estatus_id=estatus_presentado.id,
         tramite_catalogo=catalogo,
     )
+    # Create Actividades record to set estatus
+    Actividades.objects.create(
+        tramite=tramite,
+        actividad=actividad,
+        estatus=estatus_presentado,
+        secuencia=1,
+        fecha_inicio='2024-01-01',
+        fecha_fin='2024-01-31',
+        id_cat_usuario=0,
+    )
+    return
 
 
 @pytest.fixture
@@ -123,11 +160,19 @@ def test_asignar_tramite_con_estados_proceso_funciona(
             defaults={'estatus': f'ESTADO_{estado_id}', 'responsable': 'Sistema'},
         )
         # Crear un nuevo trámite con el estado específico
-        tramite_test = Tramite.objects.create(
+        tramite_test = TramiteFactory.create(
             folio=f'T-TEST-{estado_id}',
             nom_sol=f'Test User {estado_id}',
-            estatus_id=estado_id,
             tramite_catalogo=catalogo,
+        )
+        # Create Actividades record to set estatus
+        Actividades.objects.create(
+            tramite=tramite_test,
+            estatus_id=estado_id,
+            secuencia=1,
+            fecha_inicio='2024-01-01',
+            fecha_fin='2024-01-31',
+            id_cat_usuario=0,
         )
 
         asignacion = asignar_tramite(
@@ -220,11 +265,19 @@ def test_limite_de_asignaciones_por_analista(tramite, analista, coordinador, cat
         )
 
         # Asignar segundo trámite (al límite)
-        tramite2 = Tramite.objects.create(
+        tramite2 = TramiteFactory.create(
             folio='T-002',
             nom_sol='Test User 2',
-            estatus_id=tramite.estatus_id,
             tramite_catalogo=catalogo,
+        )
+        # Create Actividades record to set estatus
+        Actividades.objects.create(
+            tramite=tramite2,
+            estatus_id=tramite.estatus_id,
+            secuencia=1,
+            fecha_inicio='2024-01-01',
+            fecha_fin='2024-01-31',
+            id_cat_usuario=0,
         )
         asignar_tramite(
             tramite=tramite2,
@@ -233,11 +286,19 @@ def test_limite_de_asignaciones_por_analista(tramite, analista, coordinador, cat
         )
 
         # Intentar asignar tercero debe fallar
-        tramite3 = Tramite.objects.create(
+        tramite3 = TramiteFactory.create(
             folio='T-003',
             nom_sol='Test User 3',
-            estatus_id=tramite.estatus_id,
             tramite_catalogo=catalogo,
+        )
+        # Create Actividades record to set estatus
+        Actividades.objects.create(
+            tramite=tramite3,
+            estatus_id=tramite.estatus_id,
+            secuencia=1,
+            fecha_inicio='2024-01-01',
+            fecha_fin='2024-01-31',
+            id_cat_usuario=0,
         )
         with pytest.raises(AnalistaConMuchasAsignacionesError):
             asignar_tramite(

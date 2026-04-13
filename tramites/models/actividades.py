@@ -2,8 +2,17 @@
 
 Tracks each activity performed on a tramite, including the status change
 and the user responsible.
+
+Schema matches PostgreSQL actividades table:
+- id (serial)
+- id_tramite (int4)
+- id_cat_estatus (int4)
+- backoffice_user_id (int4, nullable)
+- observacion (varchar)
+- timestamp (timestamp, default=CURRENT_TIMESTAMP)
 """
 
+from django.conf import settings
 from django.db import models
 
 
@@ -11,49 +20,47 @@ class Actividades(models.Model):
     """Registro de actividades realizadas durante el trámite.
 
     Cada registro representa una acción realizada sobre un trámite:
-    quién la hizo, qué actividad fue, qué estatus resultó, y cuándo.
+    quién la hizo, qué estatus resultó, y cuándo.
     """
 
     class Meta:
-        managed = True
+        managed = getattr(
+            settings, 'TESTING', False
+        )  # True for tests (SQLite), False for prod (PostgreSQL)
         db_table = 'actividades'
         verbose_name = 'Actividad de Trámite'
         verbose_name_plural = 'Actividades de Trámite'
-        ordering = ['-secuencia']
+        ordering = ['-timestamp']
 
     id = models.AutoField(primary_key=True)
 
     tramite = models.ForeignKey(
         'Tramite',
-        on_delete=models.DO_NOTHING,
+        on_delete=models.CASCADE,
         db_column='id_tramite',
         related_name='actividades',
         verbose_name='Trámite',
     )
-    actividad = models.ForeignKey(
-        'Actividad',
-        on_delete=models.DO_NOTHING,
-        db_column='id_cat_actividad',
-        related_name='registros',
-        verbose_name='Actividad',
-    )
     estatus = models.ForeignKey(
         'TramiteEstatus',
-        on_delete=models.DO_NOTHING,
+        on_delete=models.RESTRICT,
         db_column='id_cat_estatus',
         related_name='actividades',
         verbose_name='Estatus',
     )
 
-    # IntegerField because User lives in SQLite (cross-database)
-    id_cat_usuario = models.IntegerField(verbose_name='ID Usuario')
+    # Matches PostgreSQL: backoffice_user_id int4 NULL
+    backoffice_user_id = models.IntegerField(
+        null=True, blank=True, verbose_name='ID Usuario Backoffice'
+    )
 
-    fecha_inicio = models.DateField(verbose_name='Fecha Inicio')
-    fecha_fin = models.DateField(verbose_name='Fecha Fin')
-    secuencia = models.IntegerField(verbose_name='Secuencia')
+    # Matches PostgreSQL: observacion varchar(255) NULL
     observacion = models.CharField(
         max_length=255, blank=True, null=True, verbose_name='Observación'
     )
+
+    # Matches PostgreSQL: timestamp DEFAULT CURRENT_TIMESTAMP
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name='Fecha/Hora')
 
     def __str__(self) -> str:
         return f'Actividad {self.id} - Trámite {self.tramite_id}'

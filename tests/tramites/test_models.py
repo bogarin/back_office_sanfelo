@@ -9,12 +9,17 @@ This module contains tests for:
 - TramiteManager statistics and caching
 """
 
+from datetime import date
+
 from django.test import TestCase
 from django.core.cache import cache
 
+from tests.factories import TramiteFactory, TramiteWithEstatusFactory
+from tests.factories.catalogos import ActividadFactory
 from tramites.models import Tramite
 from tests.factories import (
     TramiteFactory,
+    TramiteWithEstatusFactory,
 )
 
 
@@ -23,7 +28,7 @@ class TestTramite(TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.tramite = TramiteFactory()
+        self.tramite = TramiteWithEstatusFactory()  # Creates Actividades automatically
 
     def test_str_representation(self):
         """Test string representation of Tramite."""
@@ -33,19 +38,19 @@ class TestTramite(TestCase):
         """Test estatus_display property."""
         estatus_display = self.tramite.estatus_display
         self.assertIsNotNone(estatus_display)
-        # Should return the estatus name from CatEstatus
+        # Should return estatus name from CatEstatus
 
     def test_tramite_display_property(self):
         """Test tramite_display property."""
         tramite_display = self.tramite.tramite_display
         self.assertIsNotNone(tramite_display)
-        # Should return the tramite name from CatTramite
+        # Should return tramite name from CatTramite
 
     def test_model_fields(self):
         """Test Tramite model fields."""
         self.assertIsNotNone(self.tramite.folio)
         self.assertIsNotNone(self.tramite.tramite_catalogo_id)
-        self.assertIsNotNone(self.tramite.estatus_id)
+        self.assertIsNotNone(self.tramite.estatus_id)  # From Actividades via property
         self.assertIsNotNone(self.tramite.es_propietario)
         self.assertIsNotNone(self.tramite.nom_sol)
         self.assertIsNotNone(self.tramite.pagado)
@@ -54,7 +59,7 @@ class TestTramite(TestCase):
         """Test that folio is unique."""
         # Try to create another tramite with same folio
         with self.assertRaises(Exception):  # IntegrityError or similar
-            TramiteFactory(folio=self.tramite.folio)
+            TramiteWithEstatusFactory(folio=self.tramite.folio)
 
 
 class TestTramiteManager(TestCase):
@@ -102,19 +107,46 @@ class TestTramiteManager(TestCase):
 
     def test_get_statistics(self):
         """Test get_statistics returns all counts."""
-        # Create tramites with different statuses
         from tests.factories import TramiteEstatusFactory
+        from tramites.models import Actividades
 
         # Create statuses
         estatus_pendiente = TramiteEstatusFactory(id=101, estatus='Pendiente')
         estatus_finalizado = TramiteEstatusFactory(id=300, estatus='Finalizado')
         estatus_cancelado = TramiteEstatusFactory(id=304, estatus='Cancelado')
 
-        # Create tramites
-        TramiteFactory(estatus=estatus_pendiente)  # 1
-        TramiteFactory(estatus=estatus_finalizado)  # 1
-        TramiteFactory(estatus=estatus_finalizado)  # 2
-        TramiteFactory(estatus=estatus_cancelado)  # 1
+        # Create trámites and their Actividades (new schema)
+        tramite1 = TramiteFactory.create()
+        Actividades.objects.create(
+            tramite=tramite1,
+            estatus=estatus_pendiente,
+            backoffice_user_id=None,
+            observacion='Test',
+        )
+
+        tramite2 = TramiteFactory.create()
+        Actividades.objects.create(
+            tramite=tramite2,
+            estatus=estatus_finalizado,
+            backoffice_user_id=None,
+            observacion='Test',
+        )
+
+        tramite3 = TramiteFactory.create()
+        Actividades.objects.create(
+            tramite=tramite3,
+            estatus=estatus_finalizado,
+            backoffice_user_id=None,
+            observacion='Test',
+        )
+
+        tramite4 = TramiteFactory.create()
+        Actividades.objects.create(
+            tramite=tramite4,
+            estatus=estatus_cancelado,
+            backoffice_user_id=None,
+            observacion='Test',
+        )
 
         stats = Tramite.objects.get_statistics()
 
