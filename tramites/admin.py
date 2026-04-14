@@ -8,17 +8,11 @@ Integrates with Buzón de Trámites system for analyst assignment.
 
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Exists, OuterRef, Subquery
+from django.db.models import Exists, OuterRef, Subquery
 from django.http import HttpRequest
 from django.shortcuts import redirect, render
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-
-# Try to import ACTION_CHECKBOX_NAME, fallback to a known value
-try:
-    ACTION_CHECKBOX_NAME = admin.ACTION_CHECKBOX_NAME
-except AttributeError:
-    ACTION_CHECKBOX_NAME = 'action_checkbox_name'
 
 from buzon.models import AsignacionTramite
 from buzon.services import (
@@ -37,7 +31,10 @@ from core.admin import (
 )
 from core.admin_utils import (
     render_activo_badge,
+    render_badge,
+    render_status_badge,
 )
+from core.rbac.constants import BackOfficeRole
 from tramites.models import (
     Actividades,
     Perito,
@@ -46,6 +43,7 @@ from tramites.models import (
     TramiteEstatus,
 )
 
+ACTION_CHECKBOX_NAME = 'action_checkbox_name'
 User = get_user_model()
 
 
@@ -151,7 +149,7 @@ class TramiteAssignmentFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         if self.value() == 'True':
             return queryset.filter(Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk'))))
-        elif self.value() == 'False':
+        if self.value() == 'False':
             return queryset.filter(
                 ~Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk')))
             )
@@ -192,7 +190,7 @@ class TramiteEstatusFilter(admin.SimpleListFilter):
     parameter_name = 'estatus'
 
     def lookups(self, request, model_admin):
-        return [(e.id, e.estatus) for e in TramiteEstatus.objects.all()]
+        return [(e.id, e.estatus) for e in TramiteEstatus.objects.all_cached()]
 
     def queryset(self, request, queryset):
         if self.value():
@@ -263,6 +261,10 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
     # Ordering
     ordering = ('-creado',)
+
+    # Skip the expensive full_result_count query — we already show totals
+    # in the dashboard stats. Saves one COUNT(*) (~200ms) per page load.
+    show_full_result_count = False
 
     # Extra media (JS for quick action buttons in changelist)
     class Media:
@@ -362,8 +364,6 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         # Annotate with estatus_id from latest Actividades (cross-database safe)
         # Use .annotate() directly since Manager's with_estatus() isn't available on admin's queryset
-        from django.db.models import OuterRef, Subquery
-        from tramites.models.actividades import Actividades
 
         subquery = Subquery(
             Actividades.objects.filter(tramite=OuterRef('pk'))
@@ -389,11 +389,11 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             return queryset
 
         # Coordinador: Ve TODO (asignados + no asignados) para poder reasignar
-        if user.groups.filter(name='Coordinador').exists():
+        if BackOfficeRole.COORDINADOR in getattr(user, 'roles', set()):
             return queryset
 
         # Analista: Ve SUS trámites + trámites sin asignar
-        if user.groups.filter(name='Analista').exists():
+        if BackOfficeRole.ANALISTA in getattr(user, 'roles', set()):
             # Trámites asignados a este analista (usando analista_id)
             tramites_mios = queryset.filter(
                 Exists(
@@ -421,7 +421,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
     def tramite_estatus(self, obj: Tramite):
         """Display estatus with color coding (via select_related)."""
-        return obj.estatus_display
+        return render_status_badge(obj._estatus_id, obj.estatus_display)
 
     tramite_estatus.short_description = 'Estatus'
 
@@ -429,18 +429,28 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         """
         Muestra el analista asignado (o '📦 Sin Asignar').
 
-        Usa el ID del analista anotado para evitar queries adicionales.
+        Uses ``self._analistas_by_id`` (prefetched in ``changelist_view``)
+        for O(1) dict lookups instead of ``User.objects.get()`` per row.
+        Falls back to a single query if the dict is unavailable (edge case).
         """
         analista_id = getattr(obj, 'analista_asignado_id', None)
 
-        if analista_id:
-            try:
-                analista = User.objects.get(id=analista_id)
-                return f'👤 {analista.username}'
-            except User.DoesNotExist:
-                return f'📦 ID: {analista_id}'
+        if not analista_id:
+            return '📦 Sin Asignar'
 
-        return '📦 Sin Asignar'
+        # Fast path: dict lookup from prefetched analysts
+        cache = getattr(self, '_analistas_by_id', None)
+        if cache is not None:
+            username = cache.get(analista_id)
+            if username:
+                return f'👤 {username}'
+            return f'📦 ID: {analista_id}'
+
+        # Fallback: single query (should rarely happen)
+        try:
+            return f'👤 {User.objects.get(id=analista_id).username}'
+        except User.DoesNotExist:
+            return f'📦 ID: {analista_id}'
 
     analista_asignado.short_description = 'Asignado a'
 
@@ -469,13 +479,13 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             return actions
 
         # Analista: solo puede tomar trámites sin asignar
-        if user.groups.filter(name='Analista').exists():
+        if BackOfficeRole.ANALISTA in getattr(user, 'roles', set()):
             if 'asignado=False' in url_params:
                 return {k: v for k, v in actions.items() if k == 'tomar_seleccionados'}
             return {}
 
         # Coordinador: acciones contextuales
-        if user.groups.filter(name='Coordinador').exists():
+        if BackOfficeRole.COORDINADOR in getattr(user, 'roles', set()):
             coordinador_actions = {'asignar_seleccionados', 'reasignar_seleccionados'}
             if 'asignado=True' in url_params:
                 coordinador_actions.add('liberar_seleccionados')
@@ -502,8 +512,9 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         esta_asignado = getattr(obj, 'esta_asignado_flag', False)
 
         is_admin = user.is_superuser or user.is_staff
-        is_coordinador = user.groups.filter(name='Coordinador').exists()
-        is_analista = user.groups.filter(name='Analista').exists()
+        roles = getattr(user, 'roles', set())
+        is_coordinador = BackOfficeRole.COORDINADOR in roles
+        is_analista = BackOfficeRole.ANALISTA in roles
 
         # (action_name, label) pairs for the applicable actions
         actions_map: list[tuple[str, str]] = []
@@ -549,7 +560,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         Solo funciona para trámites NO asignados.
         Los analistas se auto-asignan estos trámites.
         """
-        if not request.user.groups.filter(name='Analista').exists():
+        if BackOfficeRole.ANALISTA not in getattr(request.user, 'roles', set()):
             messages.error(request, '❌ Solo los analistas pueden tomar trámites')
             return redirect(request.get_full_path())
 
@@ -677,41 +688,33 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         Optimizaciones:
         - Usa TramiteManager.get_statistics() con caching para stats principales
-        - Agregación single query para distribución por estatus
-        - Fetch de TramiteEstatus en una sola query
+        - Usa TramiteManager.get_estatus_distribution() con caching para distribución
+        - Deriva finalizados/cancelados de la distribución (sin queries extra)
         """
         # Store request for use in list_display methods (e.g. acciones_disponibles)
         self._request = request
 
+        # Prefetch analysts for analista_asignado column (cross-database safe):
+        # one query here instead of User.objects.get() per row.
+        self._analistas_by_id = dict(
+            User.objects.filter(groups__name='Analista').values_list('id', 'username')
+        )
+
         # Use cached statistics from TramiteManager (much faster!)
         stats = Tramite.objects.get_statistics()
 
-        # Get status distribution with optimized aggregation (single query)
-        # Uses inline subquery since Manager's with_estatus() method
-        # isn't available when called on class
-        from django.db.models import OuterRef, Subquery, Count
-        from tramites.models.actividades import Actividades
+        # Use cached distribution — single GROUP BY query with shorter TTL
+        estatus_distribution_list = Tramite.objects.get_estatus_distribution()
 
-        subquery = Subquery(
-            Actividades.objects.filter(tramite=OuterRef('pk'))
-            .order_by('-timestamp')
-            .values_list('estatus_id')[:1]
+        # Derive finalizados/cancelados from distribution (zero extra queries)
+        finalizados = sum(
+            total
+            for estatus_id, _, total in estatus_distribution_list
+            if estatus_id is not None and estatus_id >= 300
         )
-        estatus_distribution = (
-            Tramite.objects.annotate(_estatus_id=subquery)
-            .values('_estatus_id')
-            .annotate(total=Count('id'))
-            .order_by('_estatus_id')
+        cancelados = sum(
+            total for estatus_id, _, total in estatus_distribution_list if estatus_id == 304
         )
-
-        # Fetch all statuses once (single query to business DB)
-        all_estatus = {e.id: e.estatus for e in TramiteEstatus.objects.all()}
-
-        # Combine data in Python (avoids N+1 queries, maintains format)
-        estatus_distribution_list = [
-            (cat_id, all_estatus.get(cat_id, f'ID {cat_id}'), total)
-            for cat_id, total in estatus_distribution.values_list('_estatus_id', 'total')
-        ]
 
         ctx = dict(extra_context) if extra_context else {}
         ctx.update(
@@ -720,6 +723,8 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                 'tramites_urgentes': stats.get('urgentes', 0),
                 'tramites_pagados': stats.get('pagados', 0),
                 'tramites_pendientes_pago': stats['total'] - stats.get('pagados', 0),
+                'tramites_finalizados': finalizados,
+                'tramites_cancelados': cancelados,
                 'estatus_distribution': estatus_distribution_list,
                 'quick_action_js': True,
             }
@@ -732,9 +737,11 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         """Customize form with widget choices from catalog tables."""
         form = super().get_form(request, obj, **kwargs)
 
-        # Populate choices dynamically
-        tramites_choices = [(t.id, t.nombre) for t in TramiteCatalogo.objects.filter(activo=True)]
-        peritos_choices = [(p.id, p.nombre_completo) for p in Perito.objects.all()]
+        # Populate choices dynamically from cached catalogs
+        tramites_choices = [
+            (t.id, t.nombre) for t in TramiteCatalogo.objects.all_cached() if t.activo
+        ]
+        peritos_choices = [(p.id, p.nombre_completo) for p in Perito.objects.all_cached()]
 
         form.base_fields['tramite_catalogo'].widget.choices = tramites_choices
         form.base_fields['perito'].widget.choices = peritos_choices

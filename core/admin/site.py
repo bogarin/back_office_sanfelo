@@ -6,9 +6,10 @@ Provides a custom admin site for backoffice with:
 - Role-based access control
 """
 
-from django.conf import settings
 from django.contrib import admin
 from django.http import HttpRequest
+
+from core.rbac.constants import BackOfficeRole
 
 
 # =============================================================================
@@ -57,4 +58,4 @@ class BackofficeAdminSite(admin.AdminSite):
             return True
 
         # Administrador group sees all modules
-        return request.user.groups.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists()
+        return BackOfficeRole.ADMINISTRADOR in getattr(request.user, 'roles', set())

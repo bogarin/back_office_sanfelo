@@ -6,10 +6,11 @@ This module contains tests for:
 - Setup roles error handling
 """
 
-from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.management import call_command
 from django.test import TestCase
+
+from core.rbac.constants import BackOfficeRole
 
 
 class TestRBACErrorHandling(TestCase):
@@ -24,4 +25,4 @@ class TestRBACErrorHandling(TestCase):
             self.fail('setup_roles should not raise exception for missing permissions')
 
         # Administrador group should be created
-        self.assertTrue(Group.objects.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists())
+        self.assertTrue(Group.objects.filter(name=BackOfficeRole.ADMINISTRADOR).exists())

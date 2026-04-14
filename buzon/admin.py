@@ -4,13 +4,13 @@ Admin interface for buzon app.
 Provides admin interface for managing tramite assignments to analysts.
 """
 
-from django.conf import settings
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
 from buzon.models import AsignacionTramite
 from buzon.services import liberar_tramite, obtener_carga_analistas, reasignar_tramite
 from core.admin import BaseModelAdmin
+from core.rbac.constants import BackOfficeRole
 from tramites.models import TramiteEstatus
 
 
@@ -105,11 +105,10 @@ class AsignacionTramiteAdmin(BaseModelAdmin):
         estatus_id = obj.tramite.estatus_id
         if estatus_id is None:
             return '—'
-        try:
-            estatus = TramiteEstatus.objects.get(id=estatus_id)
-            return estatus.estatus
-        except TramiteEstatus.DoesNotExist:
+        estatus = TramiteEstatus.objects.get_cached(estatus_id)
+        if estatus is None:
             return f'ID {estatus_id}'
+        return estatus.estatus
 
     tramite_estatus.short_description = 'Estatus'
 
@@ -214,7 +213,7 @@ class AsignacionTramiteAdmin(BaseModelAdmin):
         return (
             request.user.is_superuser
             or request.user.is_staff
-            or request.user.groups.filter(name=settings.COORDINADOR_GROUP_NAME).exists()
+            or BackOfficeRole.COORDINADOR in getattr(request.user, 'roles', set())
         )
 
     def has_view_permission(self, request, obj=None):

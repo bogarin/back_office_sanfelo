@@ -2,13 +2,20 @@
 
 These are read-heavy reference tables with infrequent changes.
 All map to existing PostgreSQL tables via db_table (no schema changes).
+
+All catalog models use CachedCatalogManager for zero-query lookups
+after the first access. See ``managers.py`` for details.
 """
 
 from django.db import models
 
+from tramites.models.managers import CachedCatalogManager
+
 
 class TramiteCatalogo(models.Model):
     """Tipos de trámites disponibles en el sistema."""
+
+    objects = CachedCatalogManager()
 
     class Meta:
         managed = True
@@ -43,6 +50,8 @@ class TramiteEstatus(models.Model):
     - 3xx: Finalizado (Completed, Rejected, etc.)
     """
 
+    objects = CachedCatalogManager()
+
     class Meta:
         managed = True
         db_table = 'cat_estatus'
@@ -63,6 +72,8 @@ class TramiteEstatus(models.Model):
 
 class Perito(models.Model):
     """Peritos autorizados para trámites."""
+
+    objects = CachedCatalogManager()
 
     class Meta:
         managed = True
@@ -107,6 +118,8 @@ class Perito(models.Model):
 class Actividad(models.Model):
     """Actividades que pueden realizarse durante un trámite."""
 
+    objects = CachedCatalogManager()
+
     class Meta:
         managed = True
         db_table = 'cat_actividad'
@@ -123,6 +136,8 @@ class Actividad(models.Model):
 
 class Categoria(models.Model):
     """Categorías de trámites."""
+
+    objects = CachedCatalogManager()
 
     class Meta:
         managed = True
@@ -141,6 +156,8 @@ class Categoria(models.Model):
 class Requisito(models.Model):
     """Requisitos para trámites."""
 
+    objects = CachedCatalogManager()
+
     class Meta:
         managed = True
         db_table = 'cat_requisito'
@@ -157,6 +174,8 @@ class Requisito(models.Model):
 
 class Tipo(models.Model):
     """Tipos de trámites (para costos)."""
+
+    objects = CachedCatalogManager()
 
     class Meta:
         managed = True

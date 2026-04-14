@@ -7,7 +7,6 @@ Provides a custom User admin with role-based display:
 """
 
 from django import forms
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import AdminUserCreationForm, UserChangeForm
@@ -17,12 +16,14 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 
 from core.admin_utils import render_badge
+from core.rbac.constants import BackOfficeRole
 
 UserModel = get_user_model()
 
 
 class CustomReadOnlyPasswordHashWidget(forms.Widget):
     """Custom widget for readonly password hash field."""
+
     template_name = 'core/widgets/read_only_password_hash.html'
 
     def get_context(self, name, value, attrs):
@@ -32,9 +33,7 @@ class CustomReadOnlyPasswordHashWidget(forms.Widget):
         usable_password = value and not value.startswith(UNUSABLE_PASSWORD_PREFIX)
 
         # Set button label
-        context['button_label'] = (
-            _('Reset password') if usable_password else _('Set password')
-        )
+        context['button_label'] = _('Reset password') if usable_password else _('Set password')
 
         # Set password URL (will be overridden by admin if available)
         context['password_url'] = '../../password/'
@@ -60,13 +59,11 @@ class CustomUserAddForm(AdminUserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Set role choices dynamically based on available groups
+        # Set role choices from BackOfficeRole enum
         self.fields['role'].choices = [
-            (settings.ADMINISTRADOR_GROUP_NAME, 'Administrador'),
-            (settings.COORDINADOR_GROUP_NAME, 'Coordinador'),
-            (settings.ANALISTA_GROUP_NAME, 'Analista'),
-        ]
-        self.fields['role'].initial = settings.ANALISTA_GROUP_NAME
+            ('', 'Seleccionar rol...'),
+        ] + [(role, role.name.capitalize()) for role in BackOfficeRole]
+        self.fields['role'].initial = BackOfficeRole.ANALISTA
 
     def clean_email(self):
         """Validate email is unique."""
@@ -104,6 +101,7 @@ class CustomUserAddForm(AdminUserCreationForm):
 
 class CustomUserChangeForm(UserChangeForm):
     """Form for editing users with role assignment in admin."""
+
     role = forms.ChoiceField(
         choices=[
             ('', 'Sin rol'),
@@ -134,25 +132,29 @@ class CustomUserChangeForm(UserChangeForm):
                 'Este campo se gestiona automáticamente al asignar un rol.'
             )
 
-        # Set role choices dynamically based on available groups
+        # Set role choices from BackOfficeRole enum
         self.fields['role'].choices = [
             ('', 'Sin rol'),
-            (settings.ADMINISTRADOR_GROUP_NAME, 'Administrador'),
-            (settings.COORDINADOR_GROUP_NAME, 'Coordinador'),
-            (settings.ANALISTA_GROUP_NAME, 'Analista'),
-        ]
+        ] + [(role, role.name.capitalize()) for role in BackOfficeRole]
 
         # Get current role from user's groups
         if self.instance and self.instance.pk:
+            roles = getattr(self.instance, 'roles', None)
+            if roles is None:
+                # Fallback for instances not processed by middleware
+                roles = set(self.instance.groups.values_list('name', flat=True))
+
             if self.instance.is_superuser:
                 self.fields['role'].initial = 'superuser'
-                self.fields['role'].choices = [('superusuario', 'Superusuario')] + self.fields['role'].choices[1:]
-            elif self.instance.groups.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists():
-                self.fields['role'].initial = settings.ADMINISTRADOR_GROUP_NAME
-            elif self.instance.groups.filter(name=settings.COORDINADOR_GROUP_NAME).exists():
-                self.fields['role'].initial = settings.COORDINADOR_GROUP_NAME
-            elif self.instance.groups.filter(name=settings.ANALISTA_GROUP_NAME).exists():
-                self.fields['role'].initial = settings.ANALISTA_GROUP_NAME
+                self.fields['role'].choices = [('superusuario', 'Superusuario')] + self.fields[
+                    'role'
+                ].choices[1:]
+            elif BackOfficeRole.ADMINISTRADOR in roles:
+                self.fields['role'].initial = BackOfficeRole.ADMINISTRADOR
+            elif BackOfficeRole.COORDINADOR in roles:
+                self.fields['role'].initial = BackOfficeRole.COORDINADOR
+            elif BackOfficeRole.ANALISTA in roles:
+                self.fields['role'].initial = BackOfficeRole.ANALISTA
             else:
                 self.fields['role'].initial = ''
 
@@ -178,15 +180,19 @@ class BackofficeUserAdmin(UserAdmin):
         'groups',
     )
     fieldsets = (
-        (None, {
-            "fields": (
-                "username",
-                ("first_name", "last_name"),
-                "password",
-                "email",
-                "role",
-            )}),
-        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+        (
+            None,
+            {
+                'fields': (
+                    'username',
+                    ('first_name', 'last_name'),
+                    'password',
+                    'email',
+                    'role',
+                )
+            },
+        ),
+        (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
     )
 
     # Fields to show in the add form
@@ -235,15 +241,7 @@ class BackofficeUserAdmin(UserAdmin):
 
         if change:  # Editing an existing user
             # Clear existing role groups
-            obj.groups.remove(
-                *obj.groups.filter(
-                    name__in=[
-                        settings.ADMINISTRADOR_GROUP_NAME,
-                        settings.COORDINADOR_GROUP_NAME,
-                        settings.ANALISTA_GROUP_NAME,
-                    ]
-                )
-            )
+            obj.groups.remove(*obj.groups.filter(name__in=list(BackOfficeRole)))
 
             # Add new role group
             if role and role != '' and role != 'superuser':
@@ -256,7 +254,7 @@ class BackofficeUserAdmin(UserAdmin):
                 group = Group.objects.filter(name=role).first()
             else:
                 # Fallback to default role (Analista)
-                group = Group.objects.filter(name=settings.ANALISTA_GROUP_NAME).first()
+                group = Group.objects.filter(name=BackOfficeRole.ANALISTA).first()
 
             if group:
                 obj.groups.add(group)
@@ -360,14 +358,19 @@ class BackofficeUserAdmin(UserAdmin):
         if obj.is_superuser:
             return render_badge(_('Superusuario'), 'badge-success')
 
+        # Use cached roles when available (avoids per-row DB queries)
+        roles = getattr(obj, 'roles', None)
+        if roles is None:
+            roles = set(obj.groups.values_list('name', flat=True))
+
         # Check groups in priority order
-        if obj.groups.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists():
+        if BackOfficeRole.ADMINISTRADOR in roles:
             return render_badge(_('Administrador'), 'badge-primary')
 
-        if obj.groups.filter(name=settings.COORDINADOR_GROUP_NAME).exists():
+        if BackOfficeRole.COORDINADOR in roles:
             return render_badge(_('Coordinador'), 'badge-warning')
 
-        if obj.groups.filter(name=settings.ANALISTA_GROUP_NAME).exists():
+        if BackOfficeRole.ANALISTA in roles:
             return render_badge(_('Analista'), 'badge-info')
 
         return render_badge(_('Sin rol'), 'badge-secondary')

@@ -35,28 +35,31 @@ def superuser(db):
 @pytest.fixture
 def admin_group(db):
     """Get or create the Administrador group."""
-    from django.conf import settings
     from django.contrib.auth.models import Group
 
-    return Group.objects.get_or_create(name=settings.ADMINISTRADOR_GROUP_NAME)[0]
+    from core.rbac.constants import BackOfficeRole
+
+    return Group.objects.get_or_create(name=BackOfficeRole.ADMINISTRADOR)[0]
 
 
 @pytest.fixture
 def coordinador_group(db):
     """Get or create the Coordinador group."""
-    from django.conf import settings
     from django.contrib.auth.models import Group
 
-    return Group.objects.get_or_create(name=settings.COORDINADOR_GROUP_NAME)[0]
+    from core.rbac.constants import BackOfficeRole
+
+    return Group.objects.get_or_create(name=BackOfficeRole.COORDINADOR)[0]
 
 
 @pytest.fixture
 def analista_group(db):
     """Get or create the Analista group."""
-    from django.conf import settings
     from django.contrib.auth.models import Group
 
-    return Group.objects.get_or_create(name=settings.ANALISTA_GROUP_NAME)[0]
+    from core.rbac.constants import BackOfficeRole
+
+    return Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0]
 
 
 @pytest.fixture

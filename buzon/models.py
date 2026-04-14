@@ -111,10 +111,10 @@ class AsignacionTramite(models.Model):
             from tramites.models import TramiteEstatus
 
             estatus_nombre = 'DESCONOCIDO'
-            try:
-                estatus = TramiteEstatus.objects.get(id=estatus_id)
+            estatus = TramiteEstatus.objects.get_cached(estatus_id)
+            if estatus:
                 estatus_nombre = estatus.estatus
-            except TramiteEstatus.DoesNotExist:
+            else:
                 estatus_nombre = f'ID {estatus_id}'
 
             raise ValidationError(

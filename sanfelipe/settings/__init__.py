@@ -91,6 +91,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.middleware.CacheUserRolesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -146,9 +147,9 @@ DATABASES = {
             'init_command': """
                 PRAGMA journal_mode=WAL;
                 PRAGMA synchronous=NORMAL;
-                PRAGMA cache_size=-64000;  # 64MB cache
+                PRAGMA cache_size=-64000;
                 PRAGMA temp_store=MEMORY;
-                PRAGMA mmap_size=268435456;  # 256MB mmap
+                PRAGMA mmap_size=268435456;
             """,
         },
     },
@@ -168,10 +169,12 @@ DATABASE_ROUTERS = ['core.db_router.MultiDatabaseRouter']
 # Cache configuration:
 # Testing: DummyCache (no side effects in tests)
 # Dev + Prod: DatabaseCache backed by the default SQLite database.
+#   - Used by TramiteManager for statistics caching (tramite_stats:*).
 #   - Shared across all Gunicorn workers (cross-process consistent).
 #   - Survives server restarts.
 #   - Requires ``python manage.py createcachetable`` once.
-# Catalog models use CachedCatalogManager on top of this backend.
+# Catalog models use CachedCatalogManager with @lru_cache (process memory,
+# no Django cache involvement).
 if TESTING:
     CACHES = {
         'default': {
@@ -329,10 +332,7 @@ LOGIN_REDIRECT_URL = 'admin:index'
 # LOGOUT_REDIRECT_URL: URL a la que redirige después de logout
 LOGOUT_REDIRECT_URL = 'admin:login'
 
-# Role-based access control groups
-ADMINISTRADOR_GROUP_NAME = 'Administrador'
-COORDINADOR_GROUP_NAME = 'Coordinador'
-ANALISTA_GROUP_NAME = 'Analista'
+# Role-based access control is managed by core.rbac.constants.BackOfficeRole
 
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = env.list(

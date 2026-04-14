@@ -5,12 +5,13 @@ This module contains main views for Backoffice San Felipe.
 Following Django's best practices with proper separation of concerns.
 """
 
-from django.conf import settings
-from django.contrib import messages
 from django.contrib.auth.models import Group, User
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render
 from django.urls import reverse_lazy
+from django.views.decorators.http import require_POST
+
+from core.rbac.constants import BackOfficeRole
 
 
 def health_check(request: HttpRequest) -> HttpResponse:
@@ -56,20 +57,11 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
     # Get all available groups (roles)
     role_groups = [
         {
-            'name': 'Administrador',
-            'value': settings.ADMINISTRADOR_GROUP_NAME,
-            'group': Group.objects.filter(name=settings.ADMINISTRADOR_GROUP_NAME).first(),
-        },
-        {
-            'name': 'Coordinador',
-            'value': settings.COORDINADOR_GROUP_NAME,
-            'group': Group.objects.filter(name=settings.COORDINADOR_GROUP_NAME).first(),
-        },
-        {
-            'name': 'Analista',
-            'value': settings.ANALISTA_GROUP_NAME,
-            'group': Group.objects.filter(name=settings.ANALISTA_GROUP_NAME).first(),
-        },
+            'name': role.name.capitalize(),
+            'value': role,
+            'group': Group.objects.filter(name=role).first(),
+        }
+        for role in BackOfficeRole
     ]
 
     if request.method == 'POST':
@@ -111,3 +103,51 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
             'opts': User._meta,
         },
     )
+
+
+@require_POST
+def invalidate_catalog_cache(request: HttpRequest) -> HttpResponse:
+    """Invalidate all cached catalog data.
+
+    Restricted to users in the Administrador group (or superusers).
+    Clears the cache for every catalog model so that fresh data is
+    loaded from the database on the next read.
+
+    Returns:
+        Redirect to admin index with a success message, or 403 if
+        the user lacks permission.
+    """
+    user = request.user
+
+    is_admin = user.is_superuser or BackOfficeRole.ADMINISTRADOR in getattr(user, 'roles', set())
+
+    if not is_admin:
+        return HttpResponseForbidden('Permiso denegado.')
+
+    from tramites.models import (
+        Actividad,
+        Categoria,
+        Perito,
+        Requisito,
+        Tipo,
+        TramiteCatalogo,
+        TramiteEstatus,
+    )
+
+    catalog_models = [
+        TramiteCatalogo,
+        TramiteEstatus,
+        Perito,
+        Actividad,
+        Categoria,
+        Requisito,
+        Tipo,
+    ]
+
+    for model in catalog_models:
+        model.objects.invalidate_cache()
+
+    from django.contrib import messages
+
+    messages.success(request, 'Caché de catálogos invalidada correctamente.')
+    return HttpResponseRedirect(reverse_lazy('admin:index'))

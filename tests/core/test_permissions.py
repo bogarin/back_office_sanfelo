@@ -6,7 +6,6 @@ This module contains tests for:
 - Role-based operations (view, add, change, delete)
 """
 
-from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -14,6 +13,7 @@ from django.http import HttpRequest
 from django.test import TestCase
 
 from core.admin import RoleBasedAccessMixin
+from core.rbac.constants import BackOfficeRole
 
 User = get_user_model()
 
@@ -56,7 +56,7 @@ class TestRoleBasedAccessMixin(TestCase):
     def test_administrador_has_full_access(self) -> None:
         """Test that Administrador users have full access to all operations."""
         # Get or create Administrador group
-        admin_group, _ = Group.objects.get_or_create(name=settings.ADMINISTRADOR_GROUP_NAME)
+        admin_group, _ = Group.objects.get_or_create(name=BackOfficeRole.ADMINISTRADOR)
 
         # Create an Administrador user
         admin_user = User.objects.create_user(

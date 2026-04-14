@@ -6,13 +6,13 @@ This module contains tests for:
 - Role-based admin access
 """
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.http import HttpRequest
 from django.test import TestCase
 
 from core.admin import BackofficeAdminSite
+from core.rbac.constants import BackOfficeRole
 
 User = get_user_model()
 
@@ -47,7 +47,7 @@ class TestBackofficeAdminSite(TestCase):
     def test_administrador_sees_all_modules(self) -> None:
         """Test that Administrador users can see all modules."""
         # Create Administrador group
-        admin_group, _ = Group.objects.get_or_create(name=settings.ADMINISTRADOR_GROUP_NAME)
+        admin_group, _ = Group.objects.get_or_create(name=BackOfficeRole.ADMINISTRADOR)
 
         # Create an Administrador user
         admin_user = User.objects.create_user(
@@ -57,6 +57,7 @@ class TestBackofficeAdminSite(TestCase):
             is_staff=True,
         )
         admin_user.groups.add(admin_group)
+        admin_user.roles = {BackOfficeRole.ADMINISTRADOR}
 
         # Create a mock request with Administrador user
         request = HttpRequest()

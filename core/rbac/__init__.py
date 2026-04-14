@@ -16,14 +16,13 @@ For permission definitions, see: core.rbac.constants
 import logging
 from typing import List, Optional
 
-from django.conf import settings
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 
 from .constants import (
     ADMINISTRADOR_APPS,
+    BackOfficeRole,
     PermissionType,
-    Role,
 )
 
 logger = logging.getLogger(__name__)
@@ -107,7 +106,7 @@ def setup_administrador() -> Group:
     Raises:
         RuntimeError: If group creation or permission assignment fails
     """
-    group_name = Role.ADMINISTRADOR
+    group_name = BackOfficeRole.ADMINISTRADOR
 
     try:
         admin_group, created = get_or_create_group(group_name)
@@ -144,7 +143,7 @@ def setup_coordinador() -> Group:
     Raises:
         RuntimeError: If group creation fails
     """
-    group_name = settings.COORDINADOR_GROUP_NAME
+    group_name = BackOfficeRole.COORDINADOR
 
     try:
         coordinador_group, _ = get_or_create_group(group_name)
@@ -174,7 +173,7 @@ def setup_analista() -> Group:
     Raises:
         RuntimeError: If group creation fails
     """
-    group_name = settings.ANALISTA_GROUP_NAME
+    group_name = BackOfficeRole.ANALISTA
 
     try:
         analista_group, _ = get_or_create_group(group_name)

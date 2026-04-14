@@ -6,11 +6,12 @@ This module contains tests for:
 - Complete permission workflows
 """
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management import call_command
 from django.test import Client, TestCase
+
+from core.rbac.constants import BackOfficeRole
 
 User = get_user_model()
 
@@ -26,7 +27,7 @@ class TestRBACIntegration(TestCase):
         call_command('setup_roles', verbosity=0)
 
         # Verify group exists
-        self.assertTrue(Group.objects.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists())
+        self.assertTrue(Group.objects.filter(name=BackOfficeRole.ADMINISTRADOR).exists())
 
         # Access admin (should work for superuser)
         client = Client()

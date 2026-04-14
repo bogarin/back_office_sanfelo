@@ -12,13 +12,19 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 import tramites.urls
-from core.views import asignar_rol, health_check
+from core.views import asignar_rol, health_check, invalidate_catalog_cache
 
 urlpatterns = [
     # Health check
     path('health/', health_check, name='health-check'),
     # Custom admin views - must be before admin.site.urls
     path('admin/auth/user/asignar-rol/', asignar_rol, name='asignar-rol'),
+    # Maintenance: invalidate catalog cache (Administrador only)
+    path(
+        'admin/maintenance/invalidate-cache/',
+        invalidate_catalog_cache,
+        name='invalidate-catalog-cache',
+    ),
     path(
         'admin/tramites/',
         include(tramites.urls, namespace='tramites'),

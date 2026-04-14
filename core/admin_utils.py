@@ -30,7 +30,9 @@ def render_status_badge(estatus_id, estatus_text):
     Returns:
         Safe HTML string for the status badge
     """
-    if 100 <= estatus_id < 200:
+    if estatus_id is None:
+        badge_class = 'badge-otro'
+    elif 100 <= estatus_id < 200:
         badge_class = 'badge-inicio'
     elif 200 <= estatus_id < 300:
         badge_class = 'badge-proceso'

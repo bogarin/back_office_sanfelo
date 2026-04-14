@@ -4,10 +4,11 @@ Provides mixins for role-based access control in admin interface:
 - RoleBasedAccessMixin: Granular permissions based on user groups
 """
 
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Model, QuerySet
 from django.http import HttpRequest
+
+from core.rbac.constants import BackOfficeRole
 
 
 # =============================================================================
@@ -48,7 +49,10 @@ class RoleBasedAccessMixin:
         Returns:
             True if user is in Administrador group, False otherwise
         """
-        return user.groups.filter(name=settings.ADMINISTRADOR_GROUP_NAME).exists()
+        roles = getattr(user, 'roles', None)
+        if roles is not None:
+            return BackOfficeRole.ADMINISTRADOR in roles
+        return user.groups.filter(name=BackOfficeRole.ADMINISTRADOR).exists()
 
     def _is_coordinador(self, user: User) -> bool:
         """Check if user belongs to Coordinador group.
@@ -64,7 +68,10 @@ class RoleBasedAccessMixin:
         Returns:
             True if user is in Coordinador group, False otherwise
         """
-        return user.groups.filter(name=settings.COORDINADOR_GROUP_NAME).exists()
+        roles = getattr(user, 'roles', None)
+        if roles is not None:
+            return BackOfficeRole.COORDINADOR in roles
+        return user.groups.filter(name=BackOfficeRole.COORDINADOR).exists()
 
     def _is_analista(self, user: User) -> bool:
         """Check if user belongs to Analista group.
@@ -80,7 +87,10 @@ class RoleBasedAccessMixin:
         Returns:
             True if user is in Analista group, False otherwise
         """
-        return user.groups.filter(name=settings.ANALISTA_GROUP_NAME).exists()
+        roles = getattr(user, 'roles', None)
+        if roles is not None:
+            return BackOfficeRole.ANALISTA in roles
+        return user.groups.filter(name=BackOfficeRole.ANALISTA).exists()
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Model]:
         """Return the queryset with proper data filtering based on user permissions.

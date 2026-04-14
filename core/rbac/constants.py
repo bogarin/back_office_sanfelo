@@ -1,9 +1,9 @@
 """
 Role-Based Access Control (RBAC) constants and permission definitions.
 
-This module is central, authoritative source for defining what permissions
-each role has in system. It should be first place to look when
-understanding or modifying RBAC system.
+This module is the central, authoritative source for defining roles and
+permissions in the system.  It should be the first place to look when
+understanding or modifying the RBAC system.
 
 Roles:
 ------
@@ -17,7 +17,7 @@ Apps:
 - tramites: Procedures and all catalog models (TramiteCatalogo, TramiteEstatus, etc.)
 """
 
-from django.conf import settings
+from enum import StrEnum
 
 
 # =============================================================================
@@ -25,10 +25,24 @@ from django.conf import settings
 # =============================================================================
 
 
-class Role:
-    """Role constants matching settings."""
+class BackOfficeRole(StrEnum):
+    """Authoritative role names for the backoffice system.
 
-    ADMINISTRADOR = settings.ADMINISTRADOR_GROUP_NAME  # 'Administrador'
+    Members are plain strings — they work directly in Django ORM queries,
+    form choices, template rendering, and set membership checks without
+    needing ``.value`` or ``.name`` indirection.
+
+    Usage::
+
+        BackOfficeRole.COORDINADOR == 'Coordinador'          # True
+        BackOfficeRole.COORDINADOR in user.roles             # True (set[str])
+        Group.objects.filter(name=BackOfficeRole.COORDINADOR) # works
+        list(BackOfficeRole)                                  # ['Administrador', ...]
+    """
+
+    ADMINISTRADOR = 'Administrador'
+    COORDINADOR = 'Coordinador'
+    ANALISTA = 'Analista'
 
 
 # =============================================================================
