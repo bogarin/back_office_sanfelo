@@ -140,6 +140,17 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': str(env.path('DJANGO_SQLITE_DB_PATH', default=str(BASE_DIR / 'db' / 'db.sqlite3'))),
+        'OPTIONS': {
+            # SQLite production optimizations
+            # Reference: https://docs.djangoproject.com/en/stable/ref/databases/#sqlite-notes
+            'init_command': """
+                PRAGMA journal_mode=WAL;
+                PRAGMA synchronous=NORMAL;
+                PRAGMA cache_size=-64000;  # 64MB cache
+                PRAGMA temp_store=MEMORY;
+                PRAGMA mmap_size=268435456;  # 256MB mmap
+            """,
+        },
     },
     'business': env.db(
         'DATABASE_URL', default='postgres://postgres:postgres@localhost:5432/backoffice'
@@ -154,23 +165,24 @@ DATABASE_ROUTERS = ['core.db_router.MultiDatabaseRouter']
 # CACHE
 # =============================================================================
 
-# Cache only in production for performance
-# Development: No cache (simple, fast development)
-# Testing: Dummy cache (no side effects in tests)
-# Production: LocMemCache (fast, simple, no external dependencies)
-if DEBUG or TESTING:
-    # Development and testing - no cache
+# Cache configuration:
+# Testing: DummyCache (no side effects in tests)
+# Dev + Prod: DatabaseCache backed by the default SQLite database.
+#   - Shared across all Gunicorn workers (cross-process consistent).
+#   - Survives server restarts.
+#   - Requires ``python manage.py createcachetable`` once.
+# Catalog models use CachedCatalogManager on top of this backend.
+if TESTING:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         }
     }
 else:
-    # Production - use built-in local memory cache
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'unique-sanfelipe-cache',
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'cache_table',
         }
     }
 
