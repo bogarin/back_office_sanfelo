@@ -1,216 +1,108 @@
+"""Model-based database router for Django.
+
+This router provides fine-grained control over database routing at the model
+level, allowing models within the same Django app to route to different
+databases. It uses the ModelConfig system to determine routing behavior.
+
+Example:
+    >>> from core.model_config import get_model_config, register_model_config
+    >>> from django.contrib.auth.models import User
+    >>> register_model_config(User, 'default', allow_migrations=True)
+    >>> router = ModelBasedRouter()
+    >>> router.db_for_read(User)
+    'default'
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
+from core.model_config import get_model_config, ModelConfig
 
 if TYPE_CHECKING:
     from django.db.models import Model
 
 
-class BaseRouter:
-    def db_for_read(self, model: type[Model], **hints: object) -> str | None:
-        raise NotImplementedError
+class ModelBasedRouter:
+    """Database router that uses model-level configuration.
 
-    def db_for_write(self, model: type[Model], **hints: object) -> str | None:
-        raise NotImplementedError
+    This router routes database operations based on individual model
+    configuration rather than app labels. This enables mixed models within
+    the same Django app to use different databases.
 
-    def allow_relation(
-        self,
-        obj1: Model | type[Model],
-        obj2: Model | type[Model],
-        **hints: object,
-    ) -> bool | None:
-        raise NotImplementedError
-
-    def allow_migrate(
-        self,
-        db: str,
-        app_label: str,
-        model_name: str | None = None,
-        **hints: object,
-    ) -> bool:
-        raise NotImplementedError
-
-
-class TestRouter(BaseRouter):
-    def db_for_read(self, model: type[Model], **hints: object) -> str | None:
-        return 'default'
-
-    def db_for_write(self, model: type[Model], **hints: object) -> str | None:
-        return 'default'
-
-    def allow_relation(
-        self,
-        obj1: Model | type[Model],
-        obj2: Model | type[Model],
-        **hints: object,
-    ) -> bool | None:
-        return True
-
-    def allow_migrate(
-        self,
-        db: str,
-        app_label: str,
-        model_name: str | None = None,
-        **hints: object,
-    ) -> bool:
-        return db == 'default'
-
-
-class MultiDatabaseRouter:
-    """
-    Custom database router for managing multi-database configuration.
-
-    This router intelligently routes database operations between SQLite (for
-    Django's built-in authentication and session management) and PostgreSQL
-    (for backend domain models).
-
-    Attributes:
-        AUTH_APPS: Set of Django built-in apps that use SQLite
-        BUSINESS_APPS: Set of business domain apps that use PostgreSQL
-        AUTH_DB: Database alias for auth data (SQLite)
-        BUSINESS_DB: Database alias for business data (PostgreSQL)
+    Key features:
+        - Model-level routing precision
+        - Prevention of cross-database relationships
+        - Fine-grained migration control
+        - Self-documenting through explicit configuration
 
     Example:
-        >>> router = MultiDatabaseRouter()
-        >>> router.db_for_read(User)
-        'default'
-        >>> router.db_for_read(Tramite)
+        >>> router = ModelBasedRouter()
+        >>> router.db_for_read(MyModel)
         'backend'
     """
 
-    # Django built-in apps that use SQLite (auth data)
-    AUTH_APPS: frozenset[str] = frozenset(
-        {
-            'auth',
-            'contenttypes',
-            'admin',
-            'sessions',
-            'messages',
-            'staticfiles',
-            'debug_toolbar',  # Debug tools in SQLite
-        }
-    )
-
-    # Business domain apps that use PostgreSQL (business data)
-    BUSINESS_APPS: frozenset[str] = frozenset(
-        {
-            'tramites',
-            'core',
-        }
-    )
-
-    # Database aliases
-    AUTH_DB: str = 'default'
-    BUSINESS_DB: str = 'backend'
-
-    def _is_auth_app(self, app_label: str) -> bool:
-        """
-        Check if an app belongs to the auth category.
-
-        Args:
-            app_label: The Django app label to check
-
-        Returns:
-            True if the app is an auth app, False otherwise
-        """
-        return app_label in self.AUTH_APPS
-
-    def _is_business_app(self, app_label: str) -> bool:
-        """
-        Check if an app belongs to the business category.
-
-        Args:
-            app_label: The Django app label to check
-
-        Returns:
-            True if the app is a business app, False otherwise
-        """
-        return app_label in self.BUSINESS_APPS
-
-    def _get_db_for_model(self, app_label: str) -> str | None:
-        """
-        Determine the appropriate database for a given app.
-
-        Args:
-            app_label: The Django app label
-
-        Returns:
-            The database alias ('default' or 'backend'), or None if
-            the app is not recognized
-        """
-        if self._is_auth_app(app_label):
-            return self.AUTH_DB
-        if self._is_business_app(app_label):
-            return self.BUSINESS_DB
-        # Unknown app - let Django decide (return None)
-        return None
-
     def db_for_read(self, model: type[Model], **hints: object) -> str | None:
-        """
-        Suggest the database to read from for a model.
+        """Suggest the database to read from for a model.
 
         This method is called by Django's ORM when performing read queries.
-        It routes business models to PostgreSQL and auth models to SQLite.
+        It uses the model's configuration to determine the appropriate
+        database alias. Unregistered models default to 'default' database.
 
         Args:
             model: The model class being queried
             **hints: Additional hints that may help determine routing
 
         Returns:
-            The database alias to use for reading, or None to use default routing
+            The configured database alias, or 'default' if no configuration found
 
         Example:
-            >>> router.db_for_read(User)
-            'default'
-            >>> router.db_for_read(Tramite)
+            >>> router.db_for_read(MyModel)
             'backend'
+            >>> router.db_for_read(UnconfiguredModel)
+            'default'
         """
-        # Check hints first for model class or instance
-        if 'model' in hints:
-            model = hints['model']  # type: ignore[assignment]
-
-        app_label = getattr(model, '_meta', {}).app_label  # type: ignore[attr-defined]
-        return self._get_db_for_model(app_label)
+        config = get_model_config(model)
+        if config is not None:
+            return config.db_alias
+        return 'default'  # Unregistered models route to default database
 
     def db_for_write(self, model: type[Model], **hints: object) -> str | None:
-        """
-        Suggest the database to write to for a model.
+        """Suggest the database to write to for a model.
 
         This method is called by Django's ORM when performing write queries
         (INSERT, UPDATE, DELETE). It uses the same routing logic as reads.
+        Unregistered models default to 'default' database.
 
         Args:
             model: The model class being modified
             **hints: Additional hints that may help determine routing
 
         Returns:
-            The database alias to use for writing, or None to use default routing
+            The configured database alias, or 'default' if no configuration found
 
         Example:
-            >>> router.db_for_write(User)
-            'default'
-            >>> router.db_for_write(Tramite)
+            >>> router.db_for_write(MyModel)
             'backend'
+            >>> router.db_for_write(UnconfiguredModel)
+            'default'
         """
-        # Check hints first for model class or instance
-        if 'model' in hints:
-            model = hints['model']  # type: ignore[assignment]
-
-        app_label = getattr(model, '_meta', {}).app_label  # type: ignore[attr-defined]
-        return self._get_db_for_model(app_label)
+        config = get_model_config(model)
+        if config is not None:
+            return config.db_alias
+        return 'default'  # Unregistered models route to default database
 
     def allow_relation(
         self,
         obj1: Model | type[Model],
         obj2: Model | type[Model],
         **hints: object,
-    ) -> bool | None:
-        """
-        Determine if a relation between two models is allowed.
+    ) -> bool:
+        """Determine if a relation between two models is allowed.
 
-        Relations (Foreign Keys, Many-to-Many) are only allowed within the
-        same database to prevent cross-database joins, which are not
-        supported by Django.
+        Relations (Foreign Keys, Many-to-Many) are only allowed if both
+        models use the same database alias. This prevents cross-database
+        joins, which are not supported by Django and would cause runtime errors.
 
         Args:
             obj1: First model in the relation
@@ -218,44 +110,38 @@ class MultiDatabaseRouter:
             **hints: Additional hints that may help determine routing
 
         Returns:
-            True if relation is allowed, False if not, None to let Django decide
+            True if both models have the same db_alias, False otherwise
 
         Note:
-            Cross-database relations (e.g., User → Tramite) are not supported
-            and will return False. Use database-level triggers or application
-            logic instead.
+            Cross-database relations are explicitly blocked to maintain data
+            integrity and prevent runtime errors. Use database-level triggers
+            or application logic for cross-database data synchronization.
 
         Example:
             >>> # Same database - allowed
-            >>> router.allow_relation(User(), UserGroup())
+            >>> router.allow_relation(ModelA(), ModelB())
             True
-            >>> # Cross-database - not allowed
-            >>> router.allow_relation(User(), Tramite())
+            >>> # Different databases - not allowed
+            >>> router.allow_relation(SQLiteModel(), PostgresModel())
             False
         """
-        # Handle both model instances and model classes
-        app_label1 = (
-            obj1._meta.app_label  # type: ignore[attr-defined]
-            if hasattr(obj1, '_meta')
-            else getattr(obj1, 'app_label', '')
-        )
-        app_label2 = (
-            obj2._meta.app_label  # type: ignore[attr-defined]
-            if hasattr(obj2, '_meta')
-            else getattr(obj2, 'app_label', '')
-        )
+        # Get the actual model classes from instances or classes
+        model1 = obj1 if isinstance(obj1, type) else type(obj1)
+        model2 = obj2 if isinstance(obj2, type) else type(obj2)
 
-        # Both in auth DB
-        if self._is_auth_app(app_label1) and self._is_auth_app(app_label2):
+        config1 = get_model_config(model1)
+        config2 = get_model_config(model2)
+
+        # Both models are unregistered - let Django decide (likely same DB for auth models)
+        if config1 is None and config2 is None:
             return True
 
-        # Both in backend DB
-        if self._is_business_app(app_label1) and self._is_business_app(app_label2):
-            return True
+        # One model is registered but not the other - can't guarantee same DB
+        if config1 is None or config2 is None:
+            return False
 
-        # Cross-database relations not allowed
-        # Prevents User → Tramite FK which would cause runtime errors
-        return False
+        # Both models are registered - allow only if same database
+        return config1.db_alias == config2.db_alias
 
     def allow_migrate(
         self,
@@ -264,12 +150,11 @@ class MultiDatabaseRouter:
         model_name: str | None = None,
         **hints: object,
     ) -> bool:
-        """
-        Determine if migrations should run for a model on a database.
+        """Determine if migrations should run for a model on a database.
 
-        This method controls which database receives migrations for which apps.
-        Auth apps get migrations on SQLite; business apps don't get migrations
-        on any database (they use managed=False).
+        This method controls which database receives migrations for which models.
+        It uses the model's configuration to determine if Django should manage
+        the schema.
 
         Args:
             db: The database alias being checked
@@ -278,49 +163,28 @@ class MultiDatabaseRouter:
             **hints: Additional hints that may help determine routing
 
         Returns:
-            True if migrations should run, False otherwise
+            The configured allow_migrations flag, or True if no configuration
 
         Note:
-            Business apps use managed=False and are maintained externally,
-            so Django should not create or modify their tables.
+            Models with managed=False should have allow_migrations=False
+            to prevent Django from attempting to create or modify tables
+            that are managed externally.
 
         Example:
-            >>> # Auth app on SQLite - allow migration
-            >>> router.allow_migrate('default', 'auth', 'user')
+            >>> # Managed model - allow migrations
+            >>> router.allow_migrate('backend', 'myapp', 'MyModel')
             True
-            >>> # Auth app on PostgreSQL - block migration
-            >>> router.allow_migrate('backend', 'auth', 'user')
-            False
-            >>> # Business app on any DB - block migration
-            >>> router.allow_migrate('default', 'tramites', 'tramite')
+            >>> # External model - block migrations
+            >>> router.allow_migrate('backend', 'myapp', 'ExternalModel')
             False
         """
-        # Business apps: handle differently
-        if self._is_business_app(app_label):
-            # Business apps: never migrate (managed=False, external DB)
-            return False
+        # Try to get the model from hints
+        if 'model' in hints:
+            model = hints['model']
+            if model is not None and isinstance(model, type):
+                config = get_model_config(model)
+                if config is not None:
+                    return config.allow_migrations
 
-        # Auth apps: only migrate on SQLite (default)
-        if self._is_auth_app(app_label):
-            return db == self.AUTH_DB
-
-        # Unknown app: follow default Django behavior
-        # Return None to let the next router decide
+        # If no model in hints or no configuration, allow default behavior
         return True
-
-    def allow_syncdb(self, db: str, model: type[Model]) -> bool:
-        """
-        Legacy method for Django < 1.7. Kept for backward compatibility.
-
-        This method is deprecated in favor of allow_migrate but is included
-        for compatibility with older Django versions or third-party apps that
-        may still call it.
-
-        Args:
-            db: The database alias being checked
-            model: The model class
-
-        Returns:
-            True if syncdb should run, False otherwise
-        """
-        return self.allow_migrate(db, model._meta.app_label)  # type: ignore[attr-defined]

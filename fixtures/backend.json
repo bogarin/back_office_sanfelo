@@ -1,0 +1,973 @@
+{
+    "cat_actividad": [
+        {
+            "id": 1,
+            "actividad": "REVISION SOLICITUD"
+        },
+        {
+            "id": 2,
+            "actividad": "PAGO"
+        },
+        {
+            "id": 3,
+            "actividad": "ANALISIS"
+        },
+        {
+            "id": 4,
+            "actividad": "CORRECCION"
+        },
+        {
+            "id": 5,
+            "actividad": "RETORNO"
+        },
+        {
+            "id": 6,
+            "actividad": "ASIGNA ANALISTA"
+        },
+        {
+            "id": 7,
+            "actividad": "Actividad 0"
+        },
+        {
+            "id": 8,
+            "actividad": "Actividad 0"
+        }
+    ],
+    "cat_categoria": [
+        {
+            "id": 1,
+            "categoria": "MEDIANTE CREDITO INFONAVIT"
+        },
+        {
+            "id": 2,
+            "categoria": "MEDIANTE TITULACION DEL RAN U OTRA ENTE FEDERAL"
+        },
+        {
+            "id": 3,
+            "categoria": "MEDIANTE ESCRITURA PUBLICA O CONTRATO RATIFICADO"
+        },
+        {
+            "id": 4,
+            "categoria": "POR LA VIA JUDICIAL"
+        },
+        {
+            "id": 5,
+            "categoria": "CASOS ESPECIALES"
+        }
+    ],
+    "cat_estatus": [
+        {
+            "id": 101,
+            "estatus": "BORRADOR",
+            "responsable": "Ciudadano",
+            "descripcion": "El ciudadano está capturando información y subiendo requisitos. No tiene validez oficial aún."
+        },
+        {
+            "id": 102,
+            "estatus": "PENDIENTE_PAGO",
+            "responsable": "Ciudadano",
+            "descripcion": "El trámite está bloqueado esperando que se confirme el pago (pasarela o ventanilla)."
+        },
+        {
+            "id": 103,
+            "estatus": "PAGO_EXPIRADO",
+            "responsable": "Sistema",
+            "descripcion": "La línea de captura venció y el trámite se detuvo por falta de pago."
+        },
+        {
+            "id": 201,
+            "estatus": "PRESENTADO",
+            "responsable": "Sistema",
+            "descripcion": "Hito Legal: El pago se confirmó y el trámite entró oficialmente a la bandeja de la dependencia."
+        },
+        {
+            "id": 202,
+            "estatus": "EN_REVISION",
+            "responsable": "Funcionario",
+            "descripcion": "Un analista administrativo ha tomado el expediente para validar documentos y datos."
+        },
+        {
+            "id": 203,
+            "estatus": "REQUERIMIENTO",
+            "responsable": "Ciudadano",
+            "descripcion": "Se detectó un error o falta de información. El ciudadano debe hacer correcciones."
+        },
+        {
+            "id": 204,
+            "estatus": "SUBSANADO",
+            "responsable": "Funcionario",
+            "descripcion": "El ciudadano ya respondió al requerimiento y el trámite vuelve a la fila de revisión prioritaria."
+        },
+        {
+            "id": 205,
+            "estatus": "EN_DILIGENCIA",
+            "responsable": "Perito",
+            "descripcion": "Fase de campo: mediciones, inspecciones, deslindes, etc.."
+        },
+        {
+            "id": 301,
+            "estatus": "POR_RECOGER",
+            "responsable": "Ciudadano",
+            "descripcion": "El documento o reporte final está disponible para descarga o recolecta."
+        },
+        {
+            "id": 302,
+            "estatus": "RECHAZADO",
+            "responsable": "Funcionario",
+            "descripcion": "El trámite finalizó con una resolución negativa (no procedió legal o técnicamente)."
+        },
+        {
+            "id": 303,
+            "estatus": "FINALIZADO",
+            "responsable": "Sistema",
+            "descripcion": "El ciudadano ya recibió su documento y el expediente se cierra."
+        },
+        {
+            "id": 304,
+            "estatus": "CANCELADO",
+            "responsable": "Sistema",
+            "descripcion": "Tramite interrumpido por el ciudadano o por un impedimento administrativo insuperable."
+        },
+        {
+            "id": 305,
+            "estatus": "Estatus 0",
+            "responsable": "Michelle Dean",
+            "descripcion": "Phone themselves message risk contain middle. Discover yard positive owner draw every. Serve point entire myself identify."
+        },
+        {
+            "id": 306,
+            "estatus": "Estatus 0",
+            "responsable": "Matthew Gordon",
+            "descripcion": "Collection wear Republican. Reality television push reality. Social must prevent mean. On class find law term knowledge nothing."
+        }
+    ],
+    "cat_perito": [
+        {
+            "id": 1,
+            "paterno": "YAÑEZ",
+            "materno": "ALANIZ",
+            "nombre": "ROBERTO CARLOS",
+            "domicilio": "ALATRI #1143",
+            "colonia": "GRAN VALENCIA",
+            "telefono": "6861387917",
+            "celular": "0446868808080",
+            "correo": "rcya21@hotmail.com",
+            "revalidacion": "2025-01-01",
+            "fecha_registro": "2025-09-12",
+            "rfc": "RCYA010120ABC",
+            "estatus": true,
+            "cedula": "2134566489"
+        }
+    ],
+    "cat_requisito": [
+        {
+            "id": 2,
+            "requisito": "CEDULA DE RFC"
+        },
+        {
+            "id": 3,
+            "requisito": "COMPROBANTE DE DOMICILIO"
+        },
+        {
+            "id": 4,
+            "requisito": "IDENTIFICACION OFICIAL(INE, PASAPORTE VIGENTE)"
+        },
+        {
+            "id": 5,
+            "requisito": "COPIA SIMPLE ESCRITURA"
+        },
+        {
+            "id": 7,
+            "requisito": "ESCRITO DE LA EMPRESA FRACCIONADORA O INMOBILIARIA"
+        },
+        {
+            "id": 8,
+            "requisito": "DOMICILIO DE NOTIFICACION"
+        },
+        {
+            "id": 10,
+            "requisito": "DESLINDE O LEVANTAMIENTO QUE RESPALDA EL TITULO"
+        },
+        {
+            "id": 13,
+            "requisito": "PODER DEL REPRESENTANTE LEGAL"
+        },
+        {
+            "id": 14,
+            "requisito": "REGISTRO FEDERAL DE CONTRIBUYENTES"
+        },
+        {
+            "id": 16,
+            "requisito": "SENTENCIA DEFINITIVA Y EJECUTORIA"
+        },
+        {
+            "id": 17,
+            "requisito": "FE DE HECHOS NOTARIADA O JURISDICCION VOLUNTARIA"
+        },
+        {
+            "id": 18,
+            "requisito": "CONTRATO DE COMPRAVENTA CON RESERVA DE DOMINIO DE ORGANISMO REGULARIZADOR"
+        },
+        {
+            "id": 19,
+            "requisito": "ANALISIS PARA LA ASIGNACION DE CLAVES CATASTRALES EN EL PROYECTO DE LA MODIFICACION DE PREDIOS"
+        },
+        {
+            "id": 20,
+            "requisito": "ARCHIVO DWG CON EL ACTA DE DESLINDE"
+        },
+        {
+            "id": 21,
+            "requisito": "DOCUMENTO QUE ACREDITE LA PERSONALIDAD JURIDICA DEL PROPIETARIO POSEEDOR O REPRESENTANTE LEGAL"
+        },
+        {
+            "id": 23,
+            "requisito": "OFICIO DE ASIGNACION DE CLAVE PROVISIONAL"
+        },
+        {
+            "id": 24,
+            "requisito": "VISTO BUENO DE MODIFICACION DE PREDIOS"
+        },
+        {
+            "id": 26,
+            "requisito": "EDICTOS (DOS PUBLICACIONES)"
+        },
+        {
+            "id": 28,
+            "requisito": "IDENTIFICACION OFICIAL CON FOTOGRAFIA DE LOS COLINDANTES"
+        },
+        {
+            "id": 27,
+            "requisito": "ACTA CIRCUNSTANCIADA FIRMADA POR EL PROPIETARIO, COLINDANTES Y EL PERITO DESLINDADOR"
+        },
+        {
+            "id": 6,
+            "requisito": "AVISO DE RETENCIONES Y CARTA DE INSTRUCCION NOTARIAL"
+        },
+        {
+            "id": 22,
+            "requisito": "ACTA DE DESLINDE FIRMADA POR EL PERITO DESLINDADOR AUTORIZADO"
+        },
+        {
+            "id": 15,
+            "requisito": "CONTRATO RATIFICADO DE DONACION O CONTRATO DE COMPRAVENTA"
+        },
+        {
+            "id": 12,
+            "requisito": "DOMICILIO Y TELEFONO DE NOTIFICACION"
+        },
+        {
+            "id": 25,
+            "requisito": "FORMATO DE SOLICITUD CON FIRMA DEL PROPIETARIO, POSEEDOR O REP. LEGAL"
+        },
+        {
+            "id": 1,
+            "requisito": "IDENTIFICACION OFICIAL DEL PROPIETARIO, POSEEDOR O REPRESENTANTE LEGAL"
+        },
+        {
+            "id": 11,
+            "requisito": "INSCRIPCION ANTE EL RPPC"
+        },
+        {
+            "id": 9,
+            "requisito": "TITULO DE PROPIEDAD"
+        }
+    ],
+
+"cat_tipo": [
+	{
+		"id" : 6,
+		"tipo" : "DESLINDE"
+	},
+	{
+		"id" : 7,
+		"tipo" : "LEVANTAMIENTO"
+	},
+	{
+		"id" : 8,
+		"tipo" : "CLAVE URBANA"
+	},
+	{
+		"id" : 9,
+		"tipo" : "CLAVE RUSTICA"
+	},
+	{
+		"id" : 10,
+		"tipo" : "INDIVIDUAL"
+	}
+],
+"cat_tramite": [
+	{
+		"id" : 1,
+		"nombre" : "CERTIFICADO DE LIBERTAD DE GRAVAMEN",
+		"descripcion" : "DOCUMENTO QUE VALIDA EL NO ADEUDO DE LAS DIFERENTES DEPENDENCIAS MENCIONADAS EN EL MISMO",
+		"area" : "CATASTRO",
+		"respuesta_dias" : 1.0,
+		"pago_inicial" : true,
+		"url" : null,
+		"activo" : null
+	},
+	{
+		"id" : 2,
+		"nombre" : "CAMBIO DE PROPIETARIO",
+		"descripcion" : "TRAMITE QUE PERMITE ACTUALIZAR EL REGISTRO ANTE CATASTRO DE UNA PROPIEDAD",
+		"area" : "CATASTRO",
+		"respuesta_dias" : 2.0,
+		"pago_inicial" : true,
+		"url" : null,
+		"activo" : null
+	},
+	{
+		"id" : 3,
+		"nombre" : "CERTIFICACION DE DESLINDE O LEVANTAMIENTO TOPOGRAFICO",
+		"descripcion" : "CERTIFICACION DE ACTA DE DESLINDE O LEVANTAMIENTO ELABORADO POR UN PERITO AUTORIZADO EN CATASTO",
+		"area" : "CATASTRO",
+		"respuesta_dias" : 5.0,
+		"pago_inicial" : true,
+		"url" : null,
+		"activo" : null
+	},
+	{
+		"id" : 4,
+		"nombre" : "NUMERO OFICIAL",
+		"descripcion" : "ASIGNACION DE NUMERO OFICIAL ANTE CATASTRO",
+		"area" : "CATASTRO",
+		"respuesta_dias" : 1.0,
+		"pago_inicial" : true,
+		"url" : null,
+		"activo" : null
+	},
+	{
+		"id" : 5,
+		"nombre" : "CARTA DE NO DESLINDE",
+		"descripcion" : "DOCUMANTE QUE EMITE CATASTRO CUANDO NO APLICA DESLINDE TOPOGRAFICO",
+		"area" : "CATASTRO",
+		"respuesta_dias" : 1.0,
+		"pago_inicial" : true,
+		"url" : null,
+		"activo" : null
+	}
+],
+"rel_tmt_actividad": [],
+"rel_tmt_cate_req": [
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 15,
+		"id_cat_categoria" : 3,
+		"requerido" : true,
+		"id" : 68
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 12,
+		"id_cat_categoria" : 3,
+		"requerido" : true,
+		"id" : 69
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 1,
+		"id_cat_categoria" : 3,
+		"requerido" : true,
+		"id" : 70
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 11,
+		"id_cat_categoria" : 3,
+		"requerido" : true,
+		"id" : 71
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 13,
+		"id_cat_categoria" : 3,
+		"requerido" : false,
+		"id" : 72
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 14,
+		"id_cat_categoria" : 3,
+		"requerido" : false,
+		"id" : 73
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 9,
+		"id_cat_categoria" : 3,
+		"requerido" : false,
+		"id" : 74
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 12,
+		"id_cat_categoria" : 4,
+		"requerido" : true,
+		"id" : 75
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 1,
+		"id_cat_categoria" : 4,
+		"requerido" : true,
+		"id" : 76
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 11,
+		"id_cat_categoria" : 4,
+		"requerido" : true,
+		"id" : 77
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 13,
+		"id_cat_categoria" : 4,
+		"requerido" : false,
+		"id" : 78
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 14,
+		"id_cat_categoria" : 4,
+		"requerido" : false,
+		"id" : 79
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 16,
+		"id_cat_categoria" : 4,
+		"requerido" : true,
+		"id" : 80
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 18,
+		"id_cat_categoria" : 5,
+		"requerido" : false,
+		"id" : 81
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 5,
+		"id_cat_categoria" : 5,
+		"requerido" : true,
+		"id" : 82
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 12,
+		"id_cat_categoria" : 5,
+		"requerido" : true,
+		"id" : 83
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 17,
+		"id_cat_categoria" : 5,
+		"requerido" : false,
+		"id" : 84
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 1,
+		"id_cat_categoria" : 5,
+		"requerido" : true,
+		"id" : 85
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 6,
+		"id_cat_categoria" : 1,
+		"requerido" : true,
+		"id" : 35
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 1,
+		"id_cat_categoria" : 1,
+		"requerido" : true,
+		"id" : 36
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 5,
+		"id_cat_categoria" : 1,
+		"requerido" : false,
+		"id" : 37
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 8,
+		"id_cat_categoria" : 1,
+		"requerido" : false,
+		"id" : 38
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 7,
+		"id_cat_categoria" : 1,
+		"requerido" : false,
+		"id" : 39
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 12,
+		"id_cat_categoria" : 2,
+		"requerido" : true,
+		"id" : 40
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 1,
+		"id_cat_categoria" : 2,
+		"requerido" : true,
+		"id" : 41
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 11,
+		"id_cat_categoria" : 2,
+		"requerido" : true,
+		"id" : 42
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 9,
+		"id_cat_categoria" : 2,
+		"requerido" : true,
+		"id" : 43
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 10,
+		"id_cat_categoria" : 2,
+		"requerido" : false,
+		"id" : 44
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 13,
+		"id_cat_categoria" : 2,
+		"requerido" : false,
+		"id" : 45
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 14,
+		"id_cat_categoria" : 2,
+		"requerido" : false,
+		"id" : 46
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 11,
+		"id_cat_categoria" : 5,
+		"requerido" : true,
+		"id" : 86
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 13,
+		"id_cat_categoria" : 5,
+		"requerido" : false,
+		"id" : 87
+	},
+	{
+		"id_cat_tramite" : 2,
+		"id_cat_requisito" : 14,
+		"id_cat_categoria" : 5,
+		"requerido" : false,
+		"id" : 88
+	}
+],
+"rel_tmt_categoria": [
+	{
+		"id" : 1,
+		"id_cat_tramite" : 2,
+		"id_cat_categoria" : 5
+	},
+	{
+		"id" : 2,
+		"id_cat_tramite" : 2,
+		"id_cat_categoria" : 1
+	},
+	{
+		"id" : 3,
+		"id_cat_tramite" : 2,
+		"id_cat_categoria" : 3
+	},
+	{
+		"id" : 4,
+		"id_cat_tramite" : 2,
+		"id_cat_categoria" : 2
+	},
+	{
+		"id" : 5,
+		"id_cat_tramite" : 2,
+		"id_cat_categoria" : 4
+	}
+],
+"rel_tmt_inciso": [],
+"rel_tmt_tipo_req": [
+	{
+		"id" : 59,
+		"id_cat_tipo" : 10,
+		"id_cat_tramite" : 1,
+		"id_cat_requisito" : 1,
+		"requerido" : true
+	},
+	{
+		"id" : 79,
+		"id_cat_tipo" : 8,
+		"id_cat_tramite" : 4,
+		"id_cat_requisito" : 1,
+		"requerido" : true
+	},
+	{
+		"id" : 80,
+		"id_cat_tipo" : 9,
+		"id_cat_tramite" : 4,
+		"id_cat_requisito" : 1,
+		"requerido" : true
+	},
+	{
+		"id" : 81,
+		"id_cat_tipo" : 10,
+		"id_cat_tramite" : 5,
+		"id_cat_requisito" : 1,
+		"requerido" : true
+	},
+	{
+		"id" : 82,
+		"id_cat_tipo" : 10,
+		"id_cat_tramite" : 5,
+		"id_cat_requisito" : 11,
+		"requerido" : true
+	},
+	{
+		"id" : 83,
+		"id_cat_tipo" : 6,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 22,
+		"requerido" : true
+	},
+	{
+		"id" : 84,
+		"id_cat_tipo" : 6,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 19,
+		"requerido" : false
+	},
+	{
+		"id" : 85,
+		"id_cat_tipo" : 6,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 20,
+		"requerido" : true
+	},
+	{
+		"id" : 86,
+		"id_cat_tipo" : 6,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 21,
+		"requerido" : false
+	},
+	{
+		"id" : 87,
+		"id_cat_tipo" : 6,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 25,
+		"requerido" : true
+	},
+	{
+		"id" : 88,
+		"id_cat_tipo" : 6,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 1,
+		"requerido" : true
+	},
+	{
+		"id" : 89,
+		"id_cat_tipo" : 6,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 23,
+		"requerido" : false
+	},
+	{
+		"id" : 90,
+		"id_cat_tipo" : 6,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 24,
+		"requerido" : false
+	},
+	{
+		"id" : 91,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 27,
+		"requerido" : true
+	},
+	{
+		"id" : 92,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 22,
+		"requerido" : true
+	},
+	{
+		"id" : 93,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 19,
+		"requerido" : false
+	},
+	{
+		"id" : 94,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 20,
+		"requerido" : true
+	},
+	{
+		"id" : 95,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 21,
+		"requerido" : false
+	},
+	{
+		"id" : 96,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 26,
+		"requerido" : false
+	},
+	{
+		"id" : 97,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 25,
+		"requerido" : true
+	},
+	{
+		"id" : 98,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 28,
+		"requerido" : false
+	},
+	{
+		"id" : 99,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 1,
+		"requerido" : true
+	},
+	{
+		"id" : 100,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 23,
+		"requerido" : false
+	},
+	{
+		"id" : 101,
+		"id_cat_tipo" : 7,
+		"id_cat_tramite" : 3,
+		"id_cat_requisito" : 24,
+		"requerido" : false
+	}
+],
+"tramite": [
+	{
+		"id" : 2141,
+		"folio" : "DAU-260411-AAAH-U",
+		"id_cat_tramite" : 1,
+		"id_cat_estatus" : 102,
+		"clave_catastral" : "SF001018",
+		"es_propietario" : false,
+		"nom_sol" : "xcasdfasdf",
+		"tel_sol" : "7271111112",
+		"correo_sol" : "bogarin@gmail.com",
+		"importe_total" : 519.00,
+		"pagado" : false,
+		"tipo" : "10",
+		"observacion" : null,
+		"id_cat_perito" : null,
+		"urgente" : false,
+		"creado" : "2026-04-12T04:04:42.408Z",
+		"modificado" : "2026-04-12T04:04:43.212Z",
+		"folio_caja" : 1845022
+	},
+	{
+		"id" : 2121,
+		"folio" : "DAU-260411-AAAG-W",
+		"id_cat_tramite" : 5,
+		"id_cat_estatus" : 102,
+		"clave_catastral" : "SF210006",
+		"es_propietario" : false,
+		"nom_sol" : "Ernesto pierde su puesto",
+		"tel_sol" : "66666666666",
+		"correo_sol" : "carlos.awizo@gmail.com",
+		"importe_total" : 384.00,
+		"pagado" : false,
+		"tipo" : "10",
+		"observacion" : "sdfasdfas",
+		"id_cat_perito" : null,
+		"urgente" : false,
+		"creado" : "2026-04-11T20:34:06.236Z",
+		"modificado" : "2026-04-11T20:34:06.297Z",
+		"folio_caja" : 1845021
+	},
+	{
+		"id" : 2023,
+		"folio" : "DAU-260409-ABDF-B",
+		"id_cat_tramite" : 1,
+		"id_cat_estatus" : 102,
+		"clave_catastral" : "SF270018",
+		"es_propietario" : false,
+		"nom_sol" : "Juan Pérez García",
+		"tel_sol" : "5551234567",
+		"correo_sol" : "juan.perez@example.com",
+		"importe_total" : 1556.00,
+		"pagado" : false,
+		"tipo" : "10",
+		"observacion" : "Solicitud para construcción de casa habitación",
+		"id_cat_perito" : 1,
+		"urgente" : true,
+		"creado" : "2026-04-10T06:48:20.953Z",
+		"modificado" : "2026-04-10T06:48:23.898Z",
+		"folio_caja" : 1845015
+	},
+	{
+		"id" : 1861,
+		"folio" : "DAU-260409-AAEK-U",
+		"id_cat_tramite" : 1,
+		"id_cat_estatus" : 204,
+		"clave_catastral" : "SF270018",
+		"es_propietario" : false,
+		"nom_sol" : "Jose ramón",
+		"tel_sol" : "6863513794",
+		"correo_sol" : "bogarin.solteclog@gmail.com",
+		"importe_total" : 519.00,
+		"pagado" : false,
+		"tipo" : "10",
+		"observacion" : "El ciudadano ha subido 1 archivo respondiendo a los requerimientos pedidos por el analista.",
+		"id_cat_perito" : null,
+		"urgente" : false,
+		"creado" : "2026-04-09T19:24:07.912Z",
+		"modificado" : "2026-04-12T02:16:25.252Z",
+		"folio_caja" : 1845004
+	}
+],
+"actividades": [
+	{
+		"id" : 42,
+		"id_tramite" : 1861,
+		"id_cat_estatus" : 102,
+		"backoffice_user_id" : -1,
+		"observacion" : "Trámite creado",
+		"timestamp" : "2026-04-09T19:24:09.170Z"
+	},
+	{
+		"id" : 53,
+		"id_tramite" : 1861,
+		"id_cat_estatus" : 201,
+		"backoffice_user_id" : -1,
+		"observacion" : "Hito Legal: El pago se confirmó y el trámite entró oficialmente a la bandeja de la dependencia.\n\n",
+		"timestamp" : "2026-04-10T06:21:14.303Z"
+	},
+	{
+		"id" : 54,
+		"id_tramite" : 1861,
+		"id_cat_estatus" : 202,
+		"backoffice_user_id" : -1,
+		"observacion" : "Un analista administrativo ha tomado el expediente para validar documentos y datos.",
+		"timestamp" : "2026-04-10T06:21:14.687Z"
+	},
+	{
+		"id" : 56,
+		"id_tramite" : 1861,
+		"id_cat_estatus" : 203,
+		"backoffice_user_id" : -1,
+		"observacion" : "Se detectó un error o falta de información. El ciudadano debe hacer correcciones.",
+		"timestamp" : "2026-04-10T06:23:14.942Z"
+	},
+	{
+		"id" : 57,
+		"id_tramite" : 1861,
+		"id_cat_estatus" : 204,
+		"backoffice_user_id" : -1,
+		"observacion" : "El ciudadano ha subido 2 archivos respondiendo a los requerimientos pedidos por el analista.",
+		"timestamp" : "2026-04-10T06:24:59.804Z"
+	},
+	{
+		"id" : 58,
+		"id_tramite" : 1861,
+		"id_cat_estatus" : 203,
+		"backoffice_user_id" : -1,
+		"observacion" : "No subiste los requisitos que pedi. Subiste un PDF de un libro.",
+		"timestamp" : "2026-04-10T06:34:21.725Z"
+	},
+	{
+		"id" : 59,
+		"id_tramite" : 1861,
+		"id_cat_estatus" : 204,
+		"backoffice_user_id" : -1,
+		"observacion" : "El ciudadano ha subido 1 archivo respondiendo a los requerimientos pedidos por el analista.",
+		"timestamp" : "2026-04-10T06:35:14.145Z"
+	},
+	{
+		"id" : 69,
+		"id_tramite" : 2023,
+		"id_cat_estatus" : 102,
+		"backoffice_user_id" : -1,
+		"observacion" : "Trámite creado",
+		"timestamp" : "2026-04-10T06:48:23.898Z"
+	},
+	{
+		"id" : 75,
+		"id_tramite" : 2121,
+		"id_cat_estatus" : 102,
+		"backoffice_user_id" : -1,
+		"observacion" : "Trámite creado",
+		"timestamp" : "2026-04-11T20:34:06.297Z"
+	},
+	{
+		"id" : 76,
+		"id_tramite" : 1861,
+		"id_cat_estatus" : 203,
+		"backoffice_user_id" : -1,
+		"observacion" : "Esta es una prueba para ver si el ciudadano puede volver a subir requisitos",
+		"timestamp" : "2026-04-12T02:14:38.752Z"
+	},
+	{
+		"id" : 77,
+		"id_tramite" : 1861,
+		"id_cat_estatus" : 203,
+		"backoffice_user_id" : -1,
+		"observacion" : "Necesito la factura rel REFRI because of F...",
+		"timestamp" : "2026-04-12T02:15:59.501Z"
+	},
+	{
+		"id" : 78,
+		"id_tramite" : 1861,
+		"id_cat_estatus" : 204,
+		"backoffice_user_id" : -1,
+		"observacion" : "El ciudadano ha subido 1 archivo respondiendo a los requerimientos pedidos por el analista.",
+		"timestamp" : "2026-04-12T02:16:25.252Z"
+	},
+	{
+		"id" : 79,
+		"id_tramite" : 2141,
+		"id_cat_estatus" : 102,
+		"backoffice_user_id" : -1,
+		"observacion" : "Trámite creado",
+		"timestamp" : "2026-04-12T04:04:43.212Z"
+	}
+]}
+
+
+

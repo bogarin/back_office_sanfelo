@@ -1,7 +1,8 @@
 # 002: Configuración de múltiples bases de datos y routers
 
-**Fecha:** 26 de febrero de 2026  
-**Estado:** Propuesto
+**Fecha:** 26 de febrero de 2026
+**Estado:** Superseded
+**Superseded by:** [ADR-008: PostgreSQL Schema Separation for Multi-Database Architecture](003-postgresql-schema-separation.md)
 
 ## Contexto
 

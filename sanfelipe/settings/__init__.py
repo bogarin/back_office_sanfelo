@@ -2,8 +2,9 @@
 Django settings for sanfelipe project.
 
 Microservice for San Felipe Government Backoffice.
-Uses Django's built-in auth system with SQLite.
-Business data (tramites, buzon) uses PostgreSQL.
+Uses PostgreSQL with schema separation:
+- backoffice schema: Django auth, admin, sessions, messages, staticfiles
+- public schema: tramites, core (business data managed externally)
 """
 
 from pathlib import Path
@@ -127,28 +128,39 @@ ASGI_APPLICATION = 'sanfelipe.asgi.application'
 # DATABASE
 # =============================================================================
 
-# Multi-database configuration:
-# - default (SQLite): Django auth, admin, sessions, messages, staticfiles, debug_toolbar
-# - backend (PostgreSQL): tramites, buzon, core (backend data)
+# Multi-database configuration with schema separation:
+# - default (PostgreSQL, backoffice schema): Django auth, admin, sessions, messages, staticfiles, debug_toolbar
+# - backend (PostgreSQL, public schema): tramites, core (business data)
 #
-# The database router (core.db_router.MultiDatabaseRouter) routes queries
-# to the appropriate database based on the app label.
+# The database router (core.db_router.ModelBasedRouter) routes queries
+# to the appropriate database based on the model's db_table attribute.
 #
 # Backend tables are managed externally (managed=False), so Django won't
 # create or modify them - it only reads/writes to existing PostgreSQL tables.
 
+db = env.db("POSTGRESQL_DB_URL")
+backoffice_schema = env('BACKOFFICE_DB_SCHEMA', default='backoffice')
+backend_schema = env('BACKEND_DB_SCHEMA', default='public')
+
 DATABASES = {
-    'default': env.db(
-        'BACKOFFICE_DB_URL', default='postgres://postgres:postgres@localhost:5432/backoffice'
-    ),
-    'backend': env.db(
-        'BACKEND_DB_URL', default='postgres://postgres:postgres@localhost:5432/backend'
-    ),
+    'default': {
+        **db,
+        'OPTIONS': {
+            'options': f'-c search_path={backoffice_schema}'
+        }
+    }
+    ,
+    'backend': {
+        **db,
+        'OPTIONS': {
+            'options': f'-c search_path={backend_schema}'
+        }
+    },
 }
 
 # Route backend apps to PostgreSQL
-# Use the comprehensive multi-database router
-DATABASE_ROUTERS = ['core.db_router.MultiDatabaseRouter']
+# Use the model-based router that respects db_table schema prefixes
+DATABASE_ROUTERS = ['core.db_router.ModelBasedRouter']
 
 # =============================================================================
 # CACHE
@@ -156,11 +168,11 @@ DATABASE_ROUTERS = ['core.db_router.MultiDatabaseRouter']
 
 # Cache configuration:
 # Testing: DummyCache (no side effects in tests)
-# Dev + Prod: DatabaseCache backed by the default SQLite database.
+# Dev + Prod: LocMemCache for process-local caching.
 #   - Used by TramiteManager for statistics caching (tramite_stats:*).
-#   - Shared across all Gunicorn workers (cross-process consistent).
-#   - Survives server restarts.
-#   - Requires ``python manage.py createcachetable`` once.
+#   - Fast, in-memory storage per process.
+#   - Requires consideration for multi-worker setups (each worker has its own cache).
+#   - No additional setup required.
 # Catalog models use CachedCatalogManager with @lru_cache (process memory,
 # no Django cache involvement).
 if TESTING:
@@ -172,8 +184,7 @@ if TESTING:
 else:
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'cache_table',
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         }
     }
 

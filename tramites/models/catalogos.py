@@ -3,22 +3,29 @@
 These are read-heavy reference tables with infrequent changes.
 All map to existing PostgreSQL tables via db_table (no schema changes).
 
-All catalog models use CachedCatalogManager for zero-query lookups
-after the first access. See ``managers.py`` for details.
+All catalog models are routed to the 'backend' database with read-only access
+using the ReadOnlyManager, which prevents all write operations (create, update,
+delete) at the ORM level to ensure data integrity.
 """
 
 from django.db import models
 
-from tramites.models.managers import CachedCatalogManager
+from core.managers import ReadOnlyManager
+from core.model_config import register_model, AccessPattern
 
 
+@register_model('backend', AccessPattern.READ_ONLY, False)
 class TramiteCatalogo(models.Model):
-    """Tipos de trámites disponibles en el sistema."""
+    """Tipos de trámites disponibles en el sistema.
 
-    objects = CachedCatalogManager()
+    Routed to backend database with read-only access. All write operations
+    are prevented to maintain data integrity of this reference table.
+    """
+
+    objects = ReadOnlyManager()
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'cat_tramite'
         verbose_name = 'Catálogo Trámite'
         verbose_name_plural = 'Catálogo Trámites'
@@ -41,6 +48,7 @@ class TramiteCatalogo(models.Model):
         return self.nombre
 
 
+@register_model('backend', AccessPattern.READ_ONLY, False)
 class TramiteEstatus(models.Model):
     """Estatus de trámites agrupados por prefijo.
 
@@ -48,12 +56,15 @@ class TramiteEstatus(models.Model):
     - 1xx: Inicio (Draft, Pending Payment, etc.)
     - 2xx: Proceso (Presented, In Review, etc.)
     - 3xx: Finalizado (Completed, Rejected, etc.)
+
+    Routed to backend database with read-only access. All write operations
+    are prevented to maintain data integrity of this reference table.
     """
 
-    objects = CachedCatalogManager()
+    objects = ReadOnlyManager()
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'cat_estatus'
         verbose_name = 'Estatus de Trámite'
         verbose_name_plural = 'Estatus de Trámites'
@@ -70,13 +81,18 @@ class TramiteEstatus(models.Model):
         return self.estatus
 
 
+@register_model('backend', AccessPattern.READ_ONLY, False)
 class Perito(models.Model):
-    """Peritos autorizados para trámites."""
+    """Peritos autorizados para trámites.
 
-    objects = CachedCatalogManager()
+    Routed to backend database with read-only access. All write operations
+    are prevented to maintain data integrity of this reference table.
+    """
+
+    objects = ReadOnlyManager()
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'cat_perito'
         verbose_name = 'Perito'
         verbose_name_plural = 'Peritos'
@@ -115,13 +131,18 @@ class Perito(models.Model):
         return self.nombre_completo
 
 
+@register_model('backend', AccessPattern.READ_ONLY, False)
 class Actividad(models.Model):
-    """Actividades que pueden realizarse durante un trámite."""
+    """Actividades que pueden realizarse durante un trámite.
 
-    objects = CachedCatalogManager()
+    Routed to backend database with read-only access. All write operations
+    are prevented to maintain data integrity of this reference table.
+    """
+
+    objects = ReadOnlyManager()
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'cat_actividad'
         verbose_name = 'Actividad'
         verbose_name_plural = 'Actividades'
@@ -134,13 +155,18 @@ class Actividad(models.Model):
         return self.actividad
 
 
+@register_model('backend', AccessPattern.READ_ONLY, False)
 class Categoria(models.Model):
-    """Categorías de trámites."""
+    """Categorías de trámites.
 
-    objects = CachedCatalogManager()
+    Routed to backend database with read-only access. All write operations
+    are prevented to maintain data integrity of this reference table.
+    """
+
+    objects = ReadOnlyManager()
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'cat_categoria'
         verbose_name = 'Categoría'
         verbose_name_plural = 'Categorías'
@@ -153,13 +179,18 @@ class Categoria(models.Model):
         return self.categoria or ''
 
 
+@register_model('backend', AccessPattern.READ_ONLY, False)
 class Requisito(models.Model):
-    """Requisitos para trámites."""
+    """Requisitos para trámites.
 
-    objects = CachedCatalogManager()
+    Routed to backend database with read-only access. All write operations
+    are prevented to maintain data integrity of this reference table.
+    """
+
+    objects = ReadOnlyManager()
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'cat_requisito'
         verbose_name = 'Requisito'
         verbose_name_plural = 'Requisitos'
@@ -172,13 +203,18 @@ class Requisito(models.Model):
         return self.requisito
 
 
+@register_model('backend', AccessPattern.READ_ONLY, False)
 class Tipo(models.Model):
-    """Tipos de trámites (para costos)."""
+    """Tipos de trámites (para costos).
 
-    objects = CachedCatalogManager()
+    Routed to backend database with read-only access. All write operations
+    are prevented to maintain data integrity of this reference table.
+    """
+
+    objects = ReadOnlyManager()
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'cat_tipo'
         verbose_name = 'Tipo'
         verbose_name_plural = 'Tipos'

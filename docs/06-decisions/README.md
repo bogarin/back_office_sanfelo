@@ -18,12 +18,13 @@ Un **ADR (Architecture Decision Record)** es un documento corto que captura una 
 | Número ADR | Descripción |
 |------------|-------------|
 | [ADR-001](001-seleccion-stack-base.md) | Selección de Stack Tecnológico Base (Django, PostgreSQL, SQLite, Django Admin) |
-| [ADR-002](002-configuracion-multiples-bases-de-datos.md) | Configuración de múltiples bases de datos y routers (incluye schema validation) |
+| [ADR-002](002-configuracion-multiples-bases-de-datos.md) | Configuración de múltiples bases de datos y routers *(Superseded)* |
 | [ADR-003](003-estrategia-caching-rendimiento.md) | Estrategia de caching y rendimiento |
 | [ADR-004](004-logging-monitoreo.md) | Logging y monitoreo |
 | [ADR-005](005-despliegue-docker-gunicorn.md) | Despliegue con Docker y gunicorn |
 | [ADR-006](006-permisos-admin-operador.md) | Permisos de admin y operador *(Superseded)* |
 | [ADR-007](007-implementacion-rbac-django-60.md) | Implementación de Control de Acceso Basado en Roles (RBAC) para Django 6.0 |
+| [ADR-008](003-postgresql-schema-separation.md) | PostgreSQL Schema Separation for Multi-Database Architecture |
 
 
 ## Cómo crear un nuevo ADR

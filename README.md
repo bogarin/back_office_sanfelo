@@ -40,8 +40,8 @@ Sistema de gestión de trámites con:
 | Componente | Tecnología |
 |------------|------------|
 | **Backend** | Django 6.0.2 (Python 3.14) |
-| **BD Auth** | SQLite (Django auth) |
-| **BD Negocio** | PostgreSQL (business data) |
+| **BD Backoffice** | PostgreSQL (backoffice schema) |
+| **BD Negocio** | PostgreSQL (public schema) |
 | **Cache** | Redis |
 | **Interface** | Django Admin |
 | **Deploy** | Docker + Gunicorn |

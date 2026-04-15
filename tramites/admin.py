@@ -135,29 +135,6 @@ class ActividadesAdmin(BaseModelAdmin, RoleBasedAccessMixin):
 # =============================================================================
 
 
-# Custom list filter para 'asignado'
-class TramiteAssignmentFilter(admin.SimpleListFilter):
-    title = '¿Asignado?'
-    parameter_name = 'asignado'
-
-    def lookups(self, request, model_admin):
-        return (
-            (True, 'Asignado'),
-            (False, 'Sin Asignar'),
-        )
-
-    def queryset(self, request, queryset):
-        if self.value() == 'True':
-            return queryset.filter(
-                Exists(AsignacionTramite.objects.filter(tramite_id=OuterRef('pk')))
-            )
-        if self.value() == 'False':
-            return queryset.filter(
-                ~Exists(AsignacionTramite.objects.filter(tramite_id=OuterRef('pk')))
-            )
-        return queryset
-
-
 # Custom list filter para 'finalizado'
 class TramiteFinalizadoFilter(admin.SimpleListFilter):
     title = '¿Finalizado?'
@@ -247,7 +224,6 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         'es_propietario',
         'creado',
         'modificado',
-        TramiteAssignmentFilter,
         TramiteFinalizadoFilter,
         TramiteCanceladoFilter,
     )
@@ -349,8 +325,9 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         """
         Filtra trámites según rol del usuario de forma eficiente.
 
-        Usa select_related() para evitar N+1 queries en catálogos
-        y annotate() para la relación cross-database con AsignacionTramite.
+        Usa select_related() para evitar N+1 queries en catálogos.
+        Para relaciones cross-database, usa Python filtering en lugar de SQL joins
+        para mantener compatibilidad con el router ModelBasedRouter.
 
         Lógica de SELECT por rol:
         - Admin/Superuser: Ve TODO
@@ -375,19 +352,15 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         )
         queryset = queryset.annotate(_estatus_id=subquery)
 
-        # Annotate con flag de asignación (cross-database safe)
-        queryset = queryset.annotate(
-            esta_asignado_flag=Exists(AsignacionTramite.objects.filter(tramite_id=OuterRef('pk'))),
-        )
+        # Fetch assignment data from default database (AsignacionTramite)
+        # Uses Python-level filtering to avoid cross-database SQL joins
+        # This is required because ModelBasedRouter blocks cross-database JOINs
+        asignaciones = AsignacionTramite.objects.using('default')
+        tramites_asignados_ids = set(asignaciones.values_list('tramite_id', flat=True))
 
-        # Annotate con analista asignado (cross-database safe)
-        queryset = queryset.annotate(
-            analista_asignado_id=Subquery(
-                AsignacionTramite.objects.filter(tramite_id=OuterRef('pk')).values('analista_id')[
-                    :1
-                ]
-            )
-        )
+        # Build analista mapping for efficient lookup
+        # Dict: {tramite_id: analista_id}
+        analistas_by_tramite = dict(asignaciones.values_list('tramite_id', 'analista_id'))
 
         # Admin/Superuser: Ve TODO
         if user.is_superuser or user.is_staff:
@@ -399,15 +372,17 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         # Analista: Ve SUS trámites + trámites sin asignar
         if BackOfficeRole.ANALISTA in getattr(user, 'roles', set()):
-            # Trámites asignados a este analista (usando analista FK)
+            # Trámites asignados a este analista (filtra en Python usando IDs)
             tramites_mios = queryset.filter(
-                Exists(AsignacionTramite.objects.filter(tramite_id=OuterRef('pk'), analista=user))
+                pk__in=[
+                    tramite_id
+                    for tramite_id, analista_id in analistas_by_tramite.items()
+                    if analista_id == user.id
+                ]
             )
 
-            # Trámites NO asignados a NADIE (sin asignar)
-            tramites_libres = queryset.filter(
-                ~Exists(AsignacionTramite.objects.filter(tramite_id=OuterRef('pk')))
-            )
+            # Trámites NO asignados a NADIE (excluye IDs asignados)
+            tramites_libres = queryset.exclude(pk__in=tramites_asignados_ids)
 
             # Combinar: MÍOS | SIN ASIGNAR
             return tramites_mios | tramites_libres

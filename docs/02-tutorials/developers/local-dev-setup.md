@@ -1,8 +1,8 @@
 # Instalación y Setup de Desarrollo Local
 
 > **Tutorial para desarrolladores**
-> Tiempo estimado: 30 minutos
-> Última actualización: 26 de Febrero de 2026
+> Tiempo estimado: 35 minutos
+> Última actualización: 15 de Abril de 2026
 
 ---
 
@@ -14,7 +14,7 @@ Esta guía te mostrará cómo configurar un entorno de desarrollo local para el 
 
 - Clonar el repositorio del proyecto
 - Instalar dependencias con uv
-- Configurar las bases de datos (SQLite y PostgreSQL)
+- Configurar PostgreSQL con separación de esquemas
 - Crear el superusuario de Django
 - Iniciar el servidor de desarrollo
 - Verificar que todo funciona correctamente
@@ -62,19 +62,40 @@ uv sync
 
 ---
 
-## Paso 3: Configurar Base de Datos SQLite (Django)
+## Paso 3: Configurar PostgreSQL con Separación de Esquemas
 
-El sistema usa **SQLite** para los datos internos de Django:
-- Usuarios del sistema
-- Sesiones
-- Permisos de Django Admin
-- Metadatos de migraciones
+El sistema usa una arquitectura de **separación de esquemas en PostgreSQL**:
+- **Esquema `backoffice`**: Datos internos de Django (auth, admin, sessions) y tablas de asignación (AsignacionTramite)
+- **Esquema `public`**: Tablas de negocio legacy (tramites, catalogos, relaciones, actividades)
 
-Esta base de datos se configura automáticamente al crear el proyecto.
+Esta separación permite que Django administre sus tablas en el esquema `backoffice`, mientras que el esquema `public` contiene las tablas de negocio legacy gestionadas externamente.
+
+### 3.1 Crear la Base de Datos y Esquemas
+
+El archivo `.env.example` muestra la configuración correcta. Copia `.env.example` a `.env` y personaliza los valores:
 
 ```bash
-# Aplicar migraciones de Django a SQLite
-uv run python manage.py migrate
+# .env file
+POSTGRESQL_DB_URL=postgres://postgres:YOUR_PASSWORD@localhost:5432/YOUR_DATABASE
+BACKOFFICE_DB_SCHEMA=backoffice
+BACKEND_DB_SCHEMA=public
+```
+
+> **Nota**: Reemplaza `YOUR_PASSWORD` y `YOUR_DATABASE` con tus credenciales reales de PostgreSQL.
+
+**Tiempo estimado**: 1 minuto.
+
+---
+
+## Paso 4: Aplicar Migraciones de Django
+
+Django gestiona sus tablas en el esquema `backoffice` usando el ModelBasedRouter. Las tablas de negocio en el esquema `public` son legacy y se gestionan externamente (managed=False).
+
+### 4.1 Ejecutar Migraciones
+
+```bash
+# Aplicar migraciones de Django al esquema backoffice
+uv run python manage.py migrate --database=default
 ```
 
 **Resultado esperado**: Verás:
@@ -88,55 +109,26 @@ Your models in app(s):
   * auth
   * sessions
   * admin
-  * tramites
-  * catalogos
-  * bitacora
-  * costos
-  * core
 Running migrations:
   No migrations to apply.
 ```
 
-> **Nota**: Estas migraciones son para la base de datos **SQLite solamente**. La base de datos de negocio (PostgreSQL) tiene su propio esquema gestionado externamente.
+> **Nota**: Estas migraciones solo se aplican al esquema `backoffice` (vía la configuración de Django y ModelBasedRouter). No se ejecutan migraciones para la base de datos `backend` ya que las tablas de negocio legacy se gestionan externamente (managed=False) y están bloqueadas con custom managers (ReadOnlyManager, CreateOnlyManager).
 
-**Tiempo estimado**: 30 segundos.
+### 4.2 Validar el Esquema
 
----
-
-## Paso 4: Configurar Base de Datos PostgreSQL (Negocio)
-
-### 4.1 Crear la Base de Datos
+Verifica que los modelos Django están correctamente sincronizados con el esquema PostgreSQL:
 
 ```bash
-# Crear la base de datos en PostgreSQL
-createdb -h localhost -U postgres -d backoffice_tramites
+# Ejecutar el validador de esquema
+uv run python -m core.schema_validator
 ```
 
-**Resultado esperado**: Verás un mensaje `CREATE DATABASE` si se crea exitosamente.
+**Resultado esperado**: Verás un reporte indicando que los modelos están sincronizados. Si hay discrepancias, el validador te mostrará qué modelos necesitan ajuste.
 
-### 4.2 Aplicar el Esquema Inicial
-
-El esquema de PostgreSQL se gestiona externamente. Los scripts SQL están en `sql/migrations/`.
-
-```bash
-# Aplicar el esquema inicial
-psql -U postgres -d backoffice_tramites -f sql/migrations/001_init_schema.sql
-```
-
-**Resultado esperado**: Verás la salida del script SQL con todos los mensajes de creación de tablas.
-
-### 4.3 Cargar Datos Iniciales
-
-```bash
-# Cargar datos iniciales (tipos de trámites)
-psql -U postgres -d backoffice_tramites -f sql/data/001_tipos_tramites.sql
-```
-
-**Resultado esperado**: Verás los registros insertados en la base de datos.
-
-> **IMPORTANTE**: El esquema de PostgreSQL se actualiza por el equipo de base de datos. Cuando hay cambios en el esquema:
-1. Obtén los nuevos scripts SQL del repositorio externo
-2. Aplicalos manualmente: `psql -U postgres -d backoffice_tramites -f sql/migrations/xxx.sql`
+> **IMPORTANTE**: El esquema `public` se actualiza por el equipo de base de datos. Cuando hay cambios en el esquema:
+1. Obtén la actualización del esquema del repositorio externo
+2. Aplica los cambios manualmente al esquema `public`
 3. Verifica la sincronización con el validador de esquema
 
 **Tiempo estimado**: 1-2 minutos.
@@ -205,11 +197,8 @@ El servidor estará corriendo en `http://127.0.0.1:8000/` (localhost).
 4. Verás el panel de administración de Django
 
 **Resultado esperado**: Verás el panel de Django Admin con todas las aplicaciones disponibles:
-- Trámites
-- Catálogos
-- Costos
-- Bitácora
 - Usuarios y grupos
+- Asignación de trámites
 - Sitio
 
 ### 7.2 Verificar el Health Check
@@ -229,10 +218,10 @@ En este tutorial has aprendido:
 
 ✅ Clonar el repositorio del proyecto
 ✅ Instalar todas las dependencias con uv
-✅ Configurar la base de datos SQLite (migraciones Django)
-✅ Crear la base de datos PostgreSQL (esquema externo)
-✅ Aplicar el esquema SQL inicial
-✅ Cargar datos iniciales
+✅ Configurar PostgreSQL con separación de esquemas (backoffice y public)
+✅ Crear y configurar los esquemas de PostgreSQL
+✅ Aplicar las migraciones de Django al esquema backoffice
+✅ Validar la sincronización del esquema
 ✅ Crear el superusuario de Django
 ✅ Iniciar el servidor de desarrollo
 ✅ Acceder al Django Admin
@@ -246,8 +235,9 @@ Ahora que tu entorno de desarrollo está configurado, puedes:
 
 ### Para desarrolladores:
 - 📖 [Tutorial: Primera llamada a la API](../02-tutorials/developers/first-api-call.md) - Aprender a usar la API REST
-- 🧠 [Concepto: Dual Database](../../04-concepts/dual-database.md) - Entender la arquitectura de dos bases de datos
-- 🧠 [Concepto: No Migrations](../../04-concepts/no-migrations.md) - Entender por qué no usamos migraciones Django
+- 🧠 [Concepto: Schema Separation](../../04-concepts/schema-separation.md) - Entender la arquitectura de separación de esquemas
+- 🧠 [ADR-008: PostgreSQL Schema Separation](../../06-adr/008-postgresql-schema-separation.md) - Decisiones arquitectónicas sobre separación de esquemas
+- 🧠 [Concepto: No Migrations](../../04-concepts/no-migrations.md) - Entender por qué no usamos migraciones Django para tablas legacy
 
 ### Para todos los roles:
 - 🔍 [Búsqueda avanzada de trámites](../../03-guides/operators/search-tramites.md) - Encontrar trámites específicos
@@ -264,9 +254,11 @@ Ahora que tu entorno de desarrollo está configurado, puedes:
 | `git clone: repository not found` | URL del repo incorrecta | Verifica la URL con tu administrador |
 | `psql: error: connection refused` | PostgreSQL no está corriendo | Inicia PostgreSQL antes de continuar |
 | `psql: error: database "backoffice_tramites" does not exist` | Base de datos no creada | Ejecuta el comando `createdb` antes |
-| `Error: Table 'tramites' does not exist` | Esquema SQL no aplicado | Ejecuta los scripts SQL en `sql/migrations/` |
+| `Error: schema "backoffice" does not exist` | Esquema no creado | Ejecuta el script de creación de esquemas en el Paso 3 |
+| `relation does not exist` | Tabla en esquema incorrecto | Verifica que `BACKEND_DB_URL` usa `currentSchema=public` y `BACKOFFICE_DB_URL` usa `currentSchema=backoffice` |
 | `No migrations to apply` | Ya están aplicadas | Es normal, no requiere acción |
-| `Permission denied` | Usuario sin permisos | Verifica con tu administrador |
+| `Permission denied` | Usuario sin permisos en esquema | Ejecuta `GRANT ALL PRIVILEGES` en el Paso 3 |
+| `Schema validation failed` | Modelos desincronizados con esquema | Revisa el reporte del validador y ajusta los modelos |
 
 ---
 
@@ -276,15 +268,26 @@ Ahora que tu entorno de desarrollo está configurado, puedes:
 
 2. **Mantén PostgreSQL corriendo**: Durante el desarrollo, es útil tener el servidor de PostgreSQL disponible para las consultas de base de datos.
 
-3. **Usa el validador de esquema**: Después de cualquier cambio en modelos Django o scripts SQL, ejecuta:
+3. **Usa el validador de esquema regularmente**: Después de cualquier cambio en modelos Django o en el esquema PostgreSQL, ejecuta:
    ```bash
    uv run python -m core.schema_validator
    ```
-   Esto asegura que tus modelos están sincronizados con el esquema PostgreSQL.
+   Esto asegura que tus modelos están sincronizados con ambos esquemas PostgreSQL.
 
-4. **Mantén el código actualizado**: Haz `git pull` regularmente para mantener tu código sincronizado.
+4. **Asegúrate de usar el decorador @register_model**: Para que el ModelBasedRouter funcione correctamente, todos los modelos que deben ir al esquema `public` deben estar decorados con `@register_model`:
+   ```python
+   from core.models import register_model
 
-5. **Desactiva el modo DEBUG en producción**: El modo DEBUG no debe usarse en producción por razones de seguridad y rendimiento.
+   @register_model
+   class Tramite(models.Model):
+       # ...
+   ```
+
+5. **Verifica las variables de entorno**: Asegúrate de que `BACKEND_DB_URL` y `BACKOFFICE_DB_URL` están correctamente configuradas con el parámetro `currentSchema`.
+
+6. **Mantén el código actualizado**: Haz `git pull` regularmente para mantener tu código sincronizado.
+
+7. **Desactiva el modo DEBUG en producción**: El modo DEBUG no debe usarse en producción por razones de seguridad y rendimiento.
 
 ---
 
@@ -293,6 +296,8 @@ Ahora que tu entorno de desarrollo está configurado, puedes:
 - [Documentación de Comandos Django](../../05-reference/commands/index.md) - Guía completa de comandos de gestión de Django
 - [Variables de Entorno](../../05-reference/configuration/environment-vars.md) - Referencia completa de configuración
 - [Documentación de Schema Validator](../../05-reference/components/schema-validator.md) - Guía del validador de esquema
+- [ADR-008: PostgreSQL Schema Separation](../../06-adr/008-postgresql-schema-separation.md) - Decisiones arquitectónicas sobre separación de esquemas
+- [ModelBasedRouter](../../05-reference/components/model-based-router.md) - Documentación del enrutador de modelos
 - [Guía: Despliegue en Producción](../../03-guides/sysadmins/deploy-production.md) - Guía completa de despliegue
 
 ---
@@ -304,4 +309,4 @@ Ahora que tu entorno de desarrollo está configurado, puedes:
 
 ---
 
-*Última actualización: 26 de Febrero de 2026*
+*Última actualización: 15 de Abril de 2026*

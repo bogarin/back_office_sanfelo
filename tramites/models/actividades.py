@@ -15,13 +15,23 @@ Schema matches PostgreSQL actividades table:
 from django.conf import settings
 from django.db import models
 
+from core.managers import CreateOnlyManager
+from core.model_config import AccessPattern, register_model
 
+
+@register_model('backend', AccessPattern.APPEND_ONLY, False)
 class Actividades(models.Model):
-    """Registro de actividades realizadas durante el trámite.
+    """
+    Registro de actividades realizadas durante el trámite.
+
+    Routed to backend database (PostgreSQL) with create-only access permissions.
+    Uses CreateOnlyManager to enforce create-only behavior.
 
     Cada registro representa una acción realizada sobre un trámite:
     quién la hizo, qué estatus resultó, y cuándo.
     """
+
+    objects = CreateOnlyManager()
 
     class Meta:
         managed = getattr(

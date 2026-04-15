@@ -18,6 +18,8 @@ from django.core.exceptions import ValidationError
 from django.db import DatabaseError, IntegrityError, models, transaction
 from django.contrib.auth import get_user_model
 
+from core.model_config import register_model, AccessPattern
+
 User = get_user_model()
 
 logger = logging.getLogger(__name__)
@@ -26,9 +28,12 @@ logger = logging.getLogger(__name__)
 ESTADOS_PERMITIDOS_PARA_ASIGNACION = [201, 202, 203, 204, 205]
 
 
+@register_model('default', AccessPattern.FULL_ACCESS, True)
 class AsignacionTramite(models.Model):
     """
     Asignación de trámite a analista.
+
+    Routed to default database (SQLite) with full access permissions.
 
     Características:
     - Solo permite UNA asignación por trámite (UniqueConstraint a nivel BD)

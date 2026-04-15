@@ -23,7 +23,7 @@ migrate-status:
 
 # Create a new migration (after model changes)
 makemigrations APP:
-    uv run manage.py makemigrations {{ APP }}
+    uv run manage.py makemigrations --database=default {{ APP }}
 
 # Create superuser for admin
 createsuperuser:

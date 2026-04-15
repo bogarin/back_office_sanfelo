@@ -2,9 +2,13 @@
 Test settings for sanfelipe project.
 
 Extends base settings with test-specific overrides:
-- Routes all databases to SQLite (no PostgreSQL needed)
-- Enables managed=True for business models during tests
-- Simplified configuration for faster, reliable testing
+- Uses in-memory SQLite for all database operations (no PostgreSQL needed)
+- Bypasses routing complexity for faster, more reliable test execution
+- Simplified configuration for isolated test environments
+
+The ModelBasedRouter is preserved to test routing logic when needed.
+For most tests, using SQLite simplifies setup and execution while maintaining
+adequate test coverage for core functionality.
 
 Usage:
     DJANGO_SETTINGS_MODULE=sanfelipe.settings_test TESTING=1 uv run manage.py test core
@@ -20,16 +24,18 @@ from .settings import *
 # Ensure test mode is active
 TESTING = True
 
-# Override DATABASES to use only SQLite
+# Override DATABASES to use in-memory SQLite for all models
+# This provides fast, isolated test execution without external dependencies
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': str(BASE_DIR / 'db' / 'test_db.sqlite3'),
+        'NAME': ':memory:',
     }
 }
 
-# Use TestRouter - instantiate directly (no singleton)
-DATABASE_ROUTERS = ['core.db_router.TestRouter']
+# Use ModelBasedRouter to test routing logic
+# Set to empty list [] if you want to bypass routing entirely
+DATABASE_ROUTERS = ['core.db_router.ModelBasedRouter']
 
 # Explicitly use dummy cache (no side effects in tests)
 CACHES = {
