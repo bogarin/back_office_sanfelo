@@ -43,10 +43,10 @@ def get_or_create_group(group_name: str) -> tuple[Group, bool]:
 
 def get_content_types_for_apps(app_labels: List[str]) -> List[ContentType]:
     """
-    Get all ContentType objects for the given app labels.
+    Get all ContentType objects for given app labels.
 
     Args:
-        app_labels: List of Django app labels (e.g., ['tramites', 'buzon'])
+        app_labels: List of Django app labels (e.g., ['tramites'])
 
     Returns:
         List of ContentType objects
@@ -94,11 +94,11 @@ def get_view_permissions_for_apps(app_labels: List[str]) -> List[Permission]:
 
 def setup_administrador() -> Group:
     """
-    Setup the Administrador group with full permissions.
+    Setup Administrador group with full permissions.
 
     The Administrador group receives:
     - All auth permissions (user/group management)
-    - All permissions for business apps (tramites, buzon)
+    - All permissions for business apps (tramites, core)
 
     Returns:
         The configured Administrador group

@@ -75,28 +75,7 @@ class CustomUserAddForm(AdminUserCreationForm):
     def save(self, commit=True):
         """Save user with role assignment."""
         user = super().save(commit=False)
-
-        # Store role for later if commit=False
-        role = self.cleaned_data.get('role')
-        if role:
-            group = Group.objects.filter(name=role).first()
-            if group:
-                self._role_group = group
-
-        # Save the user (parent class handles password hashing)
-        if commit:
-            user.save()
-            # Add to group if stored
-            if hasattr(self, '_role_group') and self._role_group:
-                user.groups.add(self._role_group)
-
         return user
-
-    def save_m2m(self):
-        """Handle many-to-many relationships including role assignment."""
-        # Add user to the assigned role group
-        if hasattr(self, '_role_group') and self._role_group and hasattr(self.instance, 'pk'):
-            self.instance.groups.add(self._role_group)
 
 
 class CustomUserChangeForm(UserChangeForm):
@@ -110,6 +89,16 @@ class CustomUserChangeForm(UserChangeForm):
         widget=forms.Select,
         required=False,
     )
+
+    class Meta(UserChangeForm.Meta):
+        model = UserModel
+        fields = (
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'password',
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -192,7 +181,6 @@ class BackofficeUserAdmin(UserAdmin):
                 )
             },
         ),
-        (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
     )
 
     # Fields to show in the add form
@@ -214,7 +202,7 @@ class BackofficeUserAdmin(UserAdmin):
     )
 
     # Disable is_staff in the change form for editing users
-    def get_form(self, request, obj=None, **kwargs):
+    def get_form(self, request, obj=None, change=False, **kwargs):
         """
         Return CustomUserAddForm for new users, CustomUserChangeForm for edits.
 
@@ -229,35 +217,27 @@ class BackofficeUserAdmin(UserAdmin):
         """
         Save user and manage role assignment.
 
-        When adding a new user, assign the role selected in the form.
-        When editing an existing user, update the role based on form selection.
-        Users created via this admin are not staff - they access the system
-        through front-end views, not the Django admin.
+        Assign role selected in the form. When editing, clear existing
+        role groups before assigning the new one.
         """
         super().save_model(request, obj, form, change)
 
-        # Handle role assignment
         role = form.cleaned_data.get('role') if hasattr(form, 'cleaned_data') else None
 
-        if change:  # Editing an existing user
-            # Clear existing role groups
-            obj.groups.remove(*obj.groups.filter(name__in=list(BackOfficeRole)))
+        # Clear existing role groups
+        obj.groups.remove(*obj.groups.filter(name__in=list(BackOfficeRole)))
 
-            # Add new role group
-            if role and role != '' and role != 'superuser':
-                group = Group.objects.filter(name=role).first()
-                if group:
-                    obj.groups.add(group)
-        else:  # Adding a new user
-            # Assign role or fallback to default
-            if role:
-                group = Group.objects.filter(name=role).first()
-            else:
-                # Fallback to default role (Analista)
-                group = Group.objects.filter(name=BackOfficeRole.ANALISTA).first()
-
+        # Assign new role if provided
+        if role and role in BackOfficeRole:
+            group = Group.objects.filter(name=role).first()
             if group:
                 obj.groups.add(group)
+                # Only Administrador need is_staff=True for admin access
+                obj.is_staff = role == BackOfficeRole.ADMINISTRADOR
+
+        # New users should be active by default
+        if not change:
+            obj.is_active = True
 
     # Add role as the first ordering field
     ordering = ('is_superuser', 'groups__name', 'username')

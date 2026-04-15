@@ -26,8 +26,8 @@ All environment variables used in `sanfelipe/settings.py` are now properly:
 ### Database Configuration (2 vars)
 | Variable | Default | Description |
 |----------|-----------|-------------|
-| `DATABASE_URL` | Required | PostgreSQL for business data |
-| `DJANGO_SQLITE_DB_PATH` | `db.sqlite3` | SQLite for auth/admin |
+| `BACKEND_DB_URL` | Required | PostgreSQL for business data |
+| `BACKOFFICE_DB_URL` | `db.sqlite3` | SQLite for auth/admin |
 
 ### Debug & Development (3 vars)
 | Variable | Default | Description |
@@ -196,7 +196,7 @@ docs/
 ```bash
 DJANGO_DEBUG=True
 DJANGO_SECRET_KEY=dev-key-change-in-prod
-DATABASE_URL=postgres://postgres:password@localhost:5432/db
+BACKEND_DB_URL=postgres://postgres:password@localhost:5432/db
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 ```
 
@@ -205,7 +205,7 @@ DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 DJANGO_DEBUG=False
 DJANGO_SECRET_KEY=your-strong-secret-key
 DJANGO_ALLOWED_HOSTS=tramites.sanfelipe.gob.ar
-DATABASE_URL=postgresql://user:pass@db.example.com:5432/business_db
+BACKEND_DB_URL=postgresql://user:pass@db.example.com:5432/business_db
 DJANGO_SECURE_SSL_REDIRECT=True
 DJANGO_SESSION_COOKIE_SECURE=True
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
@@ -228,7 +228,7 @@ DJANGO_SECRET_KEY=your-production-secret
 ```yaml
 # docker-compose.yml
 environment:
-  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  BACKEND_DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
   DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
   DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-False}
   # ... all 30 variables
@@ -270,7 +270,7 @@ These variables are **NO LONGER USED** and have been removed:
 | `KEYCLOAK_SERVER_URL` | Keycloak removed from project |
 | `KEYCLOAK_CLIENT_ID` | Keycloak removed from project |
 | `KEYCLOAK_CLIENT_SECRET` | Keycloak removed from project |
-| `DATABASE_URL` (old usage) | Now split into `DATABASE_URL` (PostgreSQL) + `DJANGO_SQLITE_DB_PATH` (SQLite) |
+| `BACKEND_DB_URL` (old usage) | Now split into `BACKEND_DB_URL` (PostgreSQL) + `BACKOFFICE_DB_URL` (SQLite) |
 
 ---
 

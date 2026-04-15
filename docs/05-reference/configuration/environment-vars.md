@@ -10,8 +10,8 @@ Complete reference of all environment variables used in the Backoffice Trámites
 | | `DJANGO_DEBUG` | No | `False` | Enable debug mode |
 | | `DJANGO_ALLOWED_HOSTS` | No | `*` | Allowed hostnames |
 | | `TESTING` | No | `False` | Enable test mode |
-| **Database** | `DATABASE_URL` | ✅ Yes | PostgreSQL connection URL |
-| | `DJANGO_SQLITE_DB_PATH` | No | `db.sqlite3` | SQLite database path |
+| **Database** | `BACKEND_DB_URL` | ✅ Yes | PostgreSQL connection URL |
+| | `BACKOFFICE_DB_URL` | No | `db.sqlite3` | SQLite database path |
 | **Debug** | `DJANGO_INTERNAL_IPS` | No | `127.0.0.1,0.0.0.0` | Debug toolbar IPs |
 | | `DJANGO_DEBUG_SQL` | No | `False` | Log SQL queries |
 | | `DJANGO_LOG_LEVEL` | No | `INFO` | Logging level |
@@ -122,7 +122,7 @@ TESTING=True
 
 ## Database Configuration
 
-### DATABASE_URL
+### BACKEND_DB_URL
 **Required:** Yes
 
 **Description:** PostgreSQL connection string for business data (tramites, catalogos, costos, bitacora).
@@ -134,40 +134,40 @@ postgresql://[user[:password]@]host[:port][/database][?param=value]
 
 **Development:**
 ```bash
-DATABASE_URL=postgres://postgres:password@localhost:5432/business_db
+BACKEND_DB_URL=postgres://postgres:password@localhost:5432/business_db
 ```
 
 **Docker:**
 ```bash
 # In docker-compose.yml, constructed from envvars:
-DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+BACKEND_DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
 ```
 
 **Production:**
 ```bash
-DATABASE_URL=postgresql://user:pass@prod-db.example.com:5432/backoffice
+BACKEND_DB_URL=postgresql://user:pass@prod-db.example.com:5432/backoffice
 ```
 
-### DJANGO_SQLITE_DB_PATH
+### BACKOFFICE_DB_URL
 **Required:** No (default: `db.sqlite3`)
 
 **Description:** Path to SQLite database file for Django auth, admin, sessions.
 
 **Development:**
 ```bash
-DJANGO_SQLITE_DB_PATH=db.sqlite3
+BACKOFFICE_DB_URL=db.sqlite3
 ```
 
 **Docker:**
 ```bash
 # Path inside container
-DJANGO_SQLITE_DB_PATH=/app/db.sqlite3
+BACKOFFICE_DB_URL=/app/db.sqlite3
 ```
 
 **Production:**
 ```bash
 # Absolute path
-DJANGO_SQLITE_DB_PATH=/var/lib/django/db.sqlite3
+BACKOFFICE_DB_URL=/var/lib/django/db.sqlite3
 ```
 
 ---
@@ -532,7 +532,7 @@ HTTP_PORT=8090  # localhost:8090 → container:8080
 DJANGO_DEBUG=True
 DJANGO_SECRET_KEY=dev-only-key-change-in-prod
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=postgres://postgres:password@localhost:5432/business_db
+BACKEND_DB_URL=postgres://postgres:password@localhost:5432/business_db
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 ```
 
@@ -542,7 +542,7 @@ DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 DJANGO_DEBUG=False
 DJANGO_SECRET_KEY=your-strong-secret-key-here
 DJANGO_ALLOWED_HOSTS=tramites.sanfelipe.gob.ar
-DATABASE_URL=postgresql://user:pass@prod-db:5432/business_db
+BACKEND_DB_URL=postgresql://user:pass@prod-db:5432/business_db
 DJANGO_SECURE_SSL_REDIRECT=True
 DJANGO_SESSION_COOKIE_SECURE=True
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
@@ -559,7 +559,7 @@ DJANGO_EMAIL_HOST_PASSWORD=your-smtp-password
 POSTGRES_DB=backoffice_tramites
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=strong-password-here
-DATABASE_URL=postgresql://postgres:strong-password-here@postgres:5432/backoffice_tramites
+BACKEND_DB_URL=postgresql://postgres:strong-password-here@postgres:5432/backoffice_tramites
 HTTP_PORT=8090
 ```
 
@@ -596,8 +596,8 @@ DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,your-hostname.com
 
 **Solution:**
 ```bash
-# Check DATABASE_URL format
-DATABASE_URL=postgres://user:pass@host:port/database
+# Check BACKEND_DB_URL format
+BACKEND_DB_URL=postgres://user:pass@host:port/database
 
 # Verify PostgreSQL is running
 docker-compose ps postgres
@@ -617,7 +617,7 @@ chmod 644 db.sqlite3
 chown user:group db.sqlite3
 
 # Or use absolute path with writable location
-DJANGO_SQLITE_DB_PATH=/tmp/db.sqlite3
+BACKOFFICE_DB_URL=/tmp/db.sqlite3
 ```
 
 ### Email not sending in production

@@ -12,6 +12,7 @@ import environ
 
 from .security import configure_security
 from .tenancy import configure_tenancy
+from .logging import configure_logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # settings/ is now a package, so we need to go up 3 levels instead of 2
@@ -73,10 +74,9 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     # Third-party apps (only in DEBUG mode, not during tests)
     'debug_toolbar' if (DEBUG and not TESTING) else None,
-    # Local apps (business data in PostgreSQL, managed externally)
+    # Local apps (backend data in PostgreSQL, managed externally)
     'tramites',
     'core',
-    'buzon',  # Buzón de Trámites - gestiona asignaciones de trámites a analistas
     # Test-only models for permission testing (only during tests)
     'tests' if TESTING else None,
 ]
@@ -129,36 +129,24 @@ ASGI_APPLICATION = 'sanfelipe.asgi.application'
 
 # Multi-database configuration:
 # - default (SQLite): Django auth, admin, sessions, messages, staticfiles, debug_toolbar
-# - business (PostgreSQL): tramites, buzon, core (business data)
+# - backend (PostgreSQL): tramites, buzon, core (backend data)
 #
 # The database router (core.db_router.MultiDatabaseRouter) routes queries
 # to the appropriate database based on the app label.
 #
-# Business tables are managed externally (managed=False), so Django won't
+# Backend tables are managed externally (managed=False), so Django won't
 # create or modify them - it only reads/writes to existing PostgreSQL tables.
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': str(env.path('DJANGO_SQLITE_DB_PATH', default=str(BASE_DIR / 'db' / 'db.sqlite3'))),
-        'OPTIONS': {
-            # SQLite production optimizations
-            # Reference: https://docs.djangoproject.com/en/stable/ref/databases/#sqlite-notes
-            'init_command': """
-                PRAGMA journal_mode=WAL;
-                PRAGMA synchronous=NORMAL;
-                PRAGMA cache_size=-64000;
-                PRAGMA temp_store=MEMORY;
-                PRAGMA mmap_size=268435456;
-            """,
-        },
-    },
-    'business': env.db(
-        'DATABASE_URL', default='postgres://postgres:postgres@localhost:5432/backoffice'
+    'default': env.db(
+        'BACKOFFICE_DB_URL', default='postgres://postgres:postgres@localhost:5432/backoffice'
+    ),
+    'backend': env.db(
+        'BACKEND_DB_URL', default='postgres://postgres:postgres@localhost:5432/backend'
     ),
 }
 
-# Route business apps to PostgreSQL
+# Route backend apps to PostgreSQL
 # Use the comprehensive multi-database router
 DATABASE_ROUTERS = ['core.db_router.MultiDatabaseRouter']
 
@@ -236,82 +224,14 @@ if DEBUG:
 # LOGGING
 # =============================================================================
 
-LOG_LEVEL = env('DJANGO_LOG_LEVEL', default='INFO' if not DEBUG else 'DEBUG')
-DEBUG_SQL = env.bool('DJANGO_DEBUG_SQL', default=False)
+# Configure logging settings from dedicated logging module
+# This includes log level configuration, console and file handlers,
+# and specific logger configurations for Django apps
+logging_config = configure_logging(env, BASE_DIR, DEBUG)
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'maxBytes': 1024 * 1024 * 10,  # 10 MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': LOG_LEVEL,
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console'],
-            'level': LOG_LEVEL,
-            'propagate': False,
-        },
-        'django.db.backends': {
-            'handlers': ['console'],
-            'level': 'DEBUG' if DEBUG_SQL else 'WARNING',
-            'propagate': False,
-        },
-        'django.utils.autoreload': {
-            'handlers': ['console'],
-            'level': 'WARNING',  # Reduce autoreload noise in development
-            'propagate': False,
-        },
-        'django.template': {
-            'handlers': ['console'],
-            'level': 'WARNING',  # Reduce template noise in development
-            'propagate': False,
-        },
-        'django.request': {
-            'handlers': ['console'],
-            'level': 'INFO',  # Show only important request info
-            'propagate': False,
-        },
-        'django.security': {
-            'handlers': ['console'],
-            'level': 'WARNING',  # Only show security warnings
-            'propagate': False,
-        },
-        'sanfelipe': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console'],
-            'level': LOG_LEVEL,
-            'propagate': False,
-        },
-        'tramites': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console'],
-            'level': LOG_LEVEL,
-            'propagate': False,
-        },
-    },
-}
+# Apply all logging settings to the module namespace
+for key, value in logging_config.items():
+    globals()[key] = value
 
 # =============================================================================
 # AUTHENTICATION (Django built-in)

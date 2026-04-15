@@ -42,7 +42,7 @@ class TestBackofficeAdminSite(TestCase):
         # Should see all modules
         self.assertTrue(self.admin_site.has_module_permission(request, 'auth'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'tramites'))
-        self.assertTrue(self.admin_site.has_module_permission(request, 'buzon'))
+        self.assertTrue(self.admin_site.has_module_permission(request, 'core'))
 
     def test_administrador_sees_all_modules(self) -> None:
         """Test that Administrador users can see all modules."""
@@ -66,7 +66,7 @@ class TestBackofficeAdminSite(TestCase):
         # Should see all modules
         self.assertTrue(self.admin_site.has_module_permission(request, 'auth'))
         self.assertTrue(self.admin_site.has_module_permission(request, 'tramites'))
-        self.assertTrue(self.admin_site.has_module_permission(request, 'buzon'))
+        self.assertTrue(self.admin_site.has_module_permission(request, 'core'))
 
     def test_has_permission_checks_staff_and_active(self) -> None:
         """Test that has_permission checks user is staff and active."""

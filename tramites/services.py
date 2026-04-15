@@ -5,6 +5,7 @@ Separados del modelo para facilitar testing y reutilización.
 """
 
 from django.core.exceptions import ValidationError
+from django.db import DatabaseError
 
 from .models import AsignacionTramite
 
@@ -42,11 +43,15 @@ def asignar_tramite(tramite, analista, asignado_por=None, observacion=''):
         TramiteNoAsignableError: Si el trámite no puede ser asignado
         EstadoNoPermitidoError: Si el trámite está en estado incorrecto
         ValidationError: Si hay validaciones falladas
+        DatabaseError: Si falla la creación del registro en Actividades
     """
     try:
         return AsignacionTramite.asignar(
             tramite=tramite, analista=analista, asignado_por=asignado_por, observacion=observacion
         )
+    except DatabaseError:
+        # Re-raise DatabaseError (from Actividades creation) as-is
+        raise
     except ValidationError as e:
         error_msg = str(e).lower()
 
@@ -107,7 +112,7 @@ def obtener_analista_asignado(tramite):
         User or None: El analista asignado, o None si no está asignado
     """
     try:
-        asignacion = AsignacionTramite.objects.get(tramite=tramite)
+        asignacion = AsignacionTramite.objects.get(tramite_id=tramite.id)
         return asignacion.analista
     except AsignacionTramite.DoesNotExist:
         return None
@@ -125,13 +130,13 @@ def obtener_carga_analistas():
     from django.contrib.auth import get_user_model
     from django.db.models import Count, OuterRef, Subquery
 
-    from buzon.models import AsignacionTramite
+    from tramites.models import AsignacionTramite
 
     User = get_user_model()
 
     # Count assignments using Subquery (cross-database safe)
     carga_subquery = (
-        AsignacionTramite.objects.filter(analista_id=OuterRef('id'))
+        AsignacionTramite.objects.filter(analista=OuterRef('id'))
         .annotate(total=Count('id'))
         .values('total')[:1]
     )

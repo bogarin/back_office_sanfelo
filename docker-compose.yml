@@ -33,10 +33,10 @@ services:
       # Database Configuration
       # ============================================================
       # SQLite database path (inside container) - For Django auth, admin, sessions
-      DJANGO_SQLITE_DB_PATH: /app/db.sqlite3
+      BACKOFFICE_DB_URL: /app/db.sqlite3
 
       # PostgreSQL database for legacy business data (tramites, catalogos, costos, bitacora)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-backoffice_tramites}
+      BACKEND_DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-backoffice_tramites}
 
       # ============================================================
       # Django Core Configuration

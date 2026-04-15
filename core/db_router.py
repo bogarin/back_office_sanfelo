@@ -62,7 +62,7 @@ class MultiDatabaseRouter:
 
     This router intelligently routes database operations between SQLite (for
     Django's built-in authentication and session management) and PostgreSQL
-    (for business domain models).
+    (for backend domain models).
 
     Attributes:
         AUTH_APPS: Set of Django built-in apps that use SQLite
@@ -75,7 +75,7 @@ class MultiDatabaseRouter:
         >>> router.db_for_read(User)
         'default'
         >>> router.db_for_read(Tramite)
-        'business'
+        'backend'
     """
 
     # Django built-in apps that use SQLite (auth data)
@@ -96,13 +96,12 @@ class MultiDatabaseRouter:
         {
             'tramites',
             'core',
-            'buzon',  # Buzón de Trámites - gestiona asignaciones (stores user IDs as integers)
         }
     )
 
     # Database aliases
     AUTH_DB: str = 'default'
-    BUSINESS_DB: str = 'business'
+    BUSINESS_DB: str = 'backend'
 
     def _is_auth_app(self, app_label: str) -> bool:
         """
@@ -136,7 +135,7 @@ class MultiDatabaseRouter:
             app_label: The Django app label
 
         Returns:
-            The database alias ('default' or 'business'), or None if
+            The database alias ('default' or 'backend'), or None if
             the app is not recognized
         """
         if self._is_auth_app(app_label):
@@ -164,7 +163,7 @@ class MultiDatabaseRouter:
             >>> router.db_for_read(User)
             'default'
             >>> router.db_for_read(Tramite)
-            'business'
+            'backend'
         """
         # Check hints first for model class or instance
         if 'model' in hints:
@@ -191,7 +190,7 @@ class MultiDatabaseRouter:
             >>> router.db_for_write(User)
             'default'
             >>> router.db_for_write(Tramite)
-            'business'
+            'backend'
         """
         # Check hints first for model class or instance
         if 'model' in hints:
@@ -250,7 +249,7 @@ class MultiDatabaseRouter:
         if self._is_auth_app(app_label1) and self._is_auth_app(app_label2):
             return True
 
-        # Both in business DB
+        # Both in backend DB
         if self._is_business_app(app_label1) and self._is_business_app(app_label2):
             return True
 
@@ -290,7 +289,7 @@ class MultiDatabaseRouter:
             >>> router.allow_migrate('default', 'auth', 'user')
             True
             >>> # Auth app on PostgreSQL - block migration
-            >>> router.allow_migrate('business', 'auth', 'user')
+            >>> router.allow_migrate('backend', 'auth', 'user')
             False
             >>> # Business app on any DB - block migration
             >>> router.allow_migrate('default', 'tramites', 'tramite')
@@ -298,11 +297,7 @@ class MultiDatabaseRouter:
         """
         # Business apps: handle differently
         if self._is_business_app(app_label):
-            # Special case: buzon app needs migrations on business DB
-            # (it stores user IDs as integers to avoid cross-database relations)
-            if app_label == 'buzon':
-                return db == self.BUSINESS_DB
-            # Other business apps: never migrate (managed=False, external DB)
+            # Business apps: never migrate (managed=False, external DB)
             return False
 
         # Auth apps: only migrate on SQLite (default)

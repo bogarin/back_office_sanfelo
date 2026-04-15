@@ -51,8 +51,8 @@ class SchemaValidator:
 
         self.errors: list[str] = []
         self.warnings: list[str] = []
-        # Use business connection (PostgreSQL) for schema validation
-        self.connection = connections['business']
+        # Use backend connection (PostgreSQL) for schema validation
+        self.connection = connections['backend']
 
     def get_sql_columns(self, table_name: str) -> list[dict[str, Any]]:
         """Get column information from PostgreSQL.
@@ -278,9 +278,9 @@ class SchemaValidator:
 
 def main():
     """Main entry point for schema validator."""
-    # Check if business database is PostgreSQL
-    if not settings.DATABASES.get('business', {}).get('ENGINE', '').startswith('postgresql'):
-        print('❌ Schema validation only works with PostgreSQL business database')
+    # Check if backend database is PostgreSQL
+    if not settings.DATABASES.get('backend', {}).get('ENGINE', '').startswith('postgresql'):
+        print('❌ Schema validation only works with PostgreSQL backend database')
         sys.exit(1)
 
     validator = SchemaValidator()

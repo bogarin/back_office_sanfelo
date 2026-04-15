@@ -40,25 +40,25 @@ class TestDatabaseRouter(TestCase):
         self.assertEqual(self.router.db_for_write(ContentType), 'default')
 
     def test_business_apps_routing(self) -> None:
-        """Test that business apps route to PostgreSQL (business)."""
+        """Test that business apps route to PostgreSQL (backend)."""
         try:
             from tramites.models import Actividad, Tramite
         except ImportError:
             self.skipTest('Business models not available')
 
-        # Test business models route to business DB
-        self.assertEqual(self.router.db_for_read(Tramite), 'business')
-        self.assertEqual(self.router.db_for_write(Tramite), 'business')
+        # Test business models route to backend DB
+        self.assertEqual(self.router.db_for_read(Tramite), 'backend')
+        self.assertEqual(self.router.db_for_write(Tramite), 'backend')
 
-        self.assertEqual(self.router.db_for_read(Actividad), 'business')
-        self.assertEqual(self.router.db_for_write(Actividad), 'business')
+        self.assertEqual(self.router.db_for_read(Actividad), 'backend')
+        self.assertEqual(self.router.db_for_write(Actividad), 'backend')
 
     def test_cross_db_relations_blocked(self) -> None:
         """Test that cross-database relations are blocked."""
         # Test relations within auth apps (SQLite) - should be allowed
         self.assertTrue(self.router.allow_relation(Group, Permission))
 
-        # Test relations within business apps (PostgreSQL) - should be allowed
+        # Test relations within backend apps (PostgreSQL) - should be allowed
         try:
             from tramites.models import Actividad, Tramite
 
@@ -78,17 +78,17 @@ class TestDatabaseRouter(TestCase):
         """Test that migrations are routed to the correct database."""
         # Test auth apps -> only migrate on SQLite (default)
         self.assertTrue(self.router.allow_migrate('default', 'auth'))
-        self.assertFalse(self.router.allow_migrate('business', 'auth'))
+        self.assertFalse(self.router.allow_migrate('backend', 'auth'))
 
         self.assertTrue(self.router.allow_migrate('default', 'contenttypes'))
         self.assertTrue(self.router.allow_migrate('default', 'admin'))
 
         # Test business apps -> never migrate (managed=False)
         self.assertFalse(self.router.allow_migrate('default', 'tramites'))
-        self.assertFalse(self.router.allow_migrate('business', 'tramites'))
+        self.assertFalse(self.router.allow_migrate('backend', 'tramites'))
 
         self.assertFalse(self.router.allow_migrate('default', 'core'))
-        self.assertFalse(self.router.allow_migrate('business', 'core'))
+        self.assertFalse(self.router.allow_migrate('backend', 'core'))
 
     def test_router_attributes(self) -> None:
         """Test that router attributes are correctly defined."""
@@ -101,8 +101,7 @@ class TestDatabaseRouter(TestCase):
         # Check business apps
         self.assertIn('tramites', self.router.BUSINESS_APPS)
         self.assertIn('core', self.router.BUSINESS_APPS)
-        self.assertIn('buzon', self.router.BUSINESS_APPS)
 
         # Check database aliases
         self.assertEqual(self.router.AUTH_DB, 'default')
-        self.assertEqual(self.router.BUSINESS_DB, 'business')
+        self.assertEqual(self.router.BUSINESS_DB, 'backend')

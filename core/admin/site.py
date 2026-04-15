@@ -29,7 +29,7 @@ class BackofficeAdminSite(admin.AdminSite):
         app_list = super().get_app_list(request, app_label)
 
         # Reorder apps: tramites first, then others
-        order = {'tramites': 0, 'buzon': 1}
+        order = {'tramites': 0}
         app_list.sort(key=lambda x: order.get(x['app_label'], 999))
 
         return app_list

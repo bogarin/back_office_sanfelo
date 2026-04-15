@@ -1140,7 +1140,7 @@ TTL default: 3600 segundos (1 hora)
 - `.env.production`: Ejemplo producción (versionado)
 
 **Variables críticas:**
-- `DATABASE_URL`
+- `BACKEND_DB_URL`
 - `KEYCLOAK_SERVER_URL`
 - `KEYCLOAK_REALM`
 - `KEYCLOAK_CLIENT_ID`

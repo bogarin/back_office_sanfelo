@@ -104,11 +104,13 @@ class TramiteManager(models.Manager):
     def _get_asignados_count(self) -> int:
         """Count assigned trámites via a simple COUNT on AsignacionTramite.
 
-        ``AsignacionTramite`` has a ``UniqueConstraint(fields=['tramite'])``,
+        ``AsignacionTramite`` has a ``UniqueConstraint(fields=['tramite_id'])``,
         so one row = one assigned tramite.  A plain ``COUNT(*)`` is far
         cheaper than a correlated ``EXISTS`` subquery on the ``tramite`` table.
         """
-        return apps.get_model('buzon', 'AsignacionTramite').objects.count()
+        from tramites.models import AsignacionTramite
+
+        return AsignacionTramite.objects.count()
 
     def get_asignados_count(self) -> int:
         """Get count of assigned trámites (cached).
@@ -523,3 +525,30 @@ class Tramite(models.Model):
         if self.tramite_catalogo:
             return self.tramite_catalogo.nombre
         return f'ID {self.tramite_catalogo.pk}'
+
+    def get_asignacion(self):
+        """
+        Get the AsignacionTramite for this tramite.
+
+        Cross-database lookup: This method queries SQLite for the assignment.
+
+        Returns:
+            AsignacionTramite | None: The assignment, or None if not assigned
+        """
+        from tramites.models import AsignacionTramite
+
+        try:
+            return AsignacionTramite.objects.get(tramite_id=self.id)
+        except AsignacionTramite.DoesNotExist:
+            return None
+
+    def esta_asignado(self) -> bool:
+        """
+        Check if this tramite is assigned to an analyst.
+
+        Cross-database lookup: This method checks SQLite for any assignment.
+
+        Returns:
+            bool: True if assigned, False otherwise
+        """
+        return self.get_asignacion() is not None

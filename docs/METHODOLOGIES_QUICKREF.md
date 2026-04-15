@@ -210,7 +210,7 @@ Default: `False`
 
 Set to `True` only in development. In production, always `False`.
 
-## DATABASE_URL
+## BACKEND_DB_URL
 Required: Yes
 
 PostgreSQL connection string for business data.

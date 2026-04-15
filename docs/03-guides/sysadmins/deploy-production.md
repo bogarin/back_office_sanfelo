@@ -59,7 +59,7 @@ DJANGO_DEBUG=False
 DJANGO_ALLOWED_HOSTS=backoffice.intranet.gob.sanfelipe
 
 # Database
-DATABASE_URL=postgresql://backoffice:secure_password@postgres:5432/backoffice_tramites
+BACKEND_DB_URL=postgresql://backoffice:secure_password@postgres:5432/backoffice_tramites
 
 # Redis
 REDIS_URL=redis://:6379:0
@@ -78,7 +78,7 @@ DJANGO_LOG_LEVEL=INFO
 
 > **IMPORTANTE**:
 > - `DJANGO_SECRET_KEY`: Debe ser una clave secreta fuerte. Genera una única vez y guárdala en lugar seguro.
-> - `DATABASE_URL`: Cambia `secure_password` por la contraseña real de PostgreSQL.
+> - `BACKEND_DB_URL`: Cambia `secure_password` por la contraseña real de PostgreSQL.
 > - `DJANGO_ALLOWED_HOSTS`: Lista de hosts permitidos separados por comas.
 > - NO NUNCA uses el `.env.example` directamente en producción.
 
@@ -118,7 +118,7 @@ services:
     ports:
       - "${HTTP_PORT:-8090}:8090"
     environment:
-      - DATABASE_URL
+      - BACKEND_DB_URL
       - REDIS_URL
       - DJANGO_SECRET_KEY
       - DJANGO_DEBUG
@@ -514,7 +514,7 @@ docker-compose exec backoffice python manage.py dbshell -c "SELECT 1;"
 ```
 
 **Si falla, revisa**:
-- `DATABASE_URL` en `.env`
+- `BACKEND_DB_URL` en `.env`
 - Credenciales correctas en Docker Compose
 - Firewall o reglas de seguridad
 

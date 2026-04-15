@@ -8,19 +8,13 @@ Integrates with Buzón de Trámites system for analyst assignment.
 
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
+from django.db import DatabaseError, models
 from django.db.models import Exists, OuterRef, Subquery
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from buzon.models import AsignacionTramite
-from buzon.services import (
-    EstadoNoPermitidoError,
-    TramiteNoAsignableError,
-    asignar_tramite,
-    liberar_tramite,
-)
 from core.admin import (
     ActionableReadOnlyMixin,
     BaseModelAdmin,
@@ -31,16 +25,22 @@ from core.admin import (
 )
 from core.admin_utils import (
     render_activo_badge,
-    render_badge,
     render_status_badge,
 )
 from core.rbac.constants import BackOfficeRole
 from tramites.models import (
     Actividades,
+    AsignacionTramite,
     Perito,
     Tramite,
     TramiteCatalogo,
     TramiteEstatus,
+)
+from tramites.services import (
+    EstadoNoPermitidoError,
+    TramiteNoAsignableError,
+    asignar_tramite,
+    liberar_tramite,
 )
 
 ACTION_CHECKBOX_NAME = 'action_checkbox_name'
@@ -148,10 +148,12 @@ class TramiteAssignmentFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() == 'True':
-            return queryset.filter(Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk'))))
+            return queryset.filter(
+                Exists(AsignacionTramite.objects.filter(tramite_id=OuterRef('pk')))
+            )
         if self.value() == 'False':
             return queryset.filter(
-                ~Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk')))
+                ~Exists(AsignacionTramite.objects.filter(tramite_id=OuterRef('pk')))
             )
         return queryset
 
@@ -363,7 +365,8 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         user = request.user
 
         # Annotate with estatus_id from latest Actividades (cross-database safe)
-        # Use .annotate() directly since Manager's with_estatus() isn't available on admin's queryset
+        # Use .annotate() directly since Manager's with_estatus() isn't available
+        # on admin's queryset
 
         subquery = Subquery(
             Actividades.objects.filter(tramite=OuterRef('pk'))
@@ -374,13 +377,15 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         # Annotate con flag de asignación (cross-database safe)
         queryset = queryset.annotate(
-            esta_asignado_flag=Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk'))),
+            esta_asignado_flag=Exists(AsignacionTramite.objects.filter(tramite_id=OuterRef('pk'))),
         )
 
         # Annotate con analista asignado (cross-database safe)
         queryset = queryset.annotate(
             analista_asignado_id=Subquery(
-                AsignacionTramite.objects.filter(tramite=OuterRef('pk')).values('analista_id')[:1]
+                AsignacionTramite.objects.filter(tramite_id=OuterRef('pk')).values('analista_id')[
+                    :1
+                ]
             )
         )
 
@@ -394,16 +399,14 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         # Analista: Ve SUS trámites + trámites sin asignar
         if BackOfficeRole.ANALISTA in getattr(user, 'roles', set()):
-            # Trámites asignados a este analista (usando analista_id)
+            # Trámites asignados a este analista (usando analista FK)
             tramites_mios = queryset.filter(
-                Exists(
-                    AsignacionTramite.objects.filter(tramite=OuterRef('pk'), analista_id=user.id)
-                )
+                Exists(AsignacionTramite.objects.filter(tramite_id=OuterRef('pk'), analista=user))
             )
 
             # Trámites NO asignados a NADIE (sin asignar)
             tramites_libres = queryset.filter(
-                ~Exists(AsignacionTramite.objects.filter(tramite=OuterRef('pk')))
+                ~Exists(AsignacionTramite.objects.filter(tramite_id=OuterRef('pk')))
             )
 
             # Combinar: MÍOS | SIN ASIGNAR
@@ -448,9 +451,10 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         # Fallback: single query (should rarely happen)
         try:
-            return f'👤 {User.objects.get(id=analista_id).username}'
-        except User.DoesNotExist:
-            return f'📦 ID: {analista_id}'
+            asignacion = AsignacionTramite.objects.get(tramite_id=obj.id)
+            return f'👤 {asignacion.analista.username}'
+        except AsignacionTramite.DoesNotExist:
+            return '📦 Sin Asignar'
 
     analista_asignado.short_description = 'Asignado a'
 
@@ -566,10 +570,11 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         tomados = []
         errores = []
+        errores_asignacion = []  # Track assignment failures separately
 
         for tramite in queryset:
             # Verificar que no esté asignado
-            if AsignacionTramite.objects.filter(tramite=tramite).exists():
+            if AsignacionTramite.objects.filter(tramite_id=tramite.id).exists():
                 errores.append(f'{tramite.folio}: Ya está asignado a otro analista')
                 continue
 
@@ -581,6 +586,11 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                     observacion='Auto-asignado por analista',
                 )
                 tomados.append(tramite.folio)
+            except DatabaseError as e:
+                # Actividades creation failure - rollback will happen
+                errores_asignacion.append(
+                    f'{tramite.folio}: La asignación falló. Intente nuevamente'
+                )
             except EstadoNoPermitidoError as e:
                 errores.append(f'{tramite.folio}: {str(e)}')
             except Exception as e:
@@ -588,6 +598,10 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         if tomados:
             messages.success(request, f'✅ Has tomado {len(tomados)} trámites exitosamente')
+        if errores_asignacion:
+            messages.warning(
+                request, f'⚠️ Errores de asignación: {"; ".join(errores_asignacion[:5])}'
+            )
         if errores:
             messages.warning(request, f'⚠️ Errores: {"; ".join(errores[:5])}')
 
@@ -610,6 +624,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
             asignados = []
             errores = []
+            errores_asignacion = []  # Track assignment failures separately
 
             for tramite in queryset:
                 try:
@@ -620,6 +635,11 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                         observacion=observacion,
                     )
                     asignados.append(tramite.folio)
+                except DatabaseError as e:
+                    # Actividades creation failure - rollback will happen
+                    errores_asignacion.append(
+                        f'{tramite.folio}: La asignación falló. Intente nuevamente'
+                    )
                 except EstadoNoPermitidoError as e:
                     errores.append(f'{tramite.folio}: {str(e)}')
                 except TramiteNoAsignableError as e:
@@ -630,6 +650,10 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             if asignados:
                 messages.success(
                     request, f'✅ {len(asignados)} trámites asignados a {analista.username}'
+                )
+            if errores_asignacion:
+                messages.warning(
+                    request, f'⚠️ Errores de asignación: {"; ".join(errores_asignacion[:5])}'
                 )
             if errores:
                 messages.warning(request, f'⚠️ Errores: {"; ".join(errores[:5])}')
@@ -642,7 +666,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         # Calculate load for each analyst (cross-database safe)
         analistas_con_carga = []
         for analista in analistas:
-            carga = AsignacionTramite.objects.filter(analista_id=analista.id).count()
+            carga = AsignacionTramite.objects.filter(analista=analista).count()
             analistas_con_carga.append({'analista': analista, 'carga': carga})
 
         context = {

@@ -36,7 +36,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Dummy values for collectstatic (will be overridden at runtime)
 ENV DJANGO_SECRET_KEY=dummy-build-time-secret \
-    DATABASE_URL=postgresql://user:pass@localhost/db
+    BACKEND_DB_URL=postgresql://user:pass@localhost/db
 
 # Set working directory
 WORKDIR /app
