@@ -163,7 +163,8 @@ class ModelBasedRouter:
             **hints: Additional hints that may help determine routing
 
         Returns:
-            The configured allow_migrations flag, or True if no configuration
+            True if migrations should be allowed for this model on this database,
+            False otherwise
 
         Note:
             Models with managed=False should have allow_migrations=False
@@ -171,20 +172,38 @@ class ModelBasedRouter:
             that are managed externally.
 
         Example:
-            >>> # Managed model - allow migrations
+            >>> # Managed model on correct database - allow migrations
             >>> router.allow_migrate('backend', 'myapp', 'MyModel')
             True
+            >>> # Wrong database - block migrations
+            >>> router.allow_migrate('default', 'myapp', 'MyModel')
+            False
             >>> # External model - block migrations
             >>> router.allow_migrate('backend', 'myapp', 'ExternalModel')
             False
         """
-        # Try to get the model from hints
-        if 'model' in hints:
-            model = hints['model']
-            if model is not None and isinstance(model, type):
-                config = get_model_config(model)
-                if config is not None:
-                    return config.allow_migrations
+        # Try to get the model from hints first
+        model = hints.get('model')
 
-        # If no model in hints or no configuration, allow default behavior
+        # If model not in hints or not a valid model class, try to look it up
+        if model is None or not isinstance(model, type):
+            if model_name:
+                try:
+                    from django.apps import apps
+
+                    model = apps.get_model(app_label, model_name)
+                except LookupError:
+                    # Model not found, allow default behavior
+                    return True
+
+        # Get model configuration
+        if model is not None and isinstance(model, type):
+            config = get_model_config(model)
+            if config is not None:
+                # Only allow migrations if:
+                # 1. allow_migrations is True
+                # 2. AND the database matches the model's configured db_alias
+                return config.allow_migrations and db == config.db_alias
+
+        # Unconfigured models - allow default behavior
         return True
