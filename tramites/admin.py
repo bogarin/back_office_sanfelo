@@ -6,10 +6,13 @@ with filtering, search, and bulk actions.
 Integrates with Buzón de Trámites system for analyst assignment.
 """
 
+import logging
+
 from django.contrib import admin, messages
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth import get_user_model
-from django.db import DatabaseError, models
-from django.db.models import Exists, OuterRef, Subquery
+from django.db import DatabaseError
+from django.db.models import OuterRef, Subquery
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.utils.html import format_html
@@ -25,6 +28,7 @@ from core.admin import (
 )
 from core.admin_utils import (
     render_activo_badge,
+    render_badge,
     render_status_badge,
 )
 from core.rbac.constants import BackOfficeRole
@@ -43,7 +47,9 @@ from tramites.services import (
     liberar_tramite,
 )
 
-ACTION_CHECKBOX_NAME = 'action_checkbox_name'
+logger = logging.getLogger(__name__)
+
+
 User = get_user_model()
 
 
@@ -163,6 +169,29 @@ class TramiteCanceladoFilter(admin.SimpleListFilter):
         return queryset
 
 
+# Custom list filter para 'asignado'
+class TramiteAsignadoFilter(admin.SimpleListFilter):
+    title = 'Estado de Asignación'
+    parameter_name = 'asignado'
+
+    def lookups(self, request, model_admin):
+        return [(True, 'Asignado'), (False, 'Sin asignar')]
+
+    def queryset(self, request, queryset):
+        if self.value() is None:
+            return queryset
+
+        from django.db import connections
+
+        asignaciones = AsignacionTramite.objects.using('default')
+        tramites_asignados_ids = set(asignaciones.values_list('tramite_id', flat=True))
+
+        if self.value() == 'True':
+            return queryset.filter(pk__in=tramites_asignados_ids)
+        else:
+            return queryset.exclude(pk__in=tramites_asignados_ids)
+
+
 # Custom list filter para estatus (derived from Actividades)
 class TramiteEstatusFilter(admin.SimpleListFilter):
     title = 'Estatus'
@@ -210,14 +239,16 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         'folio',
         'tramite_nombre',
         'tramite_estatus',
-        'urgente',
+        'urgencia',
         'analista_asignado',
-        'creado',
+        'ultima_actividad',
+        'creado_display',
         'acciones_disponibles',
     )
 
     # List filtering
     list_filter = (
+        TramiteAsignadoFilter,
         TramiteEstatusFilter,
         'pagado',
         'urgente',
@@ -341,16 +372,25 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         queryset = super().get_queryset(request).select_related('tramite_catalogo')
         user = request.user
 
-        # Annotate with estatus_id from latest Actividades (cross-database safe)
+        # Annotate with estatus_id and timestamp from latest Actividades (cross-database safe)
         # Use .annotate() directly since Manager's with_estatus() isn't available
         # on admin's queryset
 
-        subquery = Subquery(
+        estatus_subquery = Subquery(
             Actividades.objects.filter(tramite=OuterRef('pk'))
             .order_by('-timestamp')
             .values_list('estatus_id')[:1]
         )
-        queryset = queryset.annotate(_estatus_id=subquery)
+
+        timestamp_subquery = Subquery(
+            Actividades.objects.filter(tramite=OuterRef('pk'))
+            .order_by('-timestamp')
+            .values_list('timestamp')[:1]
+        )
+
+        queryset = queryset.annotate(
+            _estatus_id=estatus_subquery, _ultima_actividad_timestamp=timestamp_subquery
+        )
 
         # Fetch assignment data from default database (AsignacionTramite)
         # Uses Python-level filtering to avoid cross-database SQL joins
@@ -361,6 +401,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         # Build analista mapping for efficient lookup
         # Dict: {tramite_id: analista_id}
         analistas_by_tramite = dict(asignaciones.values_list('tramite_id', 'analista_id'))
+        self._analistas_by_tramite = analistas_by_tramite
 
         # Admin/Superuser: Ve TODO
         if user.is_superuser or user.is_staff:
@@ -403,35 +444,75 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
     tramite_estatus.short_description = 'Estatus'
 
+    def urgencia(self, obj: Tramite):
+        """Display urgency badge: red for urgent, green for normal."""
+        if obj.urgente:
+            return render_badge('Urgente', 'badge-danger')
+        return render_badge('Normal', 'badge-success')
+
+    urgencia.short_description = 'Urgencia'
+    urgencia.admin_order_field = 'urgente'
+
     def analista_asignado(self, obj: Tramite):
         """
         Muestra el analista asignado (o '📦 Sin Asignar').
 
-        Uses ``self._analistas_by_id`` (prefetched in ``changelist_view``)
-        for O(1) dict lookups instead of ``User.objects.get()`` per row.
-        Falls back to a single query if the dict is unavailable (edge case).
+        Uses ``self._analistas_by_tramite`` and ``self._analistas_by_id``
+        (prefetched in ``get_queryset`` and ``changelist_view``) for O(1)
+        dict lookups instead of ``User.objects.get()`` per row.
+        Falls back to a single query if the dicts are unavailable (edge case).
         """
-        analista_id = getattr(obj, 'analista_asignado_id', None)
+        # Fast path: dict lookup from prefetched assignment data
+        asignaciones_cache = getattr(self, '_analistas_by_tramite', None)
+        if asignaciones_cache is not None:
+            analista_id = asignaciones_cache.get(obj.id)
+            if not analista_id:
+                return '📦 Sin Asignar'
 
-        if not analista_id:
-            return '📦 Sin Asignar'
-
-        # Fast path: dict lookup from prefetched analysts
-        cache = getattr(self, '_analistas_by_id', None)
-        if cache is not None:
-            username = cache.get(analista_id)
-            if username:
-                return f'👤 {username}'
-            return f'📦 ID: {analista_id}'
+            # Look up username from prefetched analysts dict
+            analistas_cache = getattr(self, '_analistas_by_id', None)
+            if analistas_cache is not None:
+                username = analistas_cache.get(analista_id)
+                if username:
+                    return f'👤 {username}'
+                return f'📦 ID: {analista_id}'
 
         # Fallback: single query (should rarely happen)
         try:
             asignacion = AsignacionTramite.objects.get(tramite_id=obj.id)
-            return f'👤 {asignacion.analista.username}'
+            full_name = asignacion.analista.get_full_name() or asignacion.analista.username
+            return f'👤 {full_name}'
         except AsignacionTramite.DoesNotExist:
             return '📦 Sin Asignar'
 
     analista_asignado.short_description = 'Asignado a'
+
+    def ultima_actividad(self, obj: Tramite):
+        """
+        Display the timestamp of the latest Actividades for this Tramite.
+
+        Uses the ``_ultima_actividad_timestamp`` annotation from
+        ``get_queryset`` for O(1) access without additional queries.
+        """
+        timestamp = getattr(obj, '_ultima_actividad_timestamp', None)
+        if timestamp is None:
+            return '—'
+        return timestamp.strftime('%Y-%m-%d %I:%M %p')
+
+    ultima_actividad.short_description = 'Última Actividad'
+    ultima_actividad.admin_order_field = '_ultima_actividad_timestamp'
+
+    def creado_display(self, obj: Tramite):
+        """
+        Display creado timestamp with consistent formatting.
+
+        Uses the model's ``creado_formatted`` property for
+        consistent formatting with ultima_actividad column.
+        """
+        return obj.creado_formatted
+
+    creado_display.short_description = 'Creado'
+    creado_display.admin_order_field = 'creado'
 
     actions = (
         'tomar_seleccionados',
@@ -611,16 +692,19 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                     )
                     asignados.append(tramite.folio)
                 except DatabaseError as e:
+                    logger.error(
+                        f'Error al asignar trámite {tramite.id} a analista {analista.id}: {e}'
+                    )
                     # Actividades creation failure - rollback will happen
                     errores_asignacion.append(
                         f'{tramite.folio}: La asignación falló. Intente nuevamente'
                     )
                 except EstadoNoPermitidoError as e:
-                    errores.append(f'{tramite.folio}: {str(e)}')
+                    errores.append(f'{tramite.folio}: {e}')
                 except TramiteNoAsignableError as e:
-                    errores.append(f'{tramite.folio}: {str(e)}')
+                    errores.append(f'{tramite.folio}: {e}')
                 except Exception as e:
-                    errores.append(f'{tramite.folio}: Error inesperado - {str(e)}')
+                    errores.append(f'{tramite.folio}: Error inesperado - {e}')
 
             if asignados:
                 messages.success(
@@ -695,9 +779,11 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         # Prefetch analysts for analista_asignado column (cross-database safe):
         # one query here instead of User.objects.get() per row.
-        self._analistas_by_id = dict(
-            User.objects.filter(groups__name='Analista').values_list('id', 'username')
-        )
+        # Store full_name for better display
+        self._analistas_by_id = {
+            user.id: user.get_full_name() or user.username
+            for user in User.objects.filter(groups__name='Analista')
+        }
 
         # Use cached statistics from TramiteManager (much faster!)
         stats = Tramite.objects.get_statistics()

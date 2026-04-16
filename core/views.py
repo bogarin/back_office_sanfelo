@@ -5,13 +5,23 @@ This module contains main views for Backoffice San Felipe.
 Following Django's best practices with proper separation of concerns.
 """
 
+from django.contrib import messages
 from django.contrib.auth.models import Group, User
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
 
 from core.rbac.constants import BackOfficeRole
+from tramites.models import (
+    Actividad,
+    Categoria,
+    Perito,
+    Requisito,
+    Tipo,
+    TramiteCatalogo,
+    TramiteEstatus,
+)
 
 
 def health_check(request: HttpRequest) -> HttpResponse:
@@ -124,16 +134,6 @@ def invalidate_catalog_cache(request: HttpRequest) -> HttpResponse:
     if not is_admin:
         return HttpResponseForbidden('Permiso denegado.')
 
-    from tramites.models import (
-        Actividad,
-        Categoria,
-        Perito,
-        Requisito,
-        Tipo,
-        TramiteCatalogo,
-        TramiteEstatus,
-    )
-
     catalog_models = [
         TramiteCatalogo,
         TramiteEstatus,
@@ -146,8 +146,6 @@ def invalidate_catalog_cache(request: HttpRequest) -> HttpResponse:
 
     for model in catalog_models:
         model.objects.invalidate_cache()
-
-    from django.contrib import messages
 
     messages.success(request, 'Caché de catálogos invalidada correctamente.')
     return HttpResponseRedirect(reverse_lazy('admin:index'))

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Servicios para gestión de asignaciones de trámites.
 
@@ -6,8 +8,13 @@ Separados del modelo para facilitar testing y reutilización.
 
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError
+from typing import TYPE_CHECKING
 
 from .models import AsignacionTramite
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import User
+    from tramites.models import Tramite
 
 
 class AsignacionError(Exception):
@@ -26,7 +33,12 @@ class EstadoNoPermitidoError(AsignacionError):
     """El trámite está en un estado que no permite asignación."""
 
 
-def asignar_tramite(tramite, analista, asignado_por=None, observacion=''):
+def asignar_tramite(
+    tramite: Tramite,
+    analista: User,
+    asignado_por: User | None = None,
+    observacion: str = '',
+) -> AsignacionTramite:
     """
     Asigna un trámite a un analista.
 

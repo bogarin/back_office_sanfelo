@@ -194,8 +194,6 @@ class TramiteManager(models.Manager):
         if cached is not None:
             return cached
 
-
-
         subquery = Subquery(
             Actividades.objects.filter(tramite=OuterRef('pk'))
             .order_by('-timestamp')
@@ -519,3 +517,8 @@ class Tramite(models.Model):
         if self.tramite_catalogo:
             return self.tramite_catalogo.nombre
         return f'ID {self.tramite_catalogo.pk}'
+
+    @property
+    def creado_formatted(self) -> str:
+        """Format creado timestamp as YYYY-MM-DD HH:MM AM/PM."""
+        return self.creado.strftime('%Y-%m-%d %I:%M %p')

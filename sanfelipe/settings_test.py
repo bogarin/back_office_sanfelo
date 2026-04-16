@@ -33,6 +33,10 @@ DATABASES = {
     }
 }
 
+# Import DATABASES from base settings
+# This ensures we have access to the database configuration
+DATABASES_SETTINGS_IMPORTED = True
+
 # Use ModelBasedRouter to test routing logic
 # Set to empty list [] if you want to bypass routing entirely
 DATABASE_ROUTERS = ['core.db_router.ModelBasedRouter']
