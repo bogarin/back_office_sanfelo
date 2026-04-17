@@ -1,75 +1,102 @@
 {% extends "admin/base_site.html" %}
 
-{% block extrastyle %}
-<style>
-    .assignment-form {
-        max-width: 600px;
-        margin: 20px 0;
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background-color: #f9f9f9;
-    }
-    .assignment-form label {
-        font-weight: bold;
-        margin-bottom: 10px;
-        display: block;
-    }
-    .assignment-form select,
-    .assignment-form textarea {
-        width: 100%;
-        padding: 8px;
-        margin-bottom: 15px;
-    }
-    .assignment-form .button {
-        margin-right: 10px;
-    }
-    .tramites-list {
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        padding: 10px;
-        margin-bottom: 20px;
-        background-color: white;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<h1>👤 Asignar trámites seleccionados</h1>
+<div class="container-fluid mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-user-plus mr-2"></i>Asignar trámites seleccionados
+            </h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Columna izquierda: Lista de trámites -->
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-list-alt mr-1"></i>
+                        Trámites a asignar ({{ queryset|length }})
+                    </h6>
 
-<div class="assignment-form">
-    <h2>Trámites a asignar ({{ queryset|length }}):</h2>
-    <div class="tramites-list">
-        <ul>
-            {% for tramite in queryset %}
-                <li><strong>{{ tramite.folio }}</strong> - {{ tramite.nom_sol }}</li>
-            {% endfor %}
-        </ul>
+                    <div class="list-group list-group-horizontal-lg">
+                        <div class="list-group-item col-3 font-weight-bold bg-light">
+                            Folio
+                        </div>
+                        <div class="list-group-item col-2 font-weight-bold bg-light text-center">
+                            Urgencia
+                        </div>
+                        <div class="list-group-item col-7 font-weight-bold bg-light">
+                            Trámite
+                        </div>
+                    </div>
+
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        {% for tramite in queryset %}
+                        <div class="list-group list-group-horizontal">
+                            <div class="list-group-item col-3">
+                                <strong>{{ tramite.folio }}</strong>
+                            </div>
+                            <div class="list-group-item col-2 text-center">
+                                {% if tramite.urgente %}
+                                    <span class="badge badge-danger">Urgente</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">Normal</span>
+                                {% endif %}
+                            </div>
+                            <div class="list-group-item col-7">
+                                {{ tramite.tramite_nombre|truncatewords:8 }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Columna derecha: Formulario de asignación -->
+                <div class="col-md-6">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="asignar_seleccionados">
+                        {% for item in queryset %}
+                            <input type="hidden" name="{{ action_checkbox_name }}" value="{{ item.pk }}">
+                        {% endfor %}
+
+                        <div class="form-group">
+                            <label for="analista" class="font-weight-bold">
+                                <i class="fas fa-user mr-1"></i>Analista:
+                            </label>
+                            <select name="analista" id="analista" class="form-control custom-select" required>
+                                <option value="">-- Seleccionar analista --</option>
+                                {% for item in analistas %}
+                                    <option value="{{ item.id }}">
+                                        {{ item.first_name }} {{ item.last_name }} ({{ item.username }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="observacion" class="font-weight-bold">
+                                <i class="fas fa-comment mr-1"></i>Observación (opcional):
+                            </label>
+                            <textarea
+                                name="observacion"
+                                id="observacion"
+                                rows="3"
+                                class="form-control"
+                                placeholder="Ej: Prioridad alta, cliente VIP, etc."></textarea>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <button type="submit" class="btn btn-success mr-2">
+                                <i class="fas fa-check mr-1"></i>Asignar
+                            </button>
+                            <a href=".." class="btn btn-secondary">
+                                <i class="fas fa-times mr-1"></i>Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="asignar_seleccionados">
-        {% for item in queryset %}
-            <input type="hidden" name="{{ action_checkbox_name }}" value="{{ item.pk }}">
-        {% endfor %}
-
-        <label for="analista">Analista:</label>
-        <select name="analista" id="analista" required>
-            <option value="">-- Seleccionar analista --</option>
-            {% for item in analistas_con_carga %}
-                <option value="{{ item.analista.id }}">
-                    {{ item.analista.username }} ({{ item.carga }} asignados)
-                </option>
-            {% endfor %}
-        </select>
-
-        <label for="observacion">Observación (opcional):</label>
-        <textarea name="observacion" id="observacion" rows="3" placeholder="Ej: Prioridad alta, cliente VIP, etc."></textarea>
-
-        <button type="submit" class="button">✅ Asignar</button>
-        <a href=".." class="button">❌ Cancelar</a>
-    </form>
 </div>
 {% endblock %}

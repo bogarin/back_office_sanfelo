@@ -80,6 +80,18 @@ class TramiteEstatus(models.Model):
     def __str__(self) -> str:
         return self.estatus
 
+    @classmethod
+    def get_en_revision(cls):
+        """Obtiene la instancia de estatus EN_REVISION (id=202).
+
+        Este método es un helper para simplificar la lógica de asignación
+        de trámites. Usa caché del manager para evitar queries repetidas.
+
+        Returns:
+            TramiteEstatus: La instancia de estatus con id=202
+        """
+        return cls.objects.get_cached(202)
+
 
 @register_model('backend', AccessPattern.READ_ONLY, False)
 class Perito(models.Model):

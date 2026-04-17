@@ -1,9 +1,3 @@
-"""Tramites models package.
-
-All models are in submodules for organization, but re-exported here
-for convenient importing: ``from tramites.models import Tramite``.
-"""
-
 from .actividades import Actividades
 from .asignacion import AsignacionTramite
 from .catalogos import (
@@ -22,10 +16,16 @@ from .relaciones import (
     TramiteCatalogoTipoRequisito,
 )
 from .tramite import Tramite
+from .tramite_unificado import TramiteUnificado
+from ..exceptions import (
+    TramiteNoAsignableError,
+    EstadoNoPermitidoError,
+)
 
 __all__ = [
     # Core
     'Tramite',
+    'TramiteUnificado',
     # Catálogos
     'TramiteCatalogo',
     'TramiteEstatus',
