@@ -11,7 +11,7 @@ delete) at the ORM level to ensure data integrity.
 from django.db import models
 
 from core.managers import ReadOnlyManager
-from core.model_config import register_model, AccessPattern
+from core.model_config import AccessPattern, register_model
 
 
 @register_model('backend', AccessPattern.READ_ONLY, False)
@@ -60,6 +60,42 @@ class TramiteEstatus(models.Model):
     Routed to backend database with read-only access. All write operations
     are prevented to maintain data integrity of this reference table.
     """
+
+    class Estatus(models.IntegerChoices):
+        BORRADOR = 101, 'BORRADOR'
+        PENDIENTE_PAGO = 102, 'PENDIENTE PAGO'
+        PAGO_EXPIRADO = 103, 'PAGO EXPIRADO'
+
+        PRESENTADO = 201, 'PRESENTADO'
+        EN_REVISION = 202, 'EN REVISIÓN'
+        REQUERIMIENTO = 203, 'REQUERIMIENTO'
+        SUBSANADO = 204, 'SUBSANADO'
+        EN_DILIGENCIA = 205, 'EN DILIGENCIA'
+
+        POR_RECOGER = 301, 'POR RECOGER'
+        RECHAZADO = 302, 'RECHAZADO'
+        FINALIZADO = 303, 'FINALIZADO'
+        CANCELADO = 304, 'CANCELADO'
+
+        @classmethod
+        def es_activo(cls, estatus: int) -> bool:
+            return estatus in (
+                cls.PRESENTADO,
+                cls.EN_REVISION,
+                cls.REQUERIMIENTO,
+                cls.SUBSANADO,
+                cls.EN_DILIGENCIA,
+            )
+
+        @classmethod
+        def finalizados(cls):
+            return (
+                cls.POR_RECOGER,
+                cls.RECHAZADO,
+                cls.FINALIZADO,
+                cls.CANCELADO,
+                cls.PAGO_EXPIRADO,
+            )
 
     objects = ReadOnlyManager()
 

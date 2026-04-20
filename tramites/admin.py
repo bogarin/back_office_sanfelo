@@ -6,6 +6,8 @@ with filtering, search, and bulk actions.
 Integrates with Buzón de Trámites system for analyst assignment.
 """
 
+from typing import Final
+
 import logging
 
 from django.contrib import admin, messages
@@ -32,6 +34,11 @@ from core.admin_utils import (
     render_status_badge,
 )
 from core.rbac.constants import BackOfficeRole
+from tramites.exceptions import (
+    EstadoNoPermitidoError,
+    TramiteNoAsignableError,
+)
+from tramites.forms import TramiteDetailForm
 from tramites.models import (
     Actividades,
     AsignacionTramite,
@@ -40,12 +47,7 @@ from tramites.models import (
     TramiteCatalogo,
     TramiteEstatus,
 )
-from tramites.models.tramite_unificado import Abiertos
-from tramites.models.tramite_unificado import TramiteUnificado
-from tramites.exceptions import (
-    EstadoNoPermitidoError,
-    TramiteNoAsignableError,
-)
+from tramites.models.tramite_unificado import Abiertos, Asignados, Finalizados
 
 logger = logging.getLogger(__name__)
 
@@ -56,66 +58,6 @@ User = get_user_model()
 # =============================================================================
 # Catalog Admins (migrated from catalogos app)
 # =============================================================================
-
-
-# Perito model - kept for internal use, not registered in admin
-# @admin.register(Perito)
-class PeritoAdmin(ReadOnlyModelAdmin, RoleBasedAccessMixin):
-    """Admin interface for Perito model."""
-
-    list_display = (
-        'nombre_completo',
-        'telefono',
-        'correo',
-        'estatus',
-        'estatus_badge',
-        'cedula',
-    )
-    list_filter = ('estatus',)
-    search_fields = ('nombre', 'paterno', 'materno', 'correo', 'cedula', 'rfc')
-    list_editable = ('estatus',)
-    actions = (mark_as_active, mark_as_inactive)
-
-    fieldsets = (
-        (
-            'Información Personal',
-            {
-                'fields': (
-                    ('nombre', 'paterno', 'materno'),
-                    ('rfc', 'cedula'),
-                ),
-            },
-        ),
-        (
-            'Contacto',
-            {
-                'fields': (
-                    'telefono',
-                    'celular',
-                    'correo',
-                    'domicilio',
-                    'colonia',
-                ),
-            },
-        ),
-        (
-            'Configuración',
-            {
-                'fields': (
-                    'estatus',
-                    ('fecha_registro', 'revalidacion'),
-                ),
-            },
-        ),
-    )
-
-    def estatus_badge(self, obj):
-        """Display estatus status as badge."""
-        return render_activo_badge(obj.estatus)
-
-    estatus_badge.short_description = 'Estado'
-    estatus_badge.admin_order_field = 'estatus'
-    estatus_badge.allow_tags = True
 
 
 @admin.register(Actividades)
@@ -838,6 +780,42 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         return form
 
 
+# =============================================================================
+# Custom List Filter para TramiteUnificado
+# =============================================================================
+
+
+class AsignadoUserFilter(admin.SimpleListFilter):
+    """
+    Filter to show only trámites assigned to a user, None and current Logged-In user.
+    """
+
+    title = 'Analista Asignado'
+    parameter_name = 'analista'
+
+    def lookups(self, request, model_admin):
+        users = User.objects.filter(groups__name='Analista')
+        options = [
+            ('', 'Todos'),
+            ('_none', 'Sin Asignar'),
+            ('_user', 'Asignados a mí'),
+        ]
+        options.extend([(str(user.id), user.get_full_name() or user.username) for user in users])
+        return options
+
+    def queryset(self, request, queryset):
+        match self.value():
+            case None:
+                qset = queryset
+            case '_none':
+                qset = queryset.filter(asignado_user_id__isnull=True)
+            case '_user':
+                qset = queryset.filter(asignado_user_id=request.user.id)
+            case _:
+                qset = queryset.filter(asignado_user_id=int(self.value()))
+        return qset
+
+
 class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
     # Lista de columnas en la tabla
     list_display = (
@@ -1071,7 +1049,8 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             # Mostrar resultados
             if asignados:
                 messages.success(
-                    request, f'✅ {len(asignados)} trámites asignados a 👤 {analista.get_full_name()}'
+                    request,
+                    f'✅ {len(asignados)} trámites asignados a 👤 {analista.get_full_name()}',
                 )
 
             if omitidos:
@@ -1091,6 +1070,63 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             'action_name': 'asignar_seleccionados',
         }
         return render(request, 'admin/asignar_tramites.html', context)
+
+    def change_view(self, request, object_id, extra_context=None):
+        """
+        Override para usar template personalizado de detalle de trámite.
+
+        Muestra:
+        - Información completa del trámite (readonly)
+        - Historial de actividades (via tramite.actividades property)
+        - Documentos PDF desde SFTP (via tramite.requisitos property - MOCK)
+        - Acciones disponibles (requerir documentos, en diligencia, finalizar)
+        """
+
+        tramite = self.get_object(request, object_id)
+
+        if not tramite:
+            messages.error(request, '❌ Trámite no encontrado')
+            return redirect('admin:index')
+
+        # Procesar acciones POST (requerir, diligencia, finalizar)
+        if request.method == 'POST':
+            form = TramiteDetailForm(request.POST)
+            if form.is_valid():
+                action = request.POST.get('action')
+                observacion = form.cleaned_data['observacion']
+
+                try:
+                    if action == 'requerir_documentos':
+                        tramite.requerir_documentos(analista=request.user, observacion=observacion)
+                        messages.success(request, '✅ Requerimiento de documentos registrado')
+                    elif action == 'en_diligencia':
+                        tramite.en_diligencia(analista=request.user, observacion=observacion)
+                        messages.success(request, '✅ Trámite puesto en diligencia')
+                    elif action == 'finalizar':
+                        tramite.finalizar(analista=request.user, observacion=observacion)
+                        messages.success(request, '✅ Trámite finalizado')
+
+                    return redirect(request.get_full_path())
+
+                except (TramiteNoAsignableError, EstadoNoPermitidoError, ValueError) as e:
+                    messages.error(request, f'❌ {str(e)}')
+                except Exception as e:
+                    logger.error(f'Error procesando acción en trámite {tramite.folio}: {e}')
+                    messages.error(request, '❌ Error al procesar la acción')
+        else:
+            form = TramiteDetailForm()
+
+        context = {
+            'tramite': tramite,
+            'form': form,
+            'opts': self.model._meta,
+            'is_popup': False,
+            'has_change_permission': True,
+            'has_view_permission': True,
+            **(extra_context or {}),
+        }
+
+        return render(request, 'admin/tramite_detail.html', context)
 
     @admin.action(description='🔄 Reasignar trámites seleccionados')
     def reasignar_seleccionados(self, request: HttpRequest, queryset) -> HttpResponse:
@@ -1120,5 +1156,38 @@ class TramitesAbiertosAdmin(TramiteBaseAdmin):
         return (
             super()
             .get_queryset(request)
-            .filter(ultima_actividad_estatus_id__gte=200, ultima_actividad_estatus_id__lt=300)
+            .filter(
+                ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.PRESENTADO.value,
+                ultima_actividad_estatus_id__lt=TramiteEstatus.Estatus.FINALIZADO.value,
+            )
+        )
+
+
+@admin.register(Asignados)
+class TramitesAsignadosAdmin(TramitesAbiertosAdmin):
+    """
+    Admin para ver trámites abiertos y asignados.
+
+    Supports optional ?current_user=True query parameter via CurrentUserFilter
+    to only show trámites assigned to current logged-in user.
+    """
+
+    # Include CurrentUserFilter in list_filter to allow ?current_user=True parameter
+    list_filter = (AsignadoUserFilter,)
+
+
+@admin.register(Finalizados)
+class TramitesFinalizadosAdmin(TramiteBaseAdmin):
+    def get_queryset(self, request):
+        """
+        Filter to only show trámites with estatus 200-299.
+
+        Range: 200 <= ultima_actividad_estatus_id < 300
+        """
+        return (
+            super()
+            .get_queryset(request)
+            .filter(
+                ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.FINALIZADO.value,
+            )
         )

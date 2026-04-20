@@ -13,7 +13,7 @@ urlpatterns = [
         name='sin-asignar',
     ),
     path(
-        'asignados/',
+        'asignados-old/',
         RedirectView.as_view(
             url=reverse_lazy('admin:tramites_tramite_changelist', query={'asignado': 'True'}),
             permanent=True,
@@ -21,7 +21,7 @@ urlpatterns = [
         name='asignados',
     ),
     path(
-        'finalizados/',
+        'finalizados-old/',
         RedirectView.as_view(
             url=reverse_lazy('admin:tramites_tramite_changelist', query={'finalizado': 'True'}),
             permanent=True,
@@ -29,7 +29,7 @@ urlpatterns = [
         name='finalizados',
     ),
     path(
-        'cancelados/',
+        'cancelados-old/',
         RedirectView.as_view(
             url=reverse_lazy('admin:tramites_tramite_changelist', query={'cancelado': 'True'}),
             permanent=True,

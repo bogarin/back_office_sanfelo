@@ -13,7 +13,9 @@ import environ
 
 from .security import configure_security
 from .tenancy import configure_tenancy
+from .jazzmin import configure_jazzmin
 from .logging import configure_logging
+from .sftp import configure_sftp
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # settings/ is now a package, so we need to go up 3 levels instead of 2
@@ -57,6 +59,18 @@ tenancy_config = configure_tenancy(env)
 
 # Apply all tenancy settings to the module namespace
 for key, value in tenancy_config.items():
+    globals()[key] = value
+
+# =============================================================================
+# JAZZMIN SETTINGS
+# =============================================================================
+
+# Configure Jazzmin settings from dedicated jazzmin module
+# This includes admin UI customization, branding, and navigation
+jazzmin_config = configure_jazzmin(tenancy_config)
+
+# Apply Jazzmin settings to the module namespace
+for key, value in jazzmin_config.items():
     globals()[key] = value
 
 # =============================================================================
@@ -138,24 +152,13 @@ ASGI_APPLICATION = 'sanfelipe.asgi.application'
 # Backend tables are managed externally (managed=False), so Django won't
 # create or modify them - it only reads/writes to existing PostgreSQL tables.
 
-db = env.db("POSTGRESQL_DB_URL")
+db = env.db('POSTGRESQL_DB_URL')
 backoffice_schema = env('BACKOFFICE_DB_SCHEMA', default='backoffice')
 backend_schema = env('BACKEND_DB_SCHEMA', default='public')
 
 DATABASES = {
-    'default': {
-        **db,
-        'OPTIONS': {
-            'options': f'-c search_path={backoffice_schema}'
-        }
-    }
-    ,
-    'backend': {
-        **db,
-        'OPTIONS': {
-            'options': f'-c search_path={backend_schema}'
-        }
-    },
+    'default': {**db, 'OPTIONS': {'options': f'-c search_path={backoffice_schema}'}},
+    'backend': {**db, 'OPTIONS': {'options': f'-c search_path={backend_schema}'}},
 }
 
 # Route backend apps to PostgreSQL
@@ -243,6 +246,28 @@ logging_config = configure_logging(env, BASE_DIR, DEBUG)
 # Apply all logging settings to the module namespace
 for key, value in logging_config.items():
     globals()[key] = value
+
+# =============================================================================
+# SFTP STORAGE SETTINGS
+# =============================================================================
+
+# Configure SFTP storage settings from dedicated SFTP module
+# This includes connection settings, remote directory paths,
+# and django-storages SFTP backend configuration
+sftp_config = configure_sftp(env)
+
+# Apply all SFTP settings to the module namespace
+for key, value in sftp_config.items():
+    if key != 'SFTP_STORAGE_CONFIG':
+        globals()[key] = value
+
+# Merge SFTP storage into STORAGES without overwriting existing backends
+if 'STORAGES' not in globals():
+    from django.conf.global_settings import STORAGES as DEFAULT_STORAGES
+
+    globals()['STORAGES'] = DEFAULT_STORAGES.copy()
+
+globals()['STORAGES']['sftp'] = sftp_config.get('SFTP_STORAGE_CONFIG')
 
 # =============================================================================
 # AUTHENTICATION (Django built-in)

@@ -9,3 +9,4 @@ class TramiteNoAsignableError(Exception):
 
 class EstadoNoPermitidoError(Exception):
     """El trámite está en un estado que no permite asignación."""
+
