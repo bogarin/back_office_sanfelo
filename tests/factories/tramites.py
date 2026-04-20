@@ -6,15 +6,15 @@ from tests.factories.catalogos import TramiteEstatusFactory
 
 
 class TramiteFactory(factory.django.DjangoModelFactory):
-    """Factory for Tramite model.
+    """Factory for TramiteLegacy model.
 
-    Creates a Tramite without Actividades (estatus is derived from
+    Creates a TramiteLegacy without Actividades (estatus is derived from
     Actividades). Use ``TramiteWithEstatusFactory`` or manually
     create ``Actividades`` when you need a specific estatus.
     """
 
     class Meta:
-        model = 'tramites.Tramite'
+        model = 'tramites.TramiteLegacy'
 
     folio = factory.Sequence(lambda n: f'TRAM-{n:06d}')
     tramite_catalogo = factory.SubFactory('tests.factories.TramiteCatalogoFactory')
@@ -31,9 +31,9 @@ class TramiteFactory(factory.django.DjangoModelFactory):
 
 
 class TramiteWithEstatusFactory(factory.django.DjangoModelFactory):
-    """Factory for Tramite with an Actividades record (sets estatus).
+    """Factory for TramiteLegacy with an Actividades record (sets estatus).
 
-    Creates a Tramite AND an Actividades record with the specified
+    Creates a TramiteLegacy AND an Actividades record with the specified
     estatus. This is needed because estatus is now derived from
     the latest Actividades record.
 
@@ -49,7 +49,7 @@ class TramiteWithEstatusFactory(factory.django.DjangoModelFactory):
     """
 
     class Meta:
-        model = 'tramites.Tramite'
+        model = 'tramites.TramiteLegacy'
         exclude = ['estatus', 'estatus_id']
 
     # Model fields

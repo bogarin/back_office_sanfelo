@@ -216,8 +216,11 @@ uv run python manage.py shell --interface bpython
 **Ejemplo de uso:**
 ```python
 # Dentro de la shell Django
->>> from tramites.models import Tramite
+>>> from tramites.models import Tramite, TramiteLegacy
 >>> Tramite.objects.count()
+42
+
+>>> TramiteLegacy.objects.count()
 42
 
 >>> from catalogos.models import CatTramite
@@ -314,7 +317,7 @@ catalogos/
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from datetime import timedelta
-from tramites.models import Tramite
+from tramites.models import TramiteLegacy
 
 
 class Command(BaseCommand):
@@ -330,12 +333,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         dry_run = options['dry_run']
         cutoff_date = timezone.now() - timedelta(days=365)
-        
-        queryset = Tramite.objects.filter(creado__lt=cutoff_date)
+
+        queryset = TramiteLegacy.objects.filter(creado__lt=cutoff_date)
         count = queryset.count()
 
         self.stdout.write(f"Trámites a eliminar: {count}")
-        
+
         if not dry_run:
             deleted_count, _ = queryset.delete()
             self.stdout.write(f"Eliminados: {deleted_count}")
@@ -361,7 +364,7 @@ import csv
 
 
 class Command(BaseCommand):
-    """Exporta trámites a archivo CSV."""
+    """Exporta trámites a archivo CSV usando la vista unificada."""
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -373,9 +376,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         output_file = options['output']
-        
+
+        # Usar Tramite (vista unificada) para export con campos denormalizados
         queryset = Tramite.objects.all()
-        
+
         with open(output_file, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             
@@ -505,7 +509,8 @@ just validate-schema
 SCHEMA VALIDATION REPORT
 ============================================================
 
-Validating: Tramite → tramite
+Validating: Tramite → v_tramites_unificado
+Validating: TramiteLegacy → tramite
 Validating: CatTramite → cat_tramite
 Validating: Bitacora → bitacora
 

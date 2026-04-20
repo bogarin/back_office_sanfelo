@@ -14,7 +14,7 @@ from .models import AsignacionTramite
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import User
-    from tramites.models import Tramite
+    from tramites.models import TramiteLegacy
 
 
 class AsignacionError(Exception):
@@ -34,7 +34,7 @@ class EstadoNoPermitidoError(AsignacionError):
 
 
 def asignar_tramite(
-    tramite: Tramite,
+    tramite: TramiteLegacy,
     analista: User,
     asignado_por: User | None = None,
     observacion: str = '',
@@ -43,7 +43,7 @@ def asignar_tramite(
     Asigna un trámite a un analista.
 
     Args:
-        tramite: Instancia de Tramite (de BD legacy)
+        tramite: Instancia de TramiteLegacy (de BD legacy)
         analista: Instancia de User
         asignado_por: Instancia de User (opcional)
         observacion: Texto opcional
@@ -90,7 +90,7 @@ def liberar_tramite(tramite):
     Libera un trámite.
 
     Args:
-        tramite: Instancia de Tramite
+        tramite: Instancia de TramiteLegacy
     """
     AsignacionTramite.liberar(tramite)
 
@@ -102,7 +102,7 @@ def reasignar_tramite(tramite, nuevo_analista, reasignado_por=None, observacion=
     Esencialmente lo mismo que asignar, pero más explícito en el nombre.
 
     Args:
-        tramite: Instancia de Tramite
+        tramite: Instancia de TramiteLegacy
         nuevo_analista: Instancia de User
         reasignado_por: Instancia de User (opcional)
         observacion: Texto opcional
@@ -118,7 +118,7 @@ def obtener_analista_asignado(tramite):
     Obtiene el analista asignado a un trámite.
 
     Args:
-        tramite: Instancia de Tramite
+        tramite: Instancia de TramiteLegacy
 
     Returns:
         User or None: El analista asignado, o None si no está asignado

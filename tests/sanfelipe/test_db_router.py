@@ -38,14 +38,14 @@ class TestDatabaseRouter(TestCase):
     def test_business_models_routing(self) -> None:
         """Test that business models route to backend database based on @register_model configuration."""
         try:
-            from tramites.models import Actividad, Tramite, AsignacionTramite
+            from tramites.models import Actividad, TramiteLegacy, AsignacionTramite
             from core.model_config import get_model_config
         except ImportError:
             self.skipTest('Business models not available')
 
-        # Test Tramite routes to backend (READ_ONLY)
-        self.assertEqual(self.router.db_for_read(Tramite), 'backend')
-        self.assertEqual(self.router.db_for_write(Tramite), 'backend')
+        # Test TramiteLegacy routes to backend (READ_ONLY)
+        self.assertEqual(self.router.db_for_read(TramiteLegacy), 'backend')
+        self.assertEqual(self.router.db_for_write(TramiteLegacy), 'backend')
 
         # Test Actividad routes to backend (READ_ONLY)
         self.assertEqual(self.router.db_for_read(Actividad), 'backend')
@@ -56,7 +56,7 @@ class TestDatabaseRouter(TestCase):
         self.assertEqual(self.router.db_for_write(AsignacionTramite), 'default')
 
         # Verify model configurations
-        tramite_config = get_model_config(Tramite)
+        tramite_config = get_model_config(TramiteLegacy)
         self.assertIsNotNone(tramite_config)
         self.assertEqual(tramite_config.db_alias, 'backend')
 
@@ -71,34 +71,34 @@ class TestDatabaseRouter(TestCase):
     def test_cross_db_relations_blocked(self) -> None:
         """Test that cross-database relations are blocked."""
         try:
-            from tramites.models import Actividad, Tramite, AsignacionTramite
+            from tramites.models import Actividad, TramiteLegacy, AsignacionTramite
         except ImportError:
             self.skipTest('Business models not available')
 
         # Test relations within backend apps (PostgreSQL) - should be allowed
-        self.assertTrue(self.router.allow_relation(Tramite, Actividad))
+        self.assertTrue(self.router.allow_relation(TramiteLegacy, Actividad))
 
         # Test relations within default apps - should be allowed
         self.assertTrue(self.router.allow_relation(Group, Permission))
 
         # Test cross-database relations - should be blocked
-        # Tramite (backend) with Group (default)
-        self.assertFalse(self.router.allow_relation(Tramite, Group))
+        # TramiteLegacy (backend) with Group (default)
+        self.assertFalse(self.router.allow_relation(TramiteLegacy, Group))
 
-        # AsignacionTramite (default) with Tramite (backend)
-        self.assertFalse(self.router.allow_relation(AsignacionTramite, Tramite))
+        # AsignacionTramite (default) with TramiteLegacy (backend)
+        self.assertFalse(self.router.allow_relation(AsignacionTramite, TramiteLegacy))
 
     def test_migration_routing(self) -> None:
         """Test that migrations are routed correctly based on model configuration."""
         try:
-            from tramites.models import Actividad, Tramite, AsignacionTramite
+            from tramites.models import Actividad, TramiteLegacy, AsignacionTramite
             from core.model_config import get_model_config
             from core.model_config import AccessPattern
         except ImportError:
             self.skipTest('Business models not available')
 
         # Test READ_ONLY models - should not allow migrations
-        tramite_config = get_model_config(Tramite)
+        tramite_config = get_model_config(TramiteLegacy)
         self.assertIsNotNone(tramite_config)
         self.assertEqual(tramite_config.access_pattern, AccessPattern.READ_ONLY)
         self.assertFalse(tramite_config.allow_migrations)

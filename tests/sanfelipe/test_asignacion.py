@@ -21,7 +21,7 @@ pero la estructura de BD es diferente.
 import pytest
 from django.test import TestCase
 from django.db import connections
-from tramites.models import AsignacionTramite, Tramite
+from tramites.models import AsignacionTramite, TramiteLegacy
 from tramites.services import (
     asignar_tramite,
     liberar_tramite,
@@ -39,7 +39,7 @@ class TestAsignacionTramite(TestCase):
 
     def setUp(self):
         """Configurar datos de prueba."""
-        self.tramite = Tramite.objects.create(
+        self.tramite = TramiteLegacy.objects.create(
             folio='TEST-001',
             tramite_catalogo_id=1,
             nom_sol='Test Solicitante',
@@ -148,7 +148,7 @@ class TestAsignacionTramite(TestCase):
     def test_asignar_con_estatus_no_permitido(self):
         """Test: Error al asignar trámite con estatus no permitido."""
         # Crear trámite en estatus finalizado (300+)
-        tramite_finalizado = Tramite.objects.create(
+        tramite_finalizado = TramiteLegacy.objects.create(
             folio='TEST-002',
             tramite_catalogo_id=1,
             nom_sol='Test',
@@ -171,7 +171,7 @@ class TestAsignacionTramite(TestCase):
     def test_multiples_asignaciones_distintas(self):
         """Test: Múltiples trámites pueden ser asignados al mismo analista."""
         # Crear segundo trámite
-        tramite2 = Tramite.objects.create(
+        tramite2 = TramiteLegacy.objects.create(
             folio='TEST-003',
             tramite_catalogo_id=1,
             nom_sol='Test 2',
@@ -218,7 +218,7 @@ class TestAsignacionTramite(TestCase):
 
     def setUp(self):
         """Configurar datos de prueba."""
-        self.tramite = Tramite.objects.create(
+        self.tramite = TramiteLegacy.objects.create(
             folio='TEST-001',
             tramite_catalogo_id=1,
             nom_sol='Test Solicitante',
@@ -327,7 +327,7 @@ class TestAsignacionTramite(TestCase):
     def test_asignar_con_estatus_no_permitido(self):
         """Test: Error al asignar trámite con estatus no permitido."""
         # Crear trámite en estatus finalizado (300+)
-        tramite_finalizado = Tramite.objects.create(
+        tramite_finalizado = TramiteLegacy.objects.create(
             folio='TEST-002',
             tramite_catalogo_id=1,
             nom_sol='Test',
@@ -361,7 +361,7 @@ class TestAsignacionTramite(TestCase):
         from unittest import mock
 
         # Crear trámite nuevo para rollback test
-        tramite_test = Tramite.objects.create(
+        tramite_test = TramiteLegacy.objects.create(
             folio='TEST-ROLLBACK-001',
             tramite_catalogo_id=1,
             nom_sol='Test',
@@ -391,7 +391,7 @@ class TestAsignacionTramite(TestCase):
     def test_multiples_asignaciones_distintas(self):
         """Test: Múltiples trámites pueden ser asignados al mismo analista."""
         # Crear segundo trámite
-        tramite2 = Tramite.objects.create(
+        tramite2 = TramiteLegacy.objects.create(
             folio='TEST-003',
             tramite_catalogo_id=1,
             nom_sol='Test 2',

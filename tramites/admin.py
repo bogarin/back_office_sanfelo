@@ -6,8 +6,6 @@ with filtering, search, and bulk actions.
 Integrates with Buzón de Trámites system for analyst assignment.
 """
 
-from typing import Final
-
 import logging
 
 from django.contrib import admin, messages
@@ -43,39 +41,16 @@ from tramites.models import (
     Actividades,
     AsignacionTramite,
     Perito,
-    Tramite,
     TramiteCatalogo,
     TramiteEstatus,
+    TramiteLegacy,
 )
-from tramites.models.tramite_unificado import Abiertos, Asignados, Finalizados
+from tramites.models.tramite import Abiertos, Asignados, Finalizados
 
 logger = logging.getLogger(__name__)
 
 
 User = get_user_model()
-
-
-# =============================================================================
-# Catalog Admins (migrated from catalogos app)
-# =============================================================================
-
-
-@admin.register(Actividades)
-class ActividadesAdmin(BaseModelAdmin, RoleBasedAccessMixin):
-    """Admin interface for Actividades model."""
-
-    list_display = (
-        'id',
-        'tramite',
-        'estatus',
-        'backoffice_user_id',
-        'observacion',
-        'timestamp',
-    )
-    list_filter = ('timestamp',)
-    search_fields = ('observacion',)
-    ordering = ('-timestamp',)
-    raw_id_fields = ('tramite', 'estatus')
 
 
 # =============================================================================
@@ -157,7 +132,7 @@ def _display_timestamp(timestamp):
     return timestamp.strftime('%Y-%m-%d %I:%M %p')
 
 
-@admin.register(Tramite)
+@admin.register(TramiteLegacy)
 class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
     """
     Admin de solo lectura con acciones de asignación.
@@ -378,28 +353,21 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         return queryset.none()
 
     # Custom display methods
-    def tramite_nombre(self, obj: Tramite):
-        """Display tramite name from catalog (via select_related)."""
-        return obj.tramite_display
+    def tramite_nombre(self, obj: TramiteLegacy):
+        return render_activo_badge(obj.tramite_catalogo, obj.tramite_catalogo.nombre)
 
-    tramite_nombre.short_description = 'Tipo de Trámite'
+    @admin.display(description='Estatus', ordering='_estatus_id')
+    def tramite_estatus(self, obj: TramiteLegacy):
+        return render_status_badge(obj.estatus_id, obj.estatus.estatus)
 
-    def tramite_estatus(self, obj: Tramite):
-        """Display estatus with color coding (via select_related)."""
-        return render_status_badge(obj._estatus_id, obj.estatus_display)
-
-    tramite_estatus.short_description = 'Estatus'
-
-    def urgencia(self, obj: Tramite):
-        """Display urgency badge: red for urgent, green for normal."""
+    @admin.display(description='Urgencia', ordering='urgente')
+    def urgencia(self, obj: TramiteLegacy):
         if obj.urgente:
             return render_badge('Urgente', 'badge-danger')
         return render_badge('Normal', 'badge-success')
 
-    urgencia.short_description = 'Urgencia'
-    urgencia.admin_order_field = 'urgente'
-
-    def analista_asignado(self, obj: Tramite):
+    @admin.display(description='Asignado a', ordering='_asignado_username')
+    def analista_asignado(self, obj: TramiteLegacy):
         """
         Muestra el analista asignado (o '📦 Sin Asignar').
 
@@ -433,9 +401,9 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
     analista_asignado.short_description = 'Asignado a'
 
-    def ultima_actividad(self, obj: Tramite):
+    def ultima_actividad(self, obj: TramiteLegacy):
         """
-        Display the timestamp of the latest Actividades for this Tramite.
+        Display the timestamp of the latest Actividades for this TramiteLegacy.
 
         Uses the ``_ultima_actividad_timestamp`` annotation from
         ``get_queryset`` for O(1) access without additional queries.
@@ -448,7 +416,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
     ultima_actividad.short_description = 'Última Actividad'
     ultima_actividad.admin_order_field = '_ultima_actividad_timestamp'
 
-    def creado_display(self, obj: Tramite):
+    def creado_display(self, obj: TramiteLegacy):
         """
         Display creado timestamp with consistent formatting.
 
@@ -499,9 +467,10 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         return {}
 
-    def acciones_disponibles(self, obj: Tramite):
+    def acciones_disponibles(self, obj: TramiteLegacy):
         """
         Render quick action buttons that reuse batch actions.
+
 
         Uses ``<a>`` links with ``data-action`` and ``data-pk`` attributes.
         An event-delegation script (injected by ``changelist_view``) listens
@@ -732,10 +701,8 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         }
 
         # Use cached statistics from TramiteManager (much faster!)
-        stats = Tramite.objects.get_statistics()
-
-        # Use cached distribution — single GROUP BY query with shorter TTL
-        estatus_distribution_list = Tramite.objects.get_estatus_distribution()
+        stats = TramiteLegacy.objects.get_statistics()
+        estatus_distribution_list = TramiteLegacy.objects.get_estatus_distribution()
 
         # Derive finalizados/cancelados from distribution (zero extra queries)
         finalizados = sum(
@@ -764,7 +731,7 @@ class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         return super().changelist_view(request, extra_context=ctx)
 
     # Custom form field widget customization
-    def get_form_customized(self, request: HttpRequest, obj: Tramite | None = None, **kwargs):
+    def get_form_customized(self, request: HttpRequest, obj: TramiteLegacy | None = None, **kwargs):
         """Customize form with widget choices from catalog tables."""
         form = super().get_form(request, obj, **kwargs)
 

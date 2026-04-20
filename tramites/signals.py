@@ -9,10 +9,10 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import Tramite
+from .models import TramiteLegacy
 
 
-@receiver(post_save, sender=Tramite)
+@receiver(post_save, sender=TramiteLegacy)
 def invalidate_tramite_stats_on_save(sender, instance, **kwargs):
     """
     Invalidate statistics cache after saving a tramite.
@@ -26,10 +26,10 @@ def invalidate_tramite_stats_on_save(sender, instance, **kwargs):
         instance: The instance that was saved
         **kwargs: Additional signal arguments
     """
-    Tramite.objects.invalidate_statistics_cache()
+    TramiteLegacy.objects.invalidate_statistics_cache()
 
 
-@receiver(post_delete, sender=Tramite)
+@receiver(post_delete, sender=TramiteLegacy)
 def invalidate_tramite_stats_on_delete(sender, instance, **kwargs):
     """
     Invalidate statistics cache after deleting a tramite.
@@ -41,7 +41,7 @@ def invalidate_tramite_stats_on_delete(sender, instance, **kwargs):
         instance: The instance that was deleted
         **kwargs: Additional signal arguments
     """
-    Tramite.objects.invalidate_statistics_cache()
+    TramiteLegacy.objects.invalidate_statistics_cache()
 
 
 # ---------------------------------------------------------------------------
@@ -53,13 +53,13 @@ def _invalidate_distribution(sender, instance, **kwargs):
     """Invalidate only the estatus distribution cache.
 
     Actividades records change on every status transition but don't
-    affect Tramite-level counts (total, urgente, pagado, etc.), so we
+    affect TramiteLegacy-level counts (total, urgente, pagado, etc.), so we
     only bust the distribution key.
 
     Still invalidates ``finalizados`` / ``cancelados`` since those are
     derived from estatus.
     """
-    prefix = Tramite.objects.CACHE_KEY_PREFIX
+    prefix = TramiteLegacy.objects.CACHE_KEY_PREFIX
     cache.delete_many(
         [
             f'{prefix}:estatus_distribution',

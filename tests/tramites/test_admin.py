@@ -10,7 +10,7 @@ from django.test import TestCase
 
 from tests.factories import TramiteFactory
 from tramites.admin import TramiteAdmin
-from tramites.models import Tramite
+from tramites.models import TramiteLegacy
 
 
 class TestTramiteAdmin(TestCase):
@@ -19,9 +19,9 @@ class TestTramiteAdmin(TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.site = AdminSite()
-        self.admin = TramiteAdmin(Tramite, self.site)
+        self.admin = TramiteAdmin(TramiteLegacy, self.site)
         self.tramite = TramiteFactory()
 
     def test_admin_registered(self):
-        """Test that Tramite is registered with admin."""
+        """Test that TramiteLegacy is registered with admin."""
         self.assertIsNotNone(self.admin)

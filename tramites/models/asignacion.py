@@ -103,13 +103,13 @@ class AsignacionTramite(models.Model):
             ValidationError: Si el trámite no puede ser asignado
         """
         # Solo asignar trámites en estados 200s (proceso activo)
-        # Need to fetch Tramite instance from PostgreSQL to check status
-        from tramites.models import Tramite, TramiteEstatus  # noqa: PLC0415
+        # Need to fetch TramiteLegacy instance from PostgreSQL to check status
+        from tramites.models import TramiteLegacy, TramiteEstatus  # noqa: PLC0415
 
         try:
-            tramite = Tramite.objects.using('backend').get(id=self.tramite_id)
+            tramite = TramiteLegacy.objects.using('backend').get(id=self.tramite_id)
             estatus_id = tramite.estatus_id
-        except Tramite.DoesNotExist:
+        except TramiteLegacy.DoesNotExist:
             raise ValidationError(f'El trámite con ID {self.tramite_id} no existe.')
 
         if estatus_id not in ESTADOS_PERMITIDOS_PARA_ASIGNACION:

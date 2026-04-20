@@ -17,9 +17,40 @@ Este documento describe cómo los modelos Django se mapean a las tablas SQL exis
 
 | Tabla SQL | Modelo Django | Descripción |
 |-----------|----------------|-------------|
-| `tramite` | `Tramite` | Trámites individuales |
+| `v_tramites_unificado` | `Tramite` | Vista unificada con todos los datos de trámites (READ-ONLY) |
+| `tramite` | `TramiteLegacy` | Tabla original de trámites (DEPRECATED, READ-ONLY) |
 
-**Detalles del modelo `Tramite`:**
+**Detalles del modelo `Tramite` (vista unificada):**
+Este modelo mapea a la vista SQL `v_tramites_unificado` que contiene todos los datos denormalizados para consultas eficientes.
+
+ Campos principales:
+- `id`: AutoField (PK)
+- `folio`: CharField(50) - ÚNICO
+- `cat_tramite_nombre`: CharField(100) - Nombre del tipo de trámite (denormalizado)
+- `cat_estatus_nombre`: CharField(50) - Nombre del estatus (denormalizado)
+- `cat_estatus_estatus`: CharField(10) - Código del estatus (denormalizado)
+- `usuario_asignado_nombre`: CharField(100) - Nombre del analista asignado (nullable)
+- `ultima_actividad_fecha`: DateTimeField - Fecha de la última actividad (nullable)
+- `ultima_actividad_tipo`: CharField(50) - Tipo de última actividad (nullable)
+- `cantidad_actividades`: IntegerField - Total de actividades realizadas
+- `cantidad_documentos`: IntegerField - Total de documentos
+- `clave_catastral`: CharField(16)
+- `es_propietario`: BooleanField
+- `nom_sol`: CharField(200)
+- `tel_sol`: CharField(16)
+- `correo_sol`: CharField(255)
+- `importe_total`: DecimalField(12,2)
+- `pagado`: BooleanField
+- `tipo`: CharField(120)
+- `observacion`: TextField
+- `urgente`: BooleanField
+- `creado`: DateTimeField
+- `modificado`: DateTimeField
+
+**Detalles del modelo `TramiteLegacy` (DEPRECATED):**
+Este modelo mapea a la tabla SQL original `tramite` y está configurado como READ-ONLY.
+
+ Campos principales:
 - `id`: AutoField (PK)
 - `folio`: CharField(50) - ÚNICO, auto-generado por trigger SQL
 - `id_cat_tramite`: IntegerField → FK a cat_tramite
@@ -37,6 +68,11 @@ Este documento describe cómo los modelos Django se mapean a las tablas SQL exis
 - `urgente`: BooleanField
 - `creado`: DateTimeField (auto_now_add)
 - `modificado`: DateTimeField (auto_now)
+
+**Modelos Proxy:**
+- `Abiertos` - Filtra trámites abiertos (estatus código 'iniciado')
+- `Asignados` - Filtra trámites asignados a un analista
+- `Finalizados` - Filtra trámites finalizados (estatus código 'finalizado')
 
 ---
 
@@ -285,11 +321,13 @@ id_cat_estatus = models.IntegerField(verbose_name="ID Catálogo Estatus")
 
 ### Crear un trámite
 
+**Nota:** Para crear trámites, usa el modelo `TramiteLegacy` (tabla `tramite` en DB backend). El modelo `Tramite` es una vista READ-ONLY.
+
 ```python
-from tramites.models import Tramite
+from tramites.models import TramiteLegacy
 from catalogos.models import CatTramite, CatEstatus
 
-tramite = Tramite.objects.create(
+tramite = TramiteLegacy.objects.create(
     folio="",  # Dejar vacío, el trigger SQL lo generará
     id_cat_tramite=1,  # CERTIFICADO DE LIBERTAD DE GRAVAMEN
     id_cat_estatus=101,  # BORRADOR
@@ -301,6 +339,8 @@ tramite = Tramite.objects.create(
 )
 # El trigger SQL generará automáticamente: folio = "DAU-2502XX-AAAA-B"
 ```
+
+**ATENCIÓN:** `TramiteLegacy` está configurado como READ-ONLY en producción. Para crear trámites, usa los servicios apropiados o el procedimiento almacenado en la base de datos backend.
 
 ### Obtener requisitos y categorías de un trámite
 
@@ -363,14 +403,27 @@ for rel in relaciones:
 ```python
 from tramites.models import Tramite
 
-# Usar select_related para evitar N+1 queries
-tramites = Tramite.objects.select_related(
-    'id_cat_tramite',  # No es FK real, pero necesitamos datos
-).order_by('-creado')
+# Usar el modelo Tramite (vista unificada) que ya tiene campos denormalizados
+# No necesitas select_related para catálogos - los datos ya están denormalizados
+tramites = Tramite.objects.all().order_by('-creado')
 
 for t in tramites:
-    print(f"{t.folio} - {t.estatus_display}")
+    print(f"{t.folio} - {t.cat_estatus_nombre}")
+    print(f"  Tipo: {t.cat_tramite_nombre}")
+    print(f"  Asignado a: {t.usuario_asignado_nombre or 'Sin asignar'}")
+    print(f"  Actividades: {t.cantidad_actividades}")
+    print(f"  Documentos: {t.cantidad_documentos}")
 ```
+
+**Ventajas de usar `Tramite` (vista unificada):**
+- Los campos de catálogos ya están denormalizados (sin N+1 queries)
+- Contiene información agregada (cantidad de actividades, documentos)
+- Eficiente para listados y dashboards del admin
+
+**Usar `TramiteLegacy` cuando:**
+- Necesitas acceder a los IDs de catálogos (id_cat_tramite, id_cat_estatus, etc.)
+- Necesitas relacionar con otras tablas usando FKs
+- Necesitas acceso a campos que no están en la vista unificada
 
 ### Actualizar el valor de UMA
 

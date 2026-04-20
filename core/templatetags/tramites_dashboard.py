@@ -13,14 +13,14 @@ register = template.Library()
 
 @register.inclusion_tag('admin/includes/dashboard_cards.html')
 def tramite_dashboard_cards():
-    """Render the 5-card tramite statistics dashboard.
+    """Render 5-card tramite statistics dashboard.
 
-    Fetches statistics via ``Tramite.objects.get_statistics()`` (cached)
+    Fetches statistics via ``TramiteLegacy.objects.get_statistics()`` (cached)
     and builds filtered changelist URLs with ``reverse()``.
     """
-    from tramites.models import Tramite
+    from tramites.models import TramiteLegacy
 
-    stats = Tramite.objects.get_statistics()
+    stats = TramiteLegacy.objects.get_statistics()
 
     def _url(name: str, params: dict | None = None) -> str:
         url = reverse(name)

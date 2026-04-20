@@ -16,7 +16,7 @@ from django.core.cache import cache
 
 from tests.factories import TramiteFactory, TramiteWithEstatusFactory
 from tests.factories.catalogos import ActividadFactory
-from tramites.models import Tramite
+from tramites.models import TramiteLegacy
 from tests.factories import (
     TramiteFactory,
     TramiteWithEstatusFactory,
@@ -24,7 +24,7 @@ from tests.factories import (
 
 
 class TestTramite(TestCase):
-    """Test suite for Tramite model."""
+    """Test suite for TramiteLegacy model."""
 
     def setUp(self):
         """Set up test fixtures."""
@@ -75,7 +75,7 @@ class TestTramiteManager(TestCase):
         # Create some tramites
         TramiteFactory.create_batch(5)
 
-        count = Tramite.objects.get_total_count()
+        count = TramiteLegacy.objects.get_total_count()
         self.assertEqual(count, 5)
 
     def test_get_total_count_caching(self):
@@ -87,20 +87,20 @@ class TestTramiteManager(TestCase):
         TramiteFactory.create_batch(3)
 
         # First call - should query DB
-        count1 = Tramite.objects.get_total_count()
+        count1 = TramiteLegacy.objects.get_total_count()
         self.assertEqual(count1, 3)
 
         # Create more tramites without invalidating cache
         TramiteFactory.create_batch(2)
 
         # Second call - return value (cached or not, depends on backend)
-        count2 = Tramite.objects.get_total_count()
+        count2 = TramiteLegacy.objects.get_total_count()
 
         # Invalidate cache
-        Tramite.objects.invalidate_statistics_cache()
+        TramiteLegacy.objects.invalidate_statistics_cache()
 
         # Third call - should query DB again
-        count3 = Tramite.objects.get_total_count()
+        count3 = TramiteLegacy.objects.get_total_count()
 
         # After invalidation, should have all 5
         self.assertEqual(count3, 5)
@@ -148,7 +148,7 @@ class TestTramiteManager(TestCase):
             observacion='Test',
         )
 
-        stats = Tramite.objects.get_statistics()
+        stats = TramiteLegacy.objects.get_statistics()
 
         self.assertEqual(stats['total'], 4)
         # Note: sin_asignar and asignados depend on AsignacionTramite
@@ -166,17 +166,17 @@ class TestTramiteManager(TestCase):
         TramiteFactory.create_batch(2)
 
         # Get initial count
-        count1 = Tramite.objects.get_total_count()
+        count1 = TramiteLegacy.objects.get_total_count()
         self.assertEqual(count1, 2)
 
         # Add more tramites
         TramiteFactory.create_batch(3)
 
         # Invalidate cache
-        Tramite.objects.invalidate_statistics_cache()
+        TramiteLegacy.objects.invalidate_statistics_cache()
 
         # Get new count
-        count2 = Tramite.objects.get_total_count()
+        count2 = TramiteLegacy.objects.get_total_count()
         self.assertEqual(count2, 5)
 
     def test_cache_key_structure(self):
@@ -184,7 +184,7 @@ class TestTramiteManager(TestCase):
         TramiteFactory.create_batch(3)
 
         # Call get_statistics to populate cache
-        stats = Tramite.objects.get_statistics()
+        stats = TramiteLegacy.objects.get_statistics()
         self.assertEqual(stats['total'], 3)
 
         # Check that cache keys are set
@@ -198,5 +198,5 @@ class TestTramiteManager(TestCase):
 
         # Note: With DummyCache, get() always returns None
         # This test just verifies the key structure in manager
-        self.assertEqual(Tramite.objects.CACHE_KEY_PREFIX, 'tramite_stats')
-        self.assertGreater(Tramite.objects.CACHE_TIMEOUT, 0)
+        self.assertEqual(TramiteLegacy.objects.CACHE_KEY_PREFIX, 'tramite_stats')
+        self.assertGreater(TramiteLegacy.objects.CACHE_TIMEOUT, 0)
