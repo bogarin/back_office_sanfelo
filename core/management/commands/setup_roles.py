@@ -6,9 +6,16 @@ definitions are centralized in core/rbac/constants.py for visibility
 and maintainability.
 
 Creates three roles:
-- Administrador: Full permissions on auth and tramites apps
-- Coordinador: No explicit permissions (access controlled by code)
-- Analista: No explicit permissions (access controlled by code)
+- Administrador: Full permissions on auth and tramites apps + custom Jazzmin permissions
+- Coordinador: Custom Jazzmin permissions for sidebar visibility
+- Analista: Custom Jazzmin permissions for sidebar visibility
+
+Custom permissions control visibility of custom links in Jazzmin sidebar:
+- view_mis_tramites: Trámites/Mis Trámites (Analista only)
+- view_todos: Trámites/Todos (Administrador, Coordinador)
+- view_disponibles: Trámites/Disponibles (All roles)
+- view_asignados: Trámites/Asignados (Administrador, Coordinador)
+- view_finalizados: Trámites/Finalizados (Administrador, Coordinador)
 
 Usage:
     python manage.py setup_roles
@@ -42,22 +49,25 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f'  - {admin_group.name}: {admin_perms} permissions '
-                f'(apps: {", ".join(ADMINISTRADOR_APPS)})'
+                f'(apps: {", ".join(ADMINISTRADOR_APPS)} + custom Jazzmin permissions)'
             )
         )
 
         # Display Coordinador details
+        coordinador_perms = coordinador_group.permissions.count()
         self.stdout.write(
             self.style.SUCCESS(
-                f'  - {coordinador_group.name}: '
-                'permissions controlled by code (RoleBasedAccessMixin)'
+                f'  - {coordinador_group.name}: {coordinador_perms} custom Jazzmin permissions '
+                '(view_todos, view_disponibles, view_asignados, view_finalizados)'
             )
         )
 
         # Display Analista details
+        analista_perms = analista_group.permissions.count()
         self.stdout.write(
             self.style.SUCCESS(
-                f'  - {analista_group.name}: permissions controlled by code (RoleBasedAccessMixin)'
+                f'  - {analista_group.name}: {analista_perms} custom Jazzmin permissions '
+                '(view_mis_tramites, view_disponibles)'
             )
         )
 

@@ -80,3 +80,68 @@ ALL_PERMISSION_TYPES = [
 
 # Only view permission (for restricted roles)
 VIEW_ONLY_PERMISSION_TYPES = [PermissionType.VIEW]
+
+
+# =============================================================================
+# CUSTOM PERMISSIONS FOR TRAMITES
+# =============================================================================
+
+
+class TramitePermission:
+    """Custom permissions for tramites-specific functionality in Jazzmin sidebar.
+
+    These permissions control visibility of custom links in the admin sidebar,
+    allowing role-based filtering of tramite views.
+    """
+
+    # Link: Tramites/Mis Tramites (Analista only)
+    VIEW_MIS_TRAMITES = 'view_mis_tramites'
+
+    # Link: Tramites/Todos (Administrador, Coordinador)
+    VIEW_TODOS = 'view_todos'
+
+    # Link: Tramites/Disponibles/Sin asignar (All roles)
+    VIEW_DISPONIBLES = 'view_disponibles'
+
+    # Link: Tramites/Asignados (Administrador, Coordinador)
+    VIEW_ASIGNADOS = 'view_asignados'
+
+    # Link: Tramites/Finalizados (Administrador, Coordinador)
+    VIEW_FINALIZADOS = 'view_finalizados'
+
+
+# Full list of custom tramites permissions (for creating them in DB)
+TRAMITES_CUSTOM_PERMISSIONS = [
+    TramitePermission.VIEW_MIS_TRAMITES,
+    TramitePermission.VIEW_TODOS,
+    TramitePermission.VIEW_DISPONIBLES,
+    TramitePermission.VIEW_ASIGNADOS,
+    TramitePermission.VIEW_FINALIZADOS,
+]
+
+
+# =============================================================================
+# PERMISSION MAPPING BY ROLE
+# =============================================================================
+
+
+# Custom permissions for each role
+ROLE_CUSTOM_PERMISSIONS = {
+    BackOfficeRole.ADMINISTRADOR: [
+        TramitePermission.VIEW_MIS_TRAMITES,
+        TramitePermission.VIEW_TODOS,
+        TramitePermission.VIEW_DISPONIBLES,
+        TramitePermission.VIEW_ASIGNADOS,
+        TramitePermission.VIEW_FINALIZADOS,
+    ],
+    BackOfficeRole.COORDINADOR: [
+        TramitePermission.VIEW_TODOS,
+        TramitePermission.VIEW_DISPONIBLES,
+        TramitePermission.VIEW_ASIGNADOS,
+        TramitePermission.VIEW_FINALIZADOS,
+    ],
+    BackOfficeRole.ANALISTA: [
+        TramitePermission.VIEW_MIS_TRAMITES,
+        TramitePermission.VIEW_DISPONIBLES,
+    ],
+}

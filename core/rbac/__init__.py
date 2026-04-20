@@ -23,6 +23,8 @@ from .constants import (
     ADMINISTRADOR_APPS,
     BackOfficeRole,
     PermissionType,
+    ROLE_CUSTOM_PERMISSIONS,
+    TRAMITES_CUSTOM_PERMISSIONS,
 )
 
 logger = logging.getLogger(__name__)
@@ -92,6 +94,78 @@ def get_view_permissions_for_apps(app_labels: List[str]) -> List[Permission]:
     return get_permissions_for_apps(app_labels, [PermissionType.VIEW])
 
 
+def get_or_create_custom_permission(codename: str, app_label: str = 'tramites') -> Permission:
+    """
+    Get or create a custom permission for the tramites app.
+
+    Custom permissions are used to control visibility of custom links
+    in Jazzmin sidebar, allowing role-based filtering of tramite views.
+
+    Args:
+        codename: Permission codename (e.g., 'view_mis_tramites')
+        app_label: Django app label (default: 'tramites')
+
+    Returns:
+        The Permission object
+    """
+    content_type, _ = ContentType.objects.get_or_create(
+        app_label=app_label,
+        model='tramite',  # Use tramite model as base for custom permissions
+    )
+
+    permission, created = Permission.objects.get_or_create(
+        codename=codename,
+        content_type=content_type,
+        defaults={
+            'name': f'Can {codename.replace("_", " ")}',
+        },
+    )
+
+    if created:
+        logger.info(f'Created custom permission: {codename}')
+
+    return permission
+
+
+def setup_custom_permissions() -> dict[str, Permission]:
+    """
+    Setup all custom permissions for tramites.
+
+    Returns:
+        Dictionary mapping permission codenames to Permission objects
+    """
+    permissions = {}
+
+    for codename in TRAMITES_CUSTOM_PERMISSIONS:
+        permissions[codename] = get_or_create_custom_permission(codename)
+
+    logger.info(f'Set up {len(permissions)} custom permissions: {", ".join(permissions.keys())}')
+
+    return permissions
+
+
+def assign_role_custom_permissions(group: Group, role: BackOfficeRole) -> None:
+    """
+    Assign custom permissions to a role group.
+
+    Args:
+        group: Django Group object
+        role: BackOfficeRole enum value
+    """
+    role_perms = ROLE_CUSTOM_PERMISSIONS.get(role, [])
+
+    if not role_perms:
+        logger.info(f'No custom permissions to assign for role: {role}')
+        return
+
+    permissions = [get_or_create_custom_permission(codename) for codename in role_perms]
+
+    group.permissions.add(*permissions)
+    logger.info(
+        f'Assigned {len(permissions)} custom permissions to {role} group: {", ".join(role_perms)}'
+    )
+
+
 def setup_administrador() -> Group:
     """
     Setup Administrador group with full permissions.
@@ -99,6 +173,7 @@ def setup_administrador() -> Group:
     The Administrador group receives:
     - All auth permissions (user/group management)
     - All permissions for business apps (tramites, core)
+    - Custom permissions for Jazzmin sidebar visibility
 
     Returns:
         The configured Administrador group
@@ -109,18 +184,21 @@ def setup_administrador() -> Group:
     group_name = BackOfficeRole.ADMINISTRADOR
 
     try:
-        admin_group, created = get_or_create_group(group_name)
+        admin_group, _ = get_or_create_group(group_name)
 
         # Get all permissions for allowed apps
         permissions = get_permissions_for_apps(ADMINISTRADOR_APPS)
 
-        # Clear existing and assign new permissions
+        # Clear existing and assign standard permissions
         admin_group.permissions.clear()
         admin_group.permissions.set(permissions)
 
+        # Assign custom permissions for Jazzmin sidebar
+        assign_role_custom_permissions(admin_group, BackOfficeRole.ADMINISTRADOR)
+
         logger.info(
-            f'Configured {group_name} group with {len(permissions)} permissions '
-            f'for apps: {", ".join(ADMINISTRADOR_APPS)}'
+            f'Configured {group_name} group with {len(permissions)} standard permissions '
+            f'for apps: {", ".join(ADMINISTRADOR_APPS)} and custom Jazzmin sidebar permissions'
         )
 
         return admin_group
@@ -135,23 +213,28 @@ def setup_coordinador() -> Group:
     Setup Coordinador group.
 
     The Coordinador group receives:
-    - No explicit permissions (access controlled by code in RoleBasedAccessMixin)
+    - Custom permissions for Jazzmin sidebar visibility:
+      - view_todos (Tramites/Todos)
+      - view_disponibles (Tramites/Disponibles)
+      - view_asignados (Tramites/Asignados)
+      - view_finalizados (Tramites/Finalizados)
 
     Returns:
         The configured Coordinador group
 
     Raises:
-        RuntimeError: If group creation fails
+        RuntimeError: If group creation or permission assignment fails
     """
     group_name = BackOfficeRole.COORDINADOR
 
     try:
         coordinador_group, _ = get_or_create_group(group_name)
 
-        # Coordinador has no explicit permissions - access is controlled by code
-        # RoleBasedAccessMixin and TramiteAdmin enforce permissions dynamically
+        # Clear existing permissions and assign custom permissions for Jazzmin sidebar
+        coordinador_group.permissions.clear()
+        assign_role_custom_permissions(coordinador_group, BackOfficeRole.COORDINADOR)
 
-        logger.info(f'Configured {group_name} group (permissions controlled by code)')
+        logger.info(f'Configured {group_name} group with custom permissions for Jazzmin sidebar')
 
         return coordinador_group
 
@@ -165,23 +248,26 @@ def setup_analista() -> Group:
     Setup Analista group.
 
     The Analista group receives:
-    - No explicit permissions (access controlled by code in RoleBasedAccessMixin)
+    - Custom permissions for Jazzmin sidebar visibility:
+      - view_mis_tramites (Tramites/Mis Tramites)
+      - view_disponibles (Tramites/Disponibles)
 
     Returns:
         The configured Analista group
 
     Raises:
-        RuntimeError: If group creation fails
+        RuntimeError: If group creation or permission assignment fails
     """
     group_name = BackOfficeRole.ANALISTA
 
     try:
         analista_group, _ = get_or_create_group(group_name)
 
-        # Analista has no explicit permissions - access is controlled by code
-        # RoleBasedAccessMixin and TramiteAdmin enforce permissions dynamically
+        # Clear existing permissions and assign custom permissions for Jazzmin sidebar
+        analista_group.permissions.clear()
+        assign_role_custom_permissions(analista_group, BackOfficeRole.ANALISTA)
 
-        logger.info(f'Configured {group_name} group (permissions controlled by code)')
+        logger.info(f'Configured {group_name} group with custom permissions for Jazzmin sidebar')
 
         return analista_group
 

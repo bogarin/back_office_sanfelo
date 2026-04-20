@@ -17,6 +17,10 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
     welcome_sign, copyright) are populated from tenancy settings, allowing
     different departments to have their own branding.
 
+    Custom links in the sidebar use role-based permissions to control visibility:
+    - Auth links: Only visible to Administrador role
+    - Tramites links: Visible based on specific role permissions
+
     Args:
         tenancy_settings: Dictionary containing tenancy configuration,
             including BACKOFFICE_SITE_TITLE, BACKOFFICE_SITE_HEADER, etc.
@@ -46,61 +50,61 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
             'show_sidebar': True,
             'navigation_expanded': False,
             'related_modal_active': True,
+            # Hide 'contenttypes', 'sessions', 'admin', 'tramites' apps
+            # Auth app visibility is controlled via auth.view_user permission
+            # Tramites app is controlled via custom_links below
             'hide_apps': ['contenttypes', 'sessions', 'admin', 'tramites'],
             'hide_models': ['auth.group'],
             'custom_links': {
+                # Auth group: User and group management (only Administrador)
+                'auth': [
+                    {
+                        'name': 'Usuarios',
+                        'url': 'admin:auth_user_changelist',
+                        'icon': 'fas fa-users',
+                        # Requires auth permission to view (only Administrador has this)
+                        'permissions': ['auth.view_user'],
+                    },
+                ],
+                # Trámites group: Role-based visibility via custom permissions
                 'Trámites': [
                     {
                         'name': 'Mis trámites',
-                        # url with ?current_user=True query parameter to filter
-                        # trámites assigned to the logged-in user
+                        # URL with query parameter to filter trámites assigned to logged-in user
                         'url': '/admin/tramites/asignados/?analista=_user',
-                        # any font-awesome icon
                         'icon': 'fas fa-user',
-                        # a list of permissions of user must have to see this link (optional)
-                        'permissions': ['books.view_book'],
+                        # Only Analista can see this link
+                        'permissions': ['tramites.view_mis_tramites'],
                     },
                     {
                         'name': 'Todos',
-                        # url name e.g `admin:index`, relative urls e.g `/admin/index`
-                        # or absolute urls e.g `https://domain.com/admin/index`
                         'url': 'admin:tramites_abiertos_changelist',
-                        # any font-awesome icon
                         'icon': 'fas fa-list',
-                        # a list of permissions of user must have to see this link (optional)
-                        'permissions': ['books.view_book'],
+                        # Administrador and Coordinador can see this link
+                        'permissions': ['tramites.view_todos'],
                     },
                     {
-                        'name': 'Sin asignar',
-                        # url name e.g `admin:index`, relative urls e.g `/admin/index`
-                        # or absolute urls e.g `https://domain.com/admin/index`
+                        'name': 'Disponibles',
                         'url': 'tramites:sin-asignar',
-                        # any font-awesome icon
                         'icon': 'fas fa-inbox',
-                        # a list of permissions of user must have to see this link (optional)
-                        'permissions': ['books.view_book'],
+                        # All roles can see this link
+                        'permissions': ['tramites.view_disponibles'],
                     },
                     {
                         'name': 'Asignados',
-                        # url name e.g `admin:index`, relative urls e.g `/admin/index`
-                        # or absolute urls e.g `https://domain.com/admin/index`
                         'url': 'admin:tramites_asignados_changelist',
-                        # any font-awesome icon
                         'icon': 'fas fa-user-check',
-                        # a list of permissions of user must have to see this link (optional)
-                        'permissions': ['books.view_book'],
+                        # Administrador and Coordinador can see this link
+                        'permissions': ['tramites.view_asignados'],
                     },
                     {
                         'name': 'Finalizados',
-                        # url name e.g `admin:index`, relative urls e.g `/admin/index`
-                        # or absolute urls e.g `https://domain.com/admin/index`
                         'url': 'admin:tramites_finalizados_changelist',
-                        # any font-awesome icon
                         'icon': 'fas fa-check-circle',
-                        # a list of permissions of user must have to see this link (optional)
-                        'permissions': ['books.view_book'],
+                        # Administrador and Coordinador can see this link
+                        'permissions': ['tramites.view_finalizados'],
                     },
-                ]
+                ],
             },
         }
     }
