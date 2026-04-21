@@ -14,6 +14,10 @@ from tests.factories.catalogos import (
     TramiteCatalogoFactory,
     TramiteEstatusFactory,
 )
+from tests.factories.tramites import (
+    TramiteFactory,
+    TramiteWithEstatusFactory,
+)
 
 __all__ = [
     # Auth factories
@@ -28,4 +32,7 @@ __all__ = [
     'TramiteEstatusFactory',
     'PeritoFactory',
     'ActividadFactory',
+    # Tramites factories
+    'TramiteFactory',
+    'TramiteWithEstatusFactory',
 ]
