@@ -1,116 +1,15 @@
-from __future__ import annotations
-
 """
 Servicios para gestión de asignaciones de trámites.
 
 Separados del modelo para facilitar testing y reutilización.
 """
 
-from django.core.exceptions import ValidationError
-from django.db import DatabaseError
 from typing import TYPE_CHECKING
 
 from .models import AsignacionTramite
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import User
-    from tramites.models import TramiteLegacy
-
-
-class AsignacionError(Exception):
-    """Base exception para errores de asignación."""
-
-
-class TramiteNoAsignableError(AsignacionError):
-    """El trámite no puede ser asignado (estado incorrecto)."""
-
-
-class AnalistaConMuchasAsignacionesError(AsignacionError):
-    """El analista ya tiene demasiados trámites asignados."""
-
-
-class EstadoNoPermitidoError(AsignacionError):
-    """El trámite está en un estado que no permite asignación."""
-
-
-def asignar_tramite(
-    tramite: TramiteLegacy,
-    analista: User,
-    asignado_por: User | None = None,
-    observacion: str = '',
-) -> AsignacionTramite:
-    """
-    Asigna un trámite a un analista.
-
-    Args:
-        tramite: Instancia de TramiteLegacy (de BD legacy)
-        analista: Instancia de User
-        asignado_por: Instancia de User (opcional)
-        observacion: Texto opcional
-
-    Returns:
-        AsignacionTramite: La nueva asignación
-
-    Raises:
-        TramiteNoAsignableError: Si el trámite no puede ser asignado
-        EstadoNoPermitidoError: Si el trámite está en estado incorrecto
-        ValidationError: Si hay validaciones falladas
-        DatabaseError: Si falla la creación del registro en Actividades
-    """
-    try:
-        return AsignacionTramite.asignar(
-            tramite=tramite, analista=analista, asignado_por=asignado_por, observacion=observacion
-        )
-    except DatabaseError:
-        # Re-raise DatabaseError (from Actividades creation) as-is
-        raise
-    except ValidationError as e:
-        error_msg = str(e).lower()
-
-        if (
-            'estatus' in error_msg
-            or 'proceso' in error_msg
-            or 'estado' in error_msg
-            or 'borrador' in error_msg
-        ):
-            raise EstadoNoPermitidoError(str(e))
-        if (
-            'limite' in error_msg
-            or 'límite' in error_msg
-            or 'asignaciones' in error_msg
-            or 'trámites' in error_msg
-            or 'demasiados' in error_msg
-        ):
-            raise AnalistaConMuchasAsignacionesError(str(e))
-        raise TramiteNoAsignableError(str(e))
-
-
-def liberar_tramite(tramite):
-    """
-    Libera un trámite.
-
-    Args:
-        tramite: Instancia de TramiteLegacy
-    """
-    AsignacionTramite.liberar(tramite)
-
-
-def reasignar_tramite(tramite, nuevo_analista, reasignado_por=None, observacion=''):
-    """
-    Reasigna un trámite a otro analista.
-
-    Esencialmente lo mismo que asignar, pero más explícito en el nombre.
-
-    Args:
-        tramite: Instancia de TramiteLegacy
-        nuevo_analista: Instancia de User
-        reasignado_por: Instancia de User (opcional)
-        observacion: Texto opcional
-
-    Returns:
-        AsignacionTramite: La nueva asignación
-    """
-    return asignar_tramite(tramite, nuevo_analista, reasignado_por, observacion)
 
 
 def obtener_analista_asignado(tramite):
@@ -118,7 +17,7 @@ def obtener_analista_asignado(tramite):
     Obtiene el analista asignado a un trámite.
 
     Args:
-        tramite: Instancia de TramiteLegacy
+        tramite: Instancia de Tramite
 
     Returns:
         User or None: El analista asignado, o None si no está asignado

@@ -10,12 +10,10 @@ from tests.factories.auth import (
 )
 from tests.factories.catalogos import (
     ActividadFactory,
-    ActividadesFactory,
     PeritoFactory,
     TramiteCatalogoFactory,
     TramiteEstatusFactory,
 )
-from tests.factories.tramites import TramiteFactory, TramiteWithEstatusFactory
 
 __all__ = [
     # Auth factories
@@ -30,8 +28,4 @@ __all__ = [
     'TramiteEstatusFactory',
     'PeritoFactory',
     'ActividadFactory',
-    'ActividadesFactory',
-    # Tramites factories
-    'TramiteFactory',
-    'TramiteWithEstatusFactory',
 ]

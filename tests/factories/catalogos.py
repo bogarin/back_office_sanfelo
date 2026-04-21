@@ -56,22 +56,6 @@ class PeritoFactory(factory.django.DjangoModelFactory):
     revalidacion = date(2025, 12, 31)
 
 
-class ActividadesFactory(factory.django.DjangoModelFactory):
-    """Factory for Actividades model."""
-
-    class Meta:
-        model = 'tramites.Actividades'
-
-    tramite = factory.SubFactory('tests.factories.TramiteFactory')
-    actividad = factory.SubFactory('tests.factories.ActividadFactory')
-    estatus = factory.SubFactory('tests.factories.TramiteEstatusFactory')
-    fecha_inicio = date(2024, 1, 1)
-    fecha_fin = date(2024, 1, 31)
-    id_cat_usuario = factory.Sequence(lambda n: n)
-    secuencia = factory.Sequence(lambda n: n)
-    observacion = factory.Faker('text', max_nb_chars=200)
-
-
 class ActividadFactory(factory.django.DjangoModelFactory):
     """Factory for Actividad (catálogo) model."""
 

@@ -26,9 +26,6 @@ User = get_user_model()
 
 logger = logging.getLogger(__name__)
 
-# Estados permitidos para asignación (200s - proceso activo)
-ESTADOS_PERMITIDOS_PARA_ASIGNACION = [201, 202, 203, 204, 205]
-
 
 @register_model('default', AccessPattern.FULL_ACCESS, True)
 class AsignacionTramite(models.Model):
@@ -94,41 +91,6 @@ class AsignacionTramite(models.Model):
 
     def __str__(self):
         return f'Trámite ID {self.tramite_id} → {self.analista.username}'
-
-    def clean(self):
-        """
-        Validaciones de negocio.
-
-        Raises:
-            ValidationError: Si el trámite no puede ser asignado
-        """
-        # Solo asignar trámites en estados 200s (proceso activo)
-        # Need to fetch TramiteLegacy instance from PostgreSQL to check status
-        from tramites.models import TramiteLegacy, TramiteEstatus  # noqa: PLC0415
-
-        try:
-            tramite = TramiteLegacy.objects.using('backend').get(id=self.tramite_id)
-            estatus_id = tramite.estatus_id
-        except TramiteLegacy.DoesNotExist:
-            raise ValidationError(f'El trámite con ID {self.tramite_id} no existe.')
-
-        if estatus_id not in ESTADOS_PERMITIDOS_PARA_ASIGNACION:
-            estatus = TramiteEstatus.objects.get_cached(estatus_id)
-            estatus_nombre = estatus.estatus if estatus else f'ID {estatus_id}'
-
-            raise ValidationError(
-                f'No se pueden asignar trámites en estatus "{estatus_nombre}". '
-                f'Solo se pueden asignar trámites en proceso activo (estados 200s: PRESENTADO, EN_REVISION, REQUERIMIENTO, SUBSANADO, EN_DILIGENCIA).'
-            )
-
-        # Límite de asignaciones por analista
-        asignaciones_actuales = AsignacionTramite.objects.filter(analista=self.analista).count()
-        max_asignaciones = getattr(settings, 'MAX_TRAMITES_POR_ANALISTA', 50)
-        if asignaciones_actuales >= max_asignaciones:
-            raise ValidationError(
-                f'El analista ya tiene {asignaciones_actuales} trámites asignados. '
-                f'Límite: {max_asignaciones}'
-            )
 
     @classmethod
     def asignar(cls, tramite, analista, asignado_por=None, observacion=''):
