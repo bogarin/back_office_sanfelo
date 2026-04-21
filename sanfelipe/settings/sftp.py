@@ -27,7 +27,7 @@ def configure_sftp(env: Env) -> dict:
         # =============================================================================
         # SFTP CONNECTION SETTINGS
         # =============================================================================
-        # Hostname or IP address of the SFTP server
+        # Hostname or IP address of SFTP server
         'SFTP_HOST': env('SFTP_HOST', default=''),
         # Port number for SFTP connection (default: 22)
         'SFTP_PORT': env.int('SFTP_PORT', default=22),
@@ -38,11 +38,15 @@ def configure_sftp(env: Env) -> dict:
         # Path to SSH private key file (alternative to password authentication)
         # Leave empty if using password authentication
         'SFTP_PRIVATE_KEY_PATH': env('SFTP_PRIVATE_KEY_PATH', default=''),
+        # Passphrase for SSH private key (only used with SFTP_PRIVATE_KEY_PATH)
+        # Leave empty if private key has no passphrase
+        'SFTP_PRIVATE_KEY_PASSPHRASE': env('SFTP_PRIVATE_KEY_PASSPHRASE', default=''),
         # =============================================================================
         # REMOTE DIRECTORY PATHS
         # =============================================================================
-        # Base directory where tramites PDFs are stored on the SFTP server
-        'SFTP_BASE_DIR': env('SFTP_BASE_DIR', default='/tramites'),
+        # Base directory where tramites PDFs are stored on SFTP server
+        # Leave empty if not using SFTP storage
+        'SFTP_BASE_DIR': env('SFTP_BASE_DIR', default=''),
         # Subdirectory for uploaded/received PDF files
         'SFTP_PDF_DIR': env('SFTP_PDF_DIR', default='pdfs'),
     }

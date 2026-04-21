@@ -52,13 +52,5 @@ def configure_tenancy(env: Env) -> dict:
             'BACKOFFICE_COPYRIGHT',
             default='Municipio de San Felipe - Todos los derechos reservados',
         ),
-        # =============================================================================
-        # DEPARTMENT LIMITS
-        # =============================================================================
-        # Maximum number of trámites that can be assigned to an analyst
-        # This limit varies per department based on workload and policies
-        'BACKOFFICE_MAX_TRAMITES_POR_ANALISTA': env.int(
-            'BACKOFFICE_MAX_TRAMITES_POR_ANALISTA', default=50
-        ),
     }
 
