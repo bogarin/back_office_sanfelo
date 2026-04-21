@@ -6,14 +6,19 @@ by SQL triggers. Uses ForeignKey for catalog lookups (db_column preserves
 the original column names in PostgreSQL).
 """
 
+import logging
+
 from django.apps import apps
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.db import models
+from django.core.exceptions import PermissionDenied
+from django.db import DatabaseError, models
 from django.db.models import Case, Count, IntegerField, OuterRef, Subquery, Sum, Value, When
 
-from core.model_config import AccessPattern, register_model
 from core.managers import ReadOnlyManager
+from core.model_config import AccessPattern, register_model
+from tramites.exceptions import EstadoNoPermitidoError, TramiteNoAsignableError
 from tramites.models.actividades import Actividades
 from tramites.models.catalogos import TramiteEstatus
 
@@ -530,14 +535,6 @@ class TramiteLegacy(models.Model):
 # Tramite Model (Unificado - Nuevo)
 # =============================================================================
 
-import logging
-from django.contrib.auth import get_user_model
-from django.db import DatabaseError, models
-from django.core.exceptions import PermissionDenied
-
-from core.model_config import AccessPattern, register_model
-from tramites.exceptions import TramiteNoAsignableError, EstadoNoPermitidoError
-
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
@@ -574,7 +571,7 @@ class Tramite(models.Model):
         blank=True,
         help_text='Importe total del trámite',
     )
-    urgente = models.BooleanField(help_text='Indica si el trámite es urgente')
+    urgente = models.BooleanField('Urgente', help_text='Indica si el trámite es urgente')
     solicitante_nombre = models.CharField(
         max_length=200, null=True, blank=True, help_text='Nombre del solicitante'
     )
@@ -615,9 +612,14 @@ class Tramite(models.Model):
     asignado_rol = models.CharField(
         max_length=150, null=True, blank=True, help_text='Rol del analista asignado'
     )
-    creado = models.DateTimeField(help_text='Fecha y hora de creación del trámite')
+    creado = models.DateTimeField(
+        verbose_name='Fecha de creación', help_text='Fecha y hora de creación del trámite'
+    )
     actualizado = models.DateTimeField(
-        null=True, blank=True, help_text='Fecha y hora de la última actualización del trámite'
+        verbose_name='Fecha de actualización',
+        null=True,
+        blank=True,
+        help_text='Fecha y hora de la última actualización del trámite',
     )
 
     class Meta:
@@ -631,7 +633,7 @@ class Tramite(models.Model):
         return f'{self.folio} - {self.tramite_nombre}'
 
     @property
-    def actividades(self):
+    def historial_actividades(self):
         """
         Retorna el queryset de actividades relacionadas a este trámite, ordenadas por fecha.
 
@@ -714,6 +716,30 @@ class Tramite(models.Model):
         """
         autoasignado = analista == asignado_por
 
+        # Liberación: el trámite vuelve al pool de disponibles
+        if analista is None:
+            # Verificar que el trámite esté activo
+            if not TramiteEstatus.Estatus.es_activo(self.ultima_actividad_estatus_id):
+                msg = f'El usuario {asignado_por.username} intento liberar el tramite {self.folio} '
+                msg += f'pero el tramite no se encuentra en un estatus asignable (estatus actual: {self.ultima_actividad_estatus_id})'
+
+                logger.warning(msg)
+                raise TramiteNoAsignableError(
+                    f'El trámite {self.folio} no se puede liberar ya que no se encuentra activo'
+                )
+
+            # Determinar observación si no se provee
+            if not observacion:
+                observacion = f'Trámite liberado por {asignado_por.get_full_name()}'
+
+            # Registrar actividad con estatus PRESENTADO (201) al liberar
+            _ = self.registrar_actividad(
+                TramiteEstatus.Estatus.PRESENTADO, analista_id=None, observacion=observacion
+            )
+            logger.info(f'Trámite {self.folio} liberado por {asignado_por.username}')
+            return
+
+        # Asignación/Reasignación normal
         if not TramiteEstatus.Estatus.es_activo(self.ultima_actividad_estatus_id):
             if autoasignado:
                 msg = f'El usuario {asignado_por.username} intento autoasignarse el tramite {self.folio} '
@@ -819,31 +845,21 @@ class Tramite(models.Model):
         )
 
 
-class Abiertos(Tramite):
-    """Proxy model for 'Todos' view - shows all trámites."""
+class Buzon(Tramite):
+    """Modelo proxy para implementar el admin de buzon de tramites para el Analista."""
 
     class Meta:
         proxy = True
-        verbose_name = 'Todos los Trámites'
-        verbose_name_plural = 'Todos'
+        verbose_name = 'Mis trámites'
+        verbose_name_plural = 'Buzón de trámites'
         ordering = ('-creado', '-urgente')
 
 
-class Asignados(Tramite):
-    """Proxy model for 'Asignados' view - shows assigned trámites."""
+class Disponible(Tramite):
+    """Modelo proxy para implementar el admin de tramites disponibles para el Analista."""
 
     class Meta:
         proxy = True
-        verbose_name = 'Trámites Asignados'
-        verbose_name_plural = 'Asignados'
+        verbose_name = 'Tramite disponible para autoasignación'
+        verbose_name_plural = 'Trámites disponibles'
         ordering = ('-creado', '-urgente')
-
-
-class Finalizados(Tramite):
-    """Proxy model for 'Finalizados' view - shows finished trámites."""
-
-    class Meta:
-        proxy = True
-        verbose_name = 'Trámites Finalizados'
-        verbose_name_plural = 'Finalizados'
-        ordering = ('-creado',)

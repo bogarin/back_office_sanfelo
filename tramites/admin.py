@@ -20,11 +20,7 @@ from django.utils.safestring import mark_safe
 
 from core.admin import (
     ActionableReadOnlyMixin,
-    BaseModelAdmin,
     ReadOnlyModelAdmin,
-    RoleBasedAccessMixin,
-    mark_as_active,
-    mark_as_inactive,
 )
 from core.admin_utils import (
     render_activo_badge,
@@ -40,12 +36,15 @@ from tramites.forms import TramiteDetailForm
 from tramites.models import (
     Actividades,
     AsignacionTramite,
+    Buzon,
+    Disponible,
     Perito,
+    Tramite,
     TramiteCatalogo,
     TramiteEstatus,
     TramiteLegacy,
 )
-from tramites.models.tramite import Abiertos, Asignados, Finalizados
+
 
 logger = logging.getLogger(__name__)
 
@@ -132,8 +131,8 @@ def _display_timestamp(timestamp):
     return timestamp.strftime('%Y-%m-%d %I:%M %p')
 
 
-@admin.register(TramiteLegacy)
-class TramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
+# @admin.register(TramiteLegacy)
+class DeprecatedTramiteAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
     """
     Admin de solo lectura con acciones de asignación.
 
@@ -783,7 +782,101 @@ class AsignadoUserFilter(admin.SimpleListFilter):
         return qset
 
 
+class TramiteTipoFilter(admin.SimpleListFilter):
+    """
+    Filter por Tipo de Trámite usando el campo denormalizado tramite_nombre.
+    """
+
+    title = 'Tipo de Trámite'
+    parameter_name = 'tramite_tipo'
+
+    def lookups(self, request, model_admin):
+        # Obtener tipos únicos de tramite_nombre (campo denormalizado)
+        tipos = TramiteCatalogo.objects.order_by('nombre')
+        return [(tipo.id, tipo.nombre) for tipo in tipos]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(tramite_catalogo_id=self.value())
+        return queryset
+
+
+class TramiteEstatusFilter(admin.SimpleListFilter):
+    """
+    Filter por Estatus usando campos denormalizados (ultima_actividad_estatus_id, ultima_actividad_estatus).
+    """
+
+    title = 'Estatus'
+    parameter_name = 'tramite_estatus'
+
+    def lookups(self, request, model_admin):
+        # Obtener estatus únicos de ultima_actividad_estatus (campo denormalizado)
+        estatus = (
+            Tramite.objects.exclude(ultima_actividad_estatus__isnull=True)
+            .values_list('ultima_actividad_estatus_id', 'ultima_actividad_estatus')
+            .distinct()
+            .order_by('ultima_actividad_estatus')
+        )
+        return [(est_id, est_nombre) for est_id, est_nombre in estatus]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(ultima_actividad_estatus_id=self.value())
+        return queryset
+
+
+class TramiteEstatusAbiertosFilter(admin.SimpleListFilter):
+    """
+    Filtrar tramites por estatus, pero solo estatus de trámites abiertos 2xx
+    """
+
+    title = 'Estatus'
+    parameter_name = 'tramite_estatus'
+
+    def lookups(self, request, model_admin):
+        return [
+            (e.value, e.label)
+            for e in TramiteEstatus.Estatus
+            if TramiteEstatus.Estatus.PRESENTADO.value
+            <= e.value
+            < TramiteEstatus.Estatus.FINALIZADO.value
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(ultima_actividad_estatus_id=self.value())
+        return queryset
+
+
+class TramiteUrgenteFilter(admin.SimpleListFilter):
+    title = 'Urgencia'
+    parameter_name = 'urgente'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('1', 'Trámite Urgente'),
+            ('0', 'Trámite Normal'),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == '1':
+            return queryset.filter(urgente=True)
+        if self.value() == '0':
+            return queryset.filter(urgente=False)
+        return queryset
+
+
+DEFAULT_FILTERS = (
+    TramiteUrgenteFilter,
+    'creado',
+    'actualizado',
+)
+
+
 class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
+    class Media:
+        js = ('admin/js/quick_actions.js',)
+
     # Lista de columnas en la tabla
     list_display = (
         'folio',
@@ -796,12 +889,16 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         'acciones_disponibles',
     )
     ordering = ('-urgente', '-creado', '-actualizado')
-    actions = (
-        'tomar_seleccionados',
-        'asignar_seleccionados',
-        'reasignar_seleccionados',
-        'liberar_seleccionados',
+
+    # Filtros en la barra lateral
+    list_filter = (
+        TramiteTipoFilter,
+        TramiteEstatusFilter,
+        *DEFAULT_FILTERS,
     )
+
+    # Acciones disponibles (solo modificar_asignacion)
+    actions = ('modificar_asignacion',)
 
     @admin.display(description='Tipo de Trámite', ordering='tramite_nombre')
     def tramite_nombre_display(self, obj):
@@ -844,24 +941,17 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
     def acciones_disponibles(self, obj):
         """
-        Render quick action buttons that reuse batch actions.
+        Render quick action buttons for trámites.
 
-        Uses ``<a>`` links with ``data-action`` and ``data-pk`` attributes.
-        An event-delegation script (injected by ``changelist_view``) listens
-        for clicks on these links and submits the parent changelist form
-        with the correct action + selected object.
-
-        CSP-safe: no inline ``onclick`` handlers; the script tag uses a nonce.
-
-        For TramiteUnificado models, we check ``asignado_user_id`` directly
-        instead of using assignment flags.
+        Acciones rápidas disponibles:
+        - Tomar Tramite: Para analistas (se auto-asignan)
+        - Liberar Tramite: Para coordinadores/admin (libera asignación)
         """
         request = getattr(self, '_request', None)
         if request is None:
             return '—'
 
         user = request.user
-        # TramiteUnificado has asignado_user_id field directly
         esta_asignado = obj.asignado_user_id is not None
 
         is_admin = user.is_superuser or user.is_staff
@@ -869,17 +959,17 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         is_coordinador = BackOfficeRole.COORDINADOR in roles
         is_analista = BackOfficeRole.ANALISTA in roles
 
-        # (action_name, label) pairs for the applicable actions
+        # (action_name, label) pairs for applicable actions
         actions_map: list[tuple[str, str]] = []
+
+        if is_analista and not esta_asignado:
+            # Analista puede tomar trámites sin asignar
+            actions_map.append(('tomar_rapido', '📌 Tomar'))
 
         if is_admin or is_coordinador:
             if esta_asignado:
-                actions_map.append(('liberar_seleccionados', '🗑️ Liberar'))
-                actions_map.append(('asignar_seleccionados', '🔄 Reasignar'))
-            else:
-                actions_map.append(('asignar_seleccionados', '👤 Asignar'))
-        elif is_analista and not esta_asignado:
-            actions_map.append(('tomar_seleccionados', '📌 Tomar'))
+                # Coordinador/Admin puede liberar trámites asignados
+                actions_map.append(('liberar_rapido', '🗑️ Liberar'))
 
         if not actions_map:
             return '—'
@@ -914,129 +1004,170 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
     def get_actions(self, request: HttpRequest):
         """
-        Retorna acciones según rol del usuario y filtro activo.
+        Retorna acciones según rol del usuario.
 
-        Context-aware: muestra acciones relevantes según el listado:
-        - Analista viendo "Sin Asignar" → puede tomar trámites
-        - Coordinador viendo "Asignados" → puede liberar/reasignar
-        - Admin/Superuser → todas las acciones siempre disponibles
+        Solo hay una acción disponible: modificar_asignacion
         """
         actions = super().get_actions(request)
-        user = request.user
-        url_params = request.GET.urlencode()
+        return actions
 
-        # Admin/Superuser: todas las acciones siempre
-        if user.is_superuser or user.is_staff:
-            return actions
+    # ========== BATCH ACTION: Modificar Asignación ==========
 
-        # Analista: solo puede tomar trámites sin asignar
-        if BackOfficeRole.ANALISTA in getattr(user, 'roles', set()):
-            if 'asignado=False' in url_params:
-                return {k: v for k, v in actions.items() if k == 'tomar_seleccionados'}
-            return {}
-
-        # Coordinador: acciones contextuales
-        if BackOfficeRole.COORDINADOR in getattr(user, 'roles', set()):
-            coordinador_actions = {'asignar_seleccionados', 'reasignar_seleccionados'}
-            if 'asignado=True' in url_params:
-                coordinador_actions.add('liberar_seleccionados')
-            return {k: v for k, v in actions.items() if k in coordinador_actions}
-
-        return {}
-
-    # ========== BATCH ACTIONS (Placeholder - to be implemented) ==========
-
-    @admin.action(description='📌 Tomar trámites seleccionados')
-    def tomar_seleccionados(self, request: HttpRequest, queryset) -> HttpResponseRedirect:
+    @admin.action(description='👤 Modificar Asignación')
+    def modificar_asignacion(self, request: HttpRequest, queryset) -> HttpResponse:
         """
-        Permite a los analistas asignarse trámites disponibles.
+        Action para Asignar/Reasignar/Liberar trámites.
 
-        Usa TramiteUnificado.asignar() para simplificar la lógica.
-        Solo funciona para trámites NO asignados.
-        Los analistas se auto-asignan estos trámites.
+        Muestra un formulario con selector de analista:
+        - Seleccionar analista: Asignar o reasignar trámites
+        - Ninguno (Liberar): Eliminar asignaciones de trámites seleccionados
+
+        La acción se infiere del analista seleccionado (ninguno = liberar).
         """
-        if BackOfficeRole.ANALISTA not in getattr(request.user, 'roles', set()):
-            messages.error(request, '❌ Solo los analistas pueden tomar trámites')
-            return redirect(request.get_full_path())
-
-        tomados = []
-        errores = []
-
-        for tramite in queryset:
-            try:
-                tramite.asignar(
-                    analista=request.user,
-                    asignado_por=request.user,  # El analista se auto-asigna
-                    observacion='Trámite autoasignado',
-                )
-                tomados.append(tramite.folio)
-            except TramiteNoAsignableError as e:
-                errores.append(f'{tramite.folio}: {str(e)}')
-            except Exception as e:
-                logger.error(f'Error tomando {tramite.folio}: {e}')
-                errores.append(f'{tramite.folio}: Error inesperado')
-
-        # Mostrar resultados
-        if tomados:
-            messages.success(request, f'✅ Has tomado {len(tomados)} trámites exitosamente')
-
-        if errores:
-            messages.warning(request, f'⚠️ Errores: {"; ".join(errores[:5])}')
-
-        return redirect(request.get_full_path())
-
-    @admin.action(description='👤 Asignar trámites seleccionados a analista')
-    def asignar_seleccionados(self, request: HttpRequest, queryset) -> HttpResponse:
-        """
-        Action para asignar trámites en batch.
-
-        Usa TramiteUnificado.asignar() para simplificar la lógica.
-        """
-        if request.POST.get('analista'):
-            analista_id = request.POST['analista']
-            analista = User.objects.get(id=analista_id)
+        if 'analista' in request.POST:
+            analista_id = request.POST.get('analista')
             observacion = request.POST.get('observacion', '')
 
-            asignados = []
-            omitidos = []
+            # Si no se seleccionó analista, error de validación
+            if not analista_id:
+                messages.error(request, '❌ Debe seleccionar un analista o "Ninguno"')
+                return redirect(request.get_full_path())
 
-            for tramite in queryset:
-                result = tramite.asignar(
-                    analista=analista,
-                    asignado_por=request.user,
-                    observacion=observacion,
-                )
+            # Acción: Liberar (ninguno seleccionado)
+            if analista_id == 'ninguno':
+                count = 0
+                errores = []
 
-                if result:
-                    asignados.append(tramite.folio)
-                else:
-                    # Reasignación al mismo analista - silently skipped
-                    omitidos.append(tramite.folio)
+                for tramite in queryset:
+                    try:
+                        tramite.asignar(
+                            analista=None,
+                            asignado_por=request.user,
+                            observacion=observacion,
+                        )
+                        count += 1
+                    except Exception as e:
+                        logger.error(f'Error liberando {tramite.folio}: {e}')
+                        errores.append(f'{tramite.folio}: {str(e)}')
 
-            # Mostrar resultados
-            if asignados:
-                messages.success(
-                    request,
-                    f'✅ {len(asignados)} trámites asignados a 👤 {analista.get_full_name()}',
-                )
+                if count:
+                    messages.success(request, f'✅ {count} trámites liberados')
+                if errores:
+                    messages.warning(request, f'⚠️ Errores: {"; ".join(errores[:5])}')
 
-            if omitidos:
-                messages.warning(request, f'⚠️ Omitidos (ya asignados): {"; ".join(omitidos[:5])}')
+            # Acción: Asignar o Reasignar (analista seleccionado)
+            else:
+                analista = User.objects.get(id=analista_id)
+                asignados = []
+                errores = []
+
+                for tramite in queryset:
+                    try:
+                        tramite.asignar(
+                            analista=analista,
+                            asignado_por=request.user,
+                            observacion=observacion,
+                        )
+                        asignados.append(tramite.folio)
+                    except Exception as e:
+                        logger.error(f'Error asignando {tramite.folio}: {e}')
+                        errores.append(f'{tramite.folio}: {str(e)}')
+
+                if asignados:
+                    messages.success(
+                        request,
+                        f'✅ {len(asignados)} trámites asignados a 👤 {analista.get_full_name()}',
+                    )
+                if errores:
+                    messages.warning(request, f'⚠️ Errores: {"; ".join(errores[:5])}')
 
             return redirect(request.get_full_path())
 
-        # GET: Mostrar formulario de selección de analista
+        # GET: Mostrar formulario de modificación de asignación
         analistas = User.objects.filter(groups__name='Analista')
 
-        # Solo lista de analistas sin conteo de carga
+        # Preseleccionar analista actual si hay un solo trámite y está asignado
+        asignado_user_id = None
+        if queryset.count() == 1:
+            tramite = queryset.first()
+            if tramite.asignado_user_id:
+                asignado_user_id = tramite.asignado_user_id
+
         context = {
             'analistas': analistas,
             'queryset': queryset,
             'action_checkbox_name': ACTION_CHECKBOX_NAME,
             'opts': self.model._meta,
-            'action_name': 'asignar_seleccionados',
+            'action_name': 'modificar_asignacion',
+            'queryset_count': queryset.count(),
+            'asignado_user_id': asignado_user_id,
         }
-        return render(request, 'admin/asignar_tramites.html', context)
+        return render(request, 'admin/modificar_asignacion.html', context)
+
+    # ========== QUICK ACTIONS HANDLERS ==========
+
+    @admin.action(description='📌 Tomar trámite')
+    def tomar_rapido(self, request: HttpRequest, queryset) -> HttpResponseRedirect:
+        """
+        Quick action: Permite a los analistas asignarse un trámite.
+
+        Solo funciona para trámites NO asignados.
+        """
+        if BackOfficeRole.ANALISTA not in getattr(request.user, 'roles', set()):
+            messages.error(request, '❌ Solo los analistas pueden tomar trámites')
+            return redirect(request.get_full_path())
+
+        tramite = queryset.first()
+        if not tramite:
+            return redirect(request.get_full_path())
+
+        try:
+            tramite.asignar(
+                analista=request.user,
+                asignado_por=request.user,
+                observacion='Trámite autoasignado',
+            )
+            messages.success(request, f'✅ Has tomado el trámite {tramite.folio}')
+        except TramiteNoAsignableError as e:
+            messages.error(request, f'❌ {str(e)}')
+        except Exception as e:
+            logger.error(f'Error tomando {tramite.folio}: {e}')
+            messages.error(request, '❌ Error inesperado al tomar el trámite')
+
+        return redirect(request.get_full_path())
+
+    @admin.action(description='🗑️ Liberar trámite')
+    def liberar_rapido(self, request: HttpRequest, queryset) -> HttpResponseRedirect:
+        """
+        Quick action: Libera un trámite asignado.
+
+        Solo disponible para coordinadores/admin.
+        """
+        user = request.user
+        if not (
+            user.is_superuser
+            or user.is_staff
+            or BackOfficeRole.COORDINADOR in getattr(user, 'roles', set())
+        ):
+            messages.error(request, '❌ Solo los coordinadores pueden liberar trámites')
+            return redirect(request.get_full_path())
+
+        tramite = queryset.first()
+        if not tramite:
+            return redirect(request.get_full_path())
+
+        try:
+            tramite.asignar(
+                analista=None,
+                asignado_por=request.user,
+                observacion='Trámite liberado',
+            )
+            messages.success(request, f'✅ Trámite {tramite.folio} liberado')
+        except Exception as e:
+            logger.error(f'Error liberando {tramite.folio}: {e}')
+            messages.error(request, '❌ Error inesperado al liberar el trámite')
+
+        return redirect(request.get_full_path())
 
     def change_view(self, request, object_id, extra_context=None):
         """
@@ -1095,25 +1226,108 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         return render(request, 'admin/tramite_detail.html', context)
 
-    @admin.action(description='🔄 Reasignar trámites seleccionados')
-    def reasignar_seleccionados(self, request: HttpRequest, queryset) -> HttpResponse:
+
+@admin.register(Buzon)
+class BuzonTramitesAdmin(TramiteBaseAdmin):
+    """
+    Admin para ver trámites asignados al usuario actual. Principalmente orientado a que los analistas
+    vean sus trámites asignados.
+    """
+
+    list_filter = (
+        TramiteTipoFilter,
+        TramiteEstatusAbiertosFilter,
+        *DEFAULT_FILTERS,
+    )
+
+    def get_queryset(self, request):
         """
-        Placeholder: Action para reasignar trámites a otro analista.
+        Filtra para mostrar solo trámites asignados al usuario actual con estatus 200-299.
+
+        Range: 200 <= ultima_actividad_estatus_id < 300
         """
-        # TODO: Implement logic
+        return (
+            super()
+            .get_queryset(request)
+            .filter(
+                asignado_user_id=request.user.id,
+                ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.PRESENTADO.value,
+                ultima_actividad_estatus_id__lt=TramiteEstatus.Estatus.POR_RECOGER.value,
+            )
+        )
+
+
+@admin.register(Disponible)
+class TramitesDisponiblesAdmin(TramiteBaseAdmin):
+    """
+    Admin para ver trámites disponibles (estatus 200-299).
+    Orientado a Analistas que buscan tramites para tomar.
+    """
+
+    list_filter = (
+        TramiteTipoFilter,
+        TramiteEstatusAbiertosFilter,
+        *DEFAULT_FILTERS,
+    )
+
+    actions = ('tomar_asignacion',)
+
+    def get_actions(self, request: HttpRequest):
+        """
+        Retorna solo la acción de tomar asignación.
+
+        Este admin está diseñado exclusivamente para analistas que toman
+        trámites disponibles, por lo que la única acción permitida es
+        tomar asignación.
+        """
+        actions = super().get_actions(request)
+        return {k: v for k, v in actions.items() if k == 'tomar_asignacion'}
+
+    @admin.action(description='📌 Tomar asignación')
+    def tomar_asignacion(self, request: HttpRequest, queryset) -> HttpResponseRedirect:
+        """
+        Permite a los analistas asignarse trámites disponibles.
+
+        Solo funciona para trámites NO asignados (queryset ya filtra
+        asignado_user_id__isnull=True). Los analistas se auto-asignan
+        estos trámites llamando a tramite.asignar().
+        """
+        if BackOfficeRole.ANALISTA not in getattr(request.user, 'roles', set()):
+            messages.error(request, '❌ Solo los analistas pueden tomar trámites')
+            return redirect(request.get_full_path())
+
+        tomados = []
+        errores_asignacion = []
+        errores = []
+
+        for tramite in queryset:
+            try:
+                tramite.asignar(
+                    analista=request.user,
+                    asignado_por=request.user,
+                    observacion='Auto-asignado por analista',
+                )
+                tomados.append(tramite.folio)
+            except DatabaseError:
+                errores_asignacion.append(
+                    f'{tramite.folio}: La asignación falló. Intente nuevamente'
+                )
+            except EstadoNoPermitidoError as e:
+                errores.append(f'{tramite.folio}: {str(e)}')
+            except Exception as e:
+                errores.append(f'{tramite.folio}: Error inesperado - {str(e)}')
+
+        if tomados:
+            messages.success(request, f'✅ Has tomado {len(tomados)} trámites exitosamente')
+        if errores_asignacion:
+            messages.warning(
+                request, f'⚠️ Errores de asignación: {"; ".join(errores_asignacion[:5])}'
+            )
+        if errores:
+            messages.warning(request, f'⚠️ Errores: {"; ".join(errores[:5])}')
+
         return redirect(request.get_full_path())
 
-    @admin.action(description='🗑️ Liberar trámites seleccionados')
-    def liberar_seleccionados(self, request: HttpRequest, queryset) -> HttpResponseRedirect:
-        """
-        Placeholder: Action para liberar trámites en batch.
-        """
-        # TODO: Implement logic
-        return redirect(request.get_full_path())
-
-
-@admin.register(Abiertos)
-class TramitesAbiertosAdmin(TramiteBaseAdmin):
     def get_queryset(self, request):
         """
         Filter to only show trámites with estatus 200-299.
@@ -1125,29 +1339,54 @@ class TramitesAbiertosAdmin(TramiteBaseAdmin):
             .get_queryset(request)
             .filter(
                 ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.PRESENTADO.value,
-                ultima_actividad_estatus_id__lt=TramiteEstatus.Estatus.FINALIZADO.value,
+                ultima_actividad_estatus_id__lt=TramiteEstatus.Estatus.POR_RECOGER.value,
+                asignado_user_id__isnull=True,
             )
         )
 
+    def acciones_disponibles(self, obj):
+        """
+        Render quick action buttons for trámites disponibles.
 
-@admin.register(Asignados)
-class TramitesAsignadosAdmin(TramitesAbiertosAdmin):
+        Única acción disponible: Tomar asignación.
+        """
+        buttons = []
+        buttons.append(
+            format_html(
+                '<a href="#" class="button quick-action" '
+                'data-action="{}" data-pk="{}" '
+                'style="padding:2px 10px;font-size:11px;white-space:nowrap;">'
+                '{}</a>',
+                'tomar_asignacion',
+                obj.pk,
+                '📌 Tomar',
+            )
+        )
+
+        return mark_safe(' '.join(buttons))
+
+    acciones_disponibles.short_description = 'Acciones Rápidas'
+    acciones_disponibles.allow_tags = True
+
+
+@admin.register(Tramite)
+class TramitesAdmin(TramiteBaseAdmin):
     """
-    Admin para ver trámites abiertos y asignados.
-
-    Supports optional ?current_user=True query parameter via CurrentUserFilter
-    to only show trámites assigned to current logged-in user.
+    Admin de tramites orientado a Coordinadores y Administradores para gestión completa de trámites.
     """
 
-    # Include CurrentUserFilter in list_filter to allow ?current_user=True parameter
-    list_filter = (AsignadoUserFilter,)
+    def get_list_filter(self, request):
+        """
+        Conditionally include AsignadoUserFilter based on user role.
 
+        - Coordinadores y Admins ven el filtro para gestionar asignaciones
+        - Analistas no ven el filtro, solo su listado personalizado (Buzon)
+        """
+        return [AsignadoUserFilter, *super().get_list_filter(request)]
 
-@admin.register(Finalizados)
-class TramitesFinalizadosAdmin(TramiteBaseAdmin):
     def get_queryset(self, request):
         """
-        Filter to only show trámites with estatus 200-299.
+        Filtra para mostrar solo trámites asignados al usuario actual con estatus 200-299.
 
         Range: 200 <= ultima_actividad_estatus_id < 300
         """
@@ -1155,6 +1394,25 @@ class TramitesFinalizadosAdmin(TramiteBaseAdmin):
             super()
             .get_queryset(request)
             .filter(
-                ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.FINALIZADO.value,
+                ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.PRESENTADO.value,
             )
         )
+
+    def acciones_disponibles(self, obj):
+        """
+        Render quick action button for trámites (Coordinador/Admin).
+
+        Única acción disponible: Modificar Asignación.
+        """
+        return format_html(
+            '<a href="#" class="button quick-action" '
+            'data-action="{}" data-pk="{}" '
+            'style="padding:2px 10px;font-size:11px;white-space:nowrap;">'
+            '{}</a>',
+            'modificar_asignacion',
+            obj.pk,
+            '👤 Modificar Asignación',
+        )
+
+    acciones_disponibles.short_description = 'Acciones Rápidas'
+    acciones_disponibles.allow_tags = True

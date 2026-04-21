@@ -15,7 +15,7 @@ from .relaciones import (
     TramiteCatalogoRequisito,
     TramiteCatalogoTipoRequisito,
 )
-from .tramite import Tramite, TramiteLegacy
+from .tramite import Tramite, Buzon, Disponible, TramiteLegacy
 from ..exceptions import (
     TramiteNoAsignableError,
     EstadoNoPermitidoError,
@@ -25,6 +25,8 @@ __all__ = [
     # Core
     'Tramite',
     'TramiteLegacy',
+    'Buzon',
+    'Disponible',
     # Catálogos
     'TramiteCatalogo',
     'TramiteEstatus',

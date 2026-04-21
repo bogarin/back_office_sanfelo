@@ -12,7 +12,7 @@ from django.dispatch import receiver
 from .models import TramiteLegacy
 
 
-@receiver(post_save, sender=TramiteLegacy)
+# @receiver(post_save, sender=TramiteLegacy)
 def invalidate_tramite_stats_on_save(sender, instance, **kwargs):
     """
     Invalidate statistics cache after saving a tramite.
@@ -29,7 +29,7 @@ def invalidate_tramite_stats_on_save(sender, instance, **kwargs):
     TramiteLegacy.objects.invalidate_statistics_cache()
 
 
-@receiver(post_delete, sender=TramiteLegacy)
+# @receiver(post_delete, sender=TramiteLegacy)
 def invalidate_tramite_stats_on_delete(sender, instance, **kwargs):
     """
     Invalidate statistics cache after deleting a tramite.
@@ -69,13 +69,13 @@ def _invalidate_distribution(sender, instance, **kwargs):
     )
 
 
-@receiver(post_save, sender='tramites.Actividades')
+# @receiver(post_save, sender='tramites.Actividades')
 def invalidate_on_actividades_save(sender, instance, **kwargs):
     """Invalidate estatus-derived caches when an Actividades record is saved."""
     _invalidate_distribution(sender, instance, **kwargs)
 
 
-@receiver(post_delete, sender='tramites.Actividades')
+# @receiver(post_delete, sender='tramites.Actividades')
 def invalidate_on_actividades_delete(sender, instance, **kwargs):
     """Invalidate estatus-derived caches when an Actividades record is deleted."""
     _invalidate_distribution(sender, instance, **kwargs)

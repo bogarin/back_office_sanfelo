@@ -77,6 +77,7 @@ class TramiteEstatus(models.Model):
         FINALIZADO = 303, 'FINALIZADO'
         CANCELADO = 304, 'CANCELADO'
 
+
         @classmethod
         def es_activo(cls, estatus: int) -> bool:
             return estatus in (

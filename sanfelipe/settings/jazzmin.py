@@ -48,7 +48,7 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
             'theme': 'vendor/bootswatch/solar/bootstrap.min.css',
             'custom_css': 'admin/css/backoffice.css',
             'show_sidebar': True,
-            'navigation_expanded': False,
+            'navigation_expanded': True,
             'related_modal_active': True,
             # Hide 'contenttypes', 'sessions', 'admin', 'tramites' apps
             # Auth app visibility is controlled via auth.view_user permission
@@ -71,38 +71,24 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
                     {
                         'name': 'Mis trámites',
                         # URL with query parameter to filter trámites assigned to logged-in user
-                        'url': '/admin/tramites/asignados/?analista=_user',
+                        'url': 'admin:tramites_buzon_changelist',
                         'icon': 'fas fa-user',
-                        # Only Analista can see this link
-                        'permissions': ['tramites.view_mis_tramites'],
-                    },
-                    {
-                        'name': 'Todos',
-                        'url': 'admin:tramites_abiertos_changelist',
-                        'icon': 'fas fa-list',
-                        # Administrador and Coordinador can see this link
-                        'permissions': ['tramites.view_todos'],
+                        # Solo los analistas deberían ver este enlace
+                        'permissions': ['tramites.acceso_analista'],
                     },
                     {
                         'name': 'Disponibles',
-                        'url': 'tramites:sin-asignar',
+                        'url': 'admin:tramites_disponible_changelist',
                         'icon': 'fas fa-inbox',
-                        # All roles can see this link
-                        'permissions': ['tramites.view_disponibles'],
+                        # Solo los analistas deberían ver este enlace
+                        'permissions': ['tramites.acceso_analista'],
                     },
                     {
-                        'name': 'Asignados',
-                        'url': 'admin:tramites_asignados_changelist',
-                        'icon': 'fas fa-user-check',
-                        # Administrador and Coordinador can see this link
-                        'permissions': ['tramites.view_asignados'],
-                    },
-                    {
-                        'name': 'Finalizados',
-                        'url': 'admin:tramites_finalizados_changelist',
-                        'icon': 'fas fa-check-circle',
-                        # Administrador and Coordinador can see this link
-                        'permissions': ['tramites.view_finalizados'],
+                        'name': 'Trámites',
+                        'url': 'admin:tramites_tramite_changelist',
+                        'icon': 'fas fa-list',
+                        # No es para analistas
+                        'permissions': ['tramites.acceso_coordinador'],
                     },
                 ],
             },
