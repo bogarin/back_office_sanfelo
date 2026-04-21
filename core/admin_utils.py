@@ -5,6 +5,7 @@ in Django admin with consistent styling using CSS classes.
 """
 
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 
 def render_badge(text, badge_class):
@@ -56,3 +57,27 @@ def render_activo_badge(is_activo):
     if is_activo:
         return render_badge('Activo', 'badge-activo')
     return render_badge('Inactivo', 'badge-inactivo')
+
+
+def render_quick_action(label: str, attrs: dict[str, str] | None = None, target: str = '#') -> str:
+    """
+    Render a quick action button/link for Django admin.
+
+    Args:
+        label: Text to display in the button
+        attrs: Dictionary of data-* attributes (e.g., {"action": "tomar", "pk": "1"})
+        target: URL for href attribute (default: "#")
+
+    Returns:
+        Safe HTML string for the quick action button
+    """
+    attrs = attrs or {}
+    data_attrs = ' '.join(str(format_html('data-{}="{}"', k, v)) for k, v in attrs.items())
+    return str(
+        format_html(
+            '<a href="{}" class="button quick-action" {}>{}</a>',
+            target,
+            mark_safe(data_attrs),
+            label,
+        )
+    )
