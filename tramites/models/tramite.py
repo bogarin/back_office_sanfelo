@@ -11,7 +11,8 @@ from django.core.exceptions import PermissionDenied
 from django.db import DatabaseError, models
 
 from core.model_config import AccessPattern, register_model
-from tramites.exceptions import EstadoNoPermitidoError, SFTPConnectionError, TramiteNoAsignableError
+from tramites.constants import FORBIDDEN_FOLIO_CHARS
+from tramites.exceptions import EstadoNoPermitidoError, TramiteNoAsignableError
 from tramites.models.actividades import Actividades
 from tramites.models.catalogos import RequisitoFile, TramiteEstatus
 
@@ -135,8 +136,6 @@ class Tramite(models.Model):
             List of :class:`RequisitoFile` matching this trámite's folio.
         """
         # Defense-in-depth: reject suspicious folios before SFTP call
-        from tramites.constants import FORBIDDEN_FOLIO_CHARS
-
         folio = self.folio
         if any(c in folio for c in FORBIDDEN_FOLIO_CHARS):
             logger.error(
