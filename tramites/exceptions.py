@@ -9,3 +9,7 @@ class TramiteNoAsignableError(Exception):
 
 class EstadoNoPermitidoError(Exception):
     """El trámite está en un estado que no permite asignación."""
+
+
+class SFTPConnectionError(Exception):
+    """Error de conexión SFTP con mensaje amigable en español."""

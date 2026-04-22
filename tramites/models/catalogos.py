@@ -8,10 +8,27 @@ using the ReadOnlyManager, which prevents all write operations (create, update,
 delete) at the ORM level to ensure data integrity.
 """
 
+from dataclasses import dataclass
+
 from django.db import models
 
 from core.managers import ReadOnlyManager
 from core.model_config import AccessPattern, register_model
+from tramites.models.managers import CachedReadOnlyManager
+
+
+@dataclass
+class RequisitoFile:
+    """Archivo PDF de requisito con información de SFTP y catálogo.
+
+    DTO que combina metadata del archivo en SFTP con el nombre del
+    requisito desde el catálogo en base de datos.
+    """
+
+    requisito_id: int
+    requisito_nombre: str | None  # None si no existe en catálogo
+    file_name: str
+    size_mb: float
 
 
 @register_model('backend', AccessPattern.READ_ONLY, False)
@@ -76,7 +93,6 @@ class TramiteEstatus(models.Model):
         RECHAZADO = 302, 'RECHAZADO'
         FINALIZADO = 303, 'FINALIZADO'
         CANCELADO = 304, 'CANCELADO'
-
 
         @classmethod
         def es_activo(cls, estatus: int) -> bool:
@@ -236,7 +252,7 @@ class Requisito(models.Model):
     are prevented to maintain data integrity of this reference table.
     """
 
-    objects = ReadOnlyManager()
+    objects = CachedReadOnlyManager()
 
     class Meta:
         managed = False

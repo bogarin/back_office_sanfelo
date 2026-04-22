@@ -5,6 +5,7 @@ from .catalogos import (
     Categoria,
     Perito,
     Requisito,
+    RequisitoFile,
     Tipo,
     TramiteCatalogo,
     TramiteEstatus,
@@ -30,6 +31,7 @@ __all__ = [
     'Actividad',
     'Categoria',
     'Requisito',
+    'RequisitoFile',
     'Tipo',
     # Transaccional
     'Actividades',

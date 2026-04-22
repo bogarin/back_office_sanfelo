@@ -41,6 +41,14 @@ def configure_sftp(env: Env) -> dict:
         # Passphrase for SSH private key (only used with SFTP_PRIVATE_KEY_PATH)
         # Leave empty if private key has no passphrase
         'SFTP_PRIVATE_KEY_PASSPHRASE': env('SFTP_PRIVATE_KEY_PASSPHRASE', default=''),
+        # Timeout en segundos para operaciones SFTP
+        # None = default de paramiko (aprox. 30 segundos)
+        'SFTP_TIMEOUT': env.int('SFTP_TIMEOUT', default=None),
+        # SSH host key for server verification (MITM protection)
+        # Format: "ssh-rsa AAAAB3Nza..." or "ssh-ed25519 AAAA..."
+        # Obtain with: ssh-keyscan -t rsa,ed25519 <host>
+        # Required in production (DEBUG=False). Optional in development.
+        'SFTP_HOST_KEY': env('SFTP_HOST_KEY', default=''),
         # =============================================================================
         # REMOTE DIRECTORY PATHS
         # =============================================================================

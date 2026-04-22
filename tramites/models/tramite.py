@@ -11,9 +11,9 @@ from django.core.exceptions import PermissionDenied
 from django.db import DatabaseError, models
 
 from core.model_config import AccessPattern, register_model
-from tramites.exceptions import EstadoNoPermitidoError, TramiteNoAsignableError
+from tramites.exceptions import EstadoNoPermitidoError, SFTPConnectionError, TramiteNoAsignableError
 from tramites.models.actividades import Actividades
-from tramites.models.catalogos import TramiteEstatus
+from tramites.models.catalogos import RequisitoFile, TramiteEstatus
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -122,12 +122,39 @@ class Tramite(models.Model):
         """
         return Actividades.objects.filter(tramite_id=self.pk).order_by('-timestamp')
 
-    @property
-    def requisitos(self):
+    def fetch_requisitos(self) -> list[RequisitoFile]:
+        """Fetch requisito PDFs from SFTP for this trámite.
+
+        Unlike a property, this method makes the network side-effect
+        and potential :class:`SFTPConnectionError` explicit.
+
+        Raises:
+            SFTPConnectionError: On SFTP connection or listing failure.
+
+        Returns:
+            List of :class:`RequisitoFile` matching this trámite's folio.
         """
-        Retorna la lista de requisitos asociados a este trámite.
-        """
-        return []
+        # Defense-in-depth: reject suspicious folios before SFTP call
+        from tramites.constants import FORBIDDEN_FOLIO_CHARS
+
+        folio = self.folio
+        if any(c in folio for c in FORBIDDEN_FOLIO_CHARS):
+            logger.error(
+                'Seguridad: folio sospechoso detectado (id=%s, folio=%r)',
+                self.pk,
+                folio,
+            )
+            return []
+
+        # Lazy import to avoid circular dependency with services.py
+        from tramites.services import SFTPService
+
+        service = SFTPService()
+        try:
+            files, _ = service.list_requisito_files(folio)
+            return files
+        finally:
+            service.close_connection()
 
     def verificar_activo(self):
         if not TramiteEstatus.Estatus.es_activo(self.ultima_actividad_estatus_id):

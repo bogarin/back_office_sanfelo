@@ -229,21 +229,23 @@
                     </h5>
                 </div>
                 <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                    {% if tramite.requisitos %}
+                    {% if requisitos %}
                     <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>Nombre</th>
-                                <th>URL</th>
+                                <th>Requisito ID</th>
+                                <th>Nombre de Requisito</th>
+                                <th>Archivo</th>
                                 <th>Tamaño</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for requisito in tramite.requisitos %}
+                            {% for requisito in requisitos %}
                             <tr>
-                                <td>{{ requisito.nombre }}</td>
-                                <td><a href="{{ requisito.url }}">{{ requisito.url }}</a></td>
-                                <td>{{ requisito.tamaño }}</td>
+                                <td>{{ requisito.requisito_id }}</td>
+                                <td>{{ requisito.requisito_nombre|default:"—" }}</td>
+                                <td>{{ requisito.file_name }}</td>
+                                <td>{{ requisito.size_mb|floatformat:2 }} MB</td>
                             </tr>
                             {% endfor %}
                         </tbody>

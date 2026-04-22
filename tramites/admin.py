@@ -44,6 +44,7 @@ from tramites.models import (
     TramiteCatalogo,
     TramiteEstatus,
 )
+from tramites.exceptions import SFTPConnectionError
 
 
 logger = logging.getLogger(__name__)
@@ -451,7 +452,7 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         Muestra:
         - Información completa del trámite (readonly)
         - Historial de actividades (via tramite.actividades property)
-        - Documentos PDF desde SFTP (via tramite.requisitos property - MOCK)
+        - Documentos PDF desde SFTP (via tramite.fetch_requisitos())
         - Acciones disponibles (requerir documentos, en diligencia, finalizar)
         """
 
@@ -488,13 +489,23 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         else:
             form = TramiteDetailForm()
 
+        requisitos = []
+        try:
+            requisitos = tramite.fetch_requisitos()
+        except SFTPConnectionError as e:
+            logger.warning('SFTP error for tramite %s: %s', tramite.folio, e)
+            messages.error(
+                request, 'Error al cargar los documentos. Por favor intenta nuevamente más tarde.'
+            )
+
         context = {
             'tramite': tramite,
+            'requisitos': requisitos,
             'form': form,
             'opts': self.model._meta,
             'is_popup': False,
-            'has_change_permission': True,
-            'has_view_permission': True,
+            'has_change_permission': self.has_change_permission(request, tramite),
+            'has_view_permission': self.has_view_permission(request, tramite),
             **(extra_context or {}),
         }
 

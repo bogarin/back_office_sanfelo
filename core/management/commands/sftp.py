@@ -7,12 +7,19 @@ Usage:
 """
 
 import importlib.metadata
+import logging
 from pathlib import Path
 
 import django
 import paramiko
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+
+from tramites.constants import FORBIDDEN_FOLIO_CHARS
+from tramites.exceptions import SFTPConnectionError
+from tramites.services import SFTPService
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -38,12 +45,15 @@ class Command(BaseCommand):
         action = options['action']
         folio = options.get('folio')
 
-        if action == 'ping':
-            self._ping()
-        elif action == 'list':
-            if not folio:
-                raise CommandError('Error: Se requiere el parámetro <folio> para la acción list.')
-            self._list_files(folio)
+        match action:
+            case 'ping':
+                self._ping()
+            case 'list':
+                if not folio:
+                    raise CommandError(
+                        'Error: Se requiere el parámetro <folio> para la acción list.'
+                    )
+                self._list_files(folio)
 
     def _print_versions(self):
         """Imprime versiones de dependencias críticas."""
@@ -122,198 +132,108 @@ class Command(BaseCommand):
                 'Configuración SFTP inválida. Por favor revisa las variables de entorno.'
             )
 
-    def _get_sftp_client(self):
-        """Crea y conecta cliente SFTP usando llave o contraseña."""
-
-        host = settings.SFTP_HOST
-        port = settings.SFTP_PORT
-        username = settings.SFTP_USERNAME
-        password = settings.SFTP_PASSWORD
-        key_path = Path(settings.SFTP_PRIVATE_KEY_PATH).expanduser()
-        key_path_str = str(key_path)
-        key_passphrase = settings.SFTP_PRIVATE_KEY_PASSPHRASE
-
-        # Prioridad: llave privada > contraseña
-        if key_path:
-            try:
-                key = None
-                auth_method = 'unknown'
-
-                try:
-                    key = paramiko.RSAKey.from_private_key_file(key_path_str)
-                    auth_method = 'RSA key'
-                except paramiko.SSHException:
-                    pass
-
-                if key is None:
-                    try:
-                        key = paramiko.Ed25519Key.from_private_key_file(key_path_str)
-                        auth_method = 'Ed25519 key'
-                    except paramiko.SSHException:
-                        pass
-
-                if key is None:
-                    try:
-                        key = paramiko.ECDSAKey.from_private_key_file(key_path_str)
-                        auth_method = 'ECDSA key'
-                    except paramiko.SSHException:
-                        pass
-
-                # DSA key está deprecado, no soportado en paramiko 4.0+
-
-                # Intentar cargar con passphrase si está configurada
-                if key is None and key_passphrase:
-                    try:
-                        key = paramiko.RSAKey.from_private_key_file(
-                            key_path_str, password=key_passphrase
-                        )
-                        auth_method = 'RSA key with passphrase'
-                    except paramiko.SSHException:
-                        pass
-
-                    if key is None:
-                        try:
-                            key = paramiko.Ed25519Key.from_private_key_file(
-                                key_path_str, password=key_passphrase
-                            )
-                            auth_method = 'Ed25519 key with passphrase'
-                        except paramiko.SSHException:
-                            pass
-
-                if key is None:
-                    raise CommandError(
-                        'No se pudo cargar la llave privada SSH. '
-                        'Verifica el tipo (RSA, Ed25519, ECDSA, DSA) y passphrase.'
-                    ) from None
-
-            except paramiko.SSHException as e:
-                raise CommandError(f'Error al cargar llave privada SSH: {e}') from None
-            except FileNotFoundError:
-                raise CommandError(
-                    f'Archivo de llave privada no encontrado: {str(key_path)}'
-                ) from None
-
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            self.stdout.write(f'  Método de autenticación: {auth_method}')
-
-            client.connect(hostname=host, port=port, username=username, pkey=key)
-
-        elif password:
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            self.stdout.write('  Método de autenticación: password')
-
-            client.connect(hostname=host, port=port, username=username, password=password)
-        else:
-            raise CommandError(
-                'No hay método de autenticación disponible (password o llave privada)'
-            )
-
-        return client
-
     def _ping(self):
         """Prueba conexión SFTP con validación completa."""
-        host = settings.SFTP_HOST
-        port = settings.SFTP_PORT
-        username = settings.SFTP_USERNAME
-        base_dir = settings.SFTP_BASE_DIR
-
         self._print_versions()
         self._validate_sftp_config()
 
+        # Warn if host key verification is not enforced
+        if not getattr(settings, 'SFTP_HOST_KEY', ''):
+            if settings.DEBUG:
+                self.stdout.write(
+                    self.style.WARNING(
+                        '⚠ SFTP_HOST_KEY no configurado. '
+                        'La conexión NO está protegida contra ataques MITM. '
+                        'Configura SFTP_HOST_KEY para producción. '
+                        'Ver: docs/sftp-host-key.md'
+                    )
+                )
+                self.stdout.write('')
+            else:
+                # RejectPolicy will be enforced by the service — this is informational
+                pass
+
         self.stdout.write('Probando conexión SFTP...')
-        self.stdout.write(f'  Host: {host}:{port}')
-        self.stdout.write(f'  Usuario: {username}')
-        self.stdout.write(f'  Directorio base: {base_dir}')
+
+        service = SFTPService()
 
         try:
-            client = self._get_sftp_client()
+            client = service.get_sftp_client()
             sftp = client.open_sftp()
-            sftp.listdir(base_dir)
-            client.close()
+            sftp.listdir(settings.SFTP_BASE_DIR)
 
-        except paramiko.AuthenticationException as e:
-            self.stdout.write(self.style.ERROR(f'✗ Error de autenticación: {e}'))
-            raise CommandError(
-                'Autenticación fallida. Verifica password o llave privada.'
-            ) from None
-
-        except paramiko.SSHException as e:
-            self.stdout.write(self.style.ERROR(f'✗ Error SSH: {e}'))
+        except SFTPConnectionError as e:
+            self.stdout.write(self.style.ERROR(f'✗ {e}'))
             raise CommandError(str(e)) from None
 
         except FileNotFoundError:
-            self.stdout.write(self.style.ERROR(f'✗ Directorio no encontrado: {base_dir}'))
-            raise CommandError(f'El directorio base {base_dir} no existe en el servidor.') from None
+            self.stdout.write(
+                self.style.ERROR(f'✗ Directorio no encontrado: {settings.SFTP_BASE_DIR}')
+            )
+            raise CommandError(
+                f'El directorio base {settings.SFTP_BASE_DIR} no existe en el servidor.'
+            ) from None
 
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'✗ Error al conectar al servidor SFTP: {e}'))
-            raise CommandError(str(e)) from None
+            logger.error('Error inesperado en ping SFTP: %s', e)
+            self.stdout.write(self.style.ERROR('✗ Error al conectar al servidor SFTP.'))
+            raise CommandError('Error inesperado. Revisa los logs del servidor.') from None
+
+        finally:
+            service.close_connection()
 
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('✓ Conexión SFTP exitosa'))
 
     def _list_files(self, folio: str):
-        """Lista archivos de un trámite específico."""
-        base_dir = settings.SFTP_BASE_DIR
-        folio_dir = f'{base_dir}/{folio}'
+        """Lista archivos de un trámite usando el servicio SFTP."""
+        # Early rejection of path traversal characters
+        if any(c in folio for c in FORBIDDEN_FOLIO_CHARS):
+            raise CommandError(f'Folio contiene caracteres no permitidos: {folio!r}')
 
         self._validate_sftp_config()
 
         self.stdout.write(f'Listando archivos para trámite: {folio}')
-        self.stdout.write(f'  Directorio: {folio_dir}')
         self.stdout.write('')
 
+        service = SFTPService()
+
         try:
-            client = self._get_sftp_client()
-            sftp = client.open_sftp()
+            # Obtener archivos desde el servicio
+            files, warning_message = service.list_requisito_files(folio)
 
-            # Verificar que el directorio del trámite existe
-            try:
-                sftp.stat(folio_dir)
-            except FileNotFoundError:
-                self.stdout.write(
-                    self.style.WARNING(f'⚠ El directorio {folio_dir} no existe en el servidor')
-                )
-                client.close()
-                return
-
-            files = sftp.listdir(folio_dir)
+            # Mostrar advertencia si existe
+            if warning_message:
+                self.stdout.write(self.style.WARNING(f'⚠ {warning_message}'))
+                self.stdout.write('')
 
             if not files:
                 self.stdout.write('  No se encontraron archivos')
             else:
-                self.stdout.write(f'  Archivos encontrados: {len(files)}')
-                self.stdout.write('')
+                # Imprimir cabecera de tabla
+                self.stdout.write(
+                    f'  {"Requisito ID":<14} {"Nombre":<40} {"Archivo":<35} {"Tamaño":<10}'
+                )
+                self.stdout.write(f'  {"-" * 99}')
 
-                for file_name in files:
-                    try:
-                        file_path = f'{folio_dir}/{file_name}'
-                        attrs = sftp.stat(file_path)
-                        st_size = getattr(attrs, 'st_size', 0) or 0
-                        size_mb = st_size / (1024 * 1024)
-                        self.stdout.write(f'    - {file_name} ({size_mb:.2f} MB)')
-                    except Exception as e:
-                        self.stdout.write(f'    - {file_name} (error: {e})')
+                for f in files:
+                    requisito_nombre = f.requisito_nombre or '—'
+                    self.stdout.write(
+                        f'  {f.requisito_id:<14} {requisito_nombre:<40} '
+                        f'{f.file_name:<35} {f.size_mb:.2f} MB'
+                    )
 
-            client.close()
+            self.stdout.write('')
+            self.stdout.write(self.style.SUCCESS(f'✓ {len(files)} archivos listados'))
 
-        except paramiko.AuthenticationException as e:
-            self.stdout.write(self.style.ERROR(f'✗ Error de autenticación: {e}'))
-            raise CommandError(
-                'Autenticación fallida. Verifica password o llave privada.'
-            ) from None
-
-        except paramiko.SSHException as e:
-            self.stdout.write(self.style.ERROR(f'✗ Error SSH: {e}'))
+        except SFTPConnectionError as e:
+            self.stdout.write(self.style.ERROR(f'✗ {e}'))
             raise CommandError(str(e)) from None
 
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'✗ Error al listar archivos: {e}'))
-            raise CommandError(str(e)) from None
+            logger.error('Error inesperado listando archivos para folio %s: %s', folio, e)
+            self.stdout.write(self.style.ERROR('✗ Error inesperado. Revisa los logs del servidor.'))
+            raise CommandError('Error inesperado. Contacta al administrador.') from None
 
-        self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS('✓ Listado completado'))
+        finally:
+            service.close_connection()
