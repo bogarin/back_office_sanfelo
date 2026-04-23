@@ -14,13 +14,15 @@ Module-level validators:
     - ``validate_filename(filename)`` → str
 """
 
+from __future__ import annotations
+
 import base64
 import logging
 import os
 import stat
-import threading
 import uuid
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import paramiko
 from django.conf import settings
@@ -37,14 +39,14 @@ from .constants import (
 from .exceptions import SFTPConnectionError
 from .models import Requisito, RequisitoFile
 
+if TYPE_CHECKING:
+    from .models import Tramite
+
 logger = logging.getLogger(__name__)
 
 # =============================================================================
 # SFTP SERVICE
 # =============================================================================
-
-# Thread-local storage for SFTP connection
-_local = threading.local()
 
 
 # =============================================================================
@@ -184,7 +186,7 @@ class SFTPService:
     @classmethod
     def serve_requisito_pdf(
         cls,
-        tramite: object,
+        tramite: Tramite,
         filename: str,
     ) -> HttpResponse:
         """Full download pipeline: validate → cache → download → build response.
@@ -195,7 +197,7 @@ class SFTPService:
         is managed internally.
 
         Args:
-            tramite: Tramite instance (accessed via ``.folio`` attribute).
+            tramite: Tramite instance.
             filename: PDF filename.
 
         Returns:
@@ -211,6 +213,14 @@ class SFTPService:
         try:
             final_path = service._download_with_cache(tramite, filename)
             cache_path_for_nginx = f'{tramite.folio}/{filename}'
+
+            # Defense-in-depth: reject any path traversal in the nginx header.
+            # Both folio and filename are already validated, but this is a cheap
+            # output-boundary guard against future regressions.
+            assert '..' not in cache_path_for_nginx, (
+                f'Path traversal detected in cache path: {cache_path_for_nginx!r}'
+            )
+
             return cls.build_file_response(
                 final_path=final_path,
                 cache_path_for_nginx=cache_path_for_nginx,
@@ -299,7 +309,7 @@ class SFTPService:
 
         service = cls()
         try:
-            service.download_file(folio=folio, filename=filename, local_path=local_path)
+            service._download_file(folio=folio, filename=filename, local_path=local_path)
         except SFTPConnectionError:
             raise
         except Exception as exc:
@@ -355,25 +365,14 @@ class SFTPService:
     # ------------------------------------------------------------------
 
     def get_sftp_client(self) -> paramiko.SSHClient:
-        """Return a connected SFTP client for the current thread.
+        """Create and return a connected SFTP client.
 
-        Reuses the same client within a thread until
-        :meth:`close_connection` is called.  Stale connections
-        (e.g. after a server restart) are detected and replaced
-        automatically.
+        A new connection is created each time.  Callers are responsible
+        for calling :meth:`close_connection` when done (typically in a
+        ``finally`` block).
         """
-        if hasattr(_local, 'sftp_client'):
-            client = _local.sftp_client
-            transport = client.get_transport()
-            if transport is not None and transport.is_active():
-                return client
-            # Dead connection — close and reconnect
-            self._safe_close(client)
-            del _local.sftp_client
-
-        client = self._create_sftp_connection()
-        _local.sftp_client = client
-        return client
+        self._sftp_client = self._create_sftp_connection()
+        return self._sftp_client
 
     @staticmethod
     def _safe_close(client: paramiko.SSHClient) -> None:
@@ -388,14 +387,15 @@ class SFTPService:
             logger.debug('Error closing SFTP client (expected during cleanup)', exc_info=True)
 
     def close_connection(self) -> None:
-        """Close the SFTP connection for the current thread (if any).
+        """Close the SFTP connection (if one was opened by this instance).
 
         Silently ignores socket-level errors during close to avoid
         suppressing the original exception in ``finally`` blocks.
         """
-        if hasattr(_local, 'sftp_client'):
-            self._safe_close(_local.sftp_client)
-            del _local.sftp_client
+        client = getattr(self, '_sftp_client', None)
+        if client is not None:
+            self._safe_close(client)
+            self._sftp_client = None
 
     def _configure_host_key_policy(self, client: paramiko.SSHClient) -> None:
         """Set the SSH host key verification policy.
@@ -612,7 +612,7 @@ class SFTPService:
     # File listing (internal)
     # ------------------------------------------------------------------
 
-    def list_files_for_tramite(self, folio: str) -> list[tuple[str, float]]:
+    def _list_files_for_tramite(self, folio: str) -> list[tuple[str, float]]:
         """List PDF files for a tramite using optimised ``listdir_attr()``.
 
         Args:
@@ -674,7 +674,7 @@ class SFTPService:
             SFTPConnectionError: On SFTP failure.
         """
         try:
-            files = self.list_files_for_tramite(folio)
+            files = self._list_files_for_tramite(folio)
             requisitos_dict = self._get_cached_requisitos()
 
             resultado: list[RequisitoFile] = []
@@ -715,7 +715,7 @@ class SFTPService:
     # File download (internal)
     # ------------------------------------------------------------------
 
-    def download_file(
+    def _download_file(
         self,
         folio: str,
         filename: str,
@@ -884,7 +884,7 @@ class SFTPService:
 
     def _download_with_cache(
         self,
-        tramite: object,
+        tramite: Tramite,
         filename: str,
     ) -> Path:
         """Download file to cache with atomic operations and temp file management.
@@ -893,7 +893,7 @@ class SFTPService:
         classmethod instead.
 
         Args:
-            tramite: Tramite instance (accessed via .folio attribute).
+            tramite: Tramite instance.
             filename: PDF filename.
 
         Returns:
@@ -917,7 +917,7 @@ class SFTPService:
         try:
             folio_cache_dir.mkdir(parents=True, exist_ok=True)
 
-            self.download_file(
+            self._download_file(
                 folio=folio,
                 filename=filename,
                 local_path=temp_path,

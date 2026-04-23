@@ -125,7 +125,8 @@ def _check_download_permission(user, tramite: Tramite) -> None:
             # Assigned to this analyst - allow download (any estatus)
             return
 
-        if tramite.asignado_user_id is None and 200 <= tramite.ultima_actividad_estatus_id < 300:
+        estatus = tramite.ultima_actividad_estatus_id
+        if tramite.asignado_user_id is None and estatus is not None and 200 <= estatus < 300:
             # Unassigned with valid estatus - allow download
             return
 
