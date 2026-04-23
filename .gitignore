@@ -81,3 +81,5 @@ uv.lock
 # Main database should not be tracked
 db/
 .opencode
+.sftp/
+.sftp_cache/

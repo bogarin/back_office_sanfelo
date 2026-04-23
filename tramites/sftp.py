@@ -1,23 +1,38 @@
 """
 Servicios SFTP para el módulo de trámites.
 
-Conexión, listing de archivos y validación de folios.
+Conexión, listing de archivos, descarga con caché y validación de folios.
+
+Public API (classmethods — no instance creation needed):
+    - ``SFTPService.serve_requisito_pdf(tramite, filename)`` → HttpResponse
+    - ``SFTPService.fetch_requisito_files(folio)`` → (files, warning)
+    - ``SFTPService.download_to_path(folio, filename, local_path)`` → None
+    - ``SFTPService.ping()`` → None
+
+Module-level validators:
+    - ``validate_folio(folio)`` → str
+    - ``validate_filename(filename)`` → str
 """
 
 import base64
 import logging
-import re
+import os
+import stat
 import threading
+import uuid
 from pathlib import Path
 
 import paramiko
 from django.conf import settings
+from django.http import FileResponse, HttpResponse
 
 from .constants import (
-    FOLIO_REGEX,
-    FORBIDDEN_FOLIO_CHARS,
+    FILE_COUNT_WARNING_THRESHOLD,
     FILENAME_REGEX,
+    FOLIO_REGEX,
     FORBIDDEN_FILENAME_CHARS,
+    FORBIDDEN_FOLIO_CHARS,
+    MAX_DOWNLOAD_FILE_SIZE_BYTES,
 )
 from .exceptions import SFTPConnectionError
 from .models import Requisito, RequisitoFile
@@ -30,12 +45,6 @@ logger = logging.getLogger(__name__)
 
 # Thread-local storage for SFTP connection
 _local = threading.local()
-
-# Warning threshold for file count
-FILE_COUNT_WARNING_THRESHOLD = 100
-
-# Maximum file size allowed for download (50 MB)
-MAX_DOWNLOAD_FILE_SIZE_BYTES = 50 * 1024 * 1024
 
 
 # =============================================================================
@@ -71,7 +80,8 @@ def _try_load_key(
                 case _:
                     key = key_class.from_private_key_file(key_path_str)
             return key, (label if passphrase is None else f'{label} (passphrase)')
-        except (paramiko.SSHException, OSError):
+        except (paramiko.SSHException, OSError) as exc:
+            logger.debug('Failed to load key with %s: %s', label, exc)
             continue
     return None
 
@@ -81,7 +91,7 @@ def _try_load_key(
 # =============================================================================
 
 
-def _validate_folio(folio: str) -> str:
+def validate_folio(folio: str) -> str:
     """Validate folio format to prevent SFTP path traversal.
 
     Args:
@@ -112,7 +122,7 @@ def _validate_folio(folio: str) -> str:
     return folio
 
 
-def _validate_filename(filename: str) -> str:
+def validate_filename(filename: str) -> str:
     """Validate PDF filename format to prevent SFTP path traversal.
 
     Args:
@@ -153,10 +163,195 @@ def _validate_filename(filename: str) -> str:
 
 
 class SFTPService:
-    """Servicio para interactuar con servidor SFTP con caching de conexión."""
+    """Facade for SFTP operations with internally-managed connection lifecycle.
+
+    All public methods are **classmethods** — no instance creation needed.
+    Connection lifecycle (open/close) is handled internally via
+    ``try/finally`` blocks.
+
+    Public API::
+
+        SFTPService.serve_requisito_pdf(tramite, filename) -> HttpResponse
+        SFTPService.fetch_requisito_files(folio) -> (files, warning)
+        SFTPService.download_to_path(folio, filename, local_path) -> None
+        SFTPService.ping() -> None
+    """
 
     # ------------------------------------------------------------------
-    # Connection lifecycle
+    # High-level use-case methods (classmethods)
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def serve_requisito_pdf(
+        cls,
+        tramite: object,
+        filename: str,
+    ) -> HttpResponse:
+        """Full download pipeline: validate → cache → download → build response.
+
+        Validates folio and filename, checks the local cache, downloads from
+        SFTP if needed, and returns an appropriate HTTP response (dev:
+        ``FileResponse``, prod: ``X-Accel-Redirect``).  Connection lifecycle
+        is managed internally.
+
+        Args:
+            tramite: Tramite instance (accessed via ``.folio`` attribute).
+            filename: PDF filename.
+
+        Returns:
+            HttpResponse ready to return from a Django view.
+
+        Raises:
+            SFTPConnectionError: On validation, connection, or download failure.
+        """
+        validate_folio(tramite.folio)
+        validate_filename(filename)
+
+        service = cls()
+        try:
+            final_path = service._download_with_cache(tramite, filename)
+            cache_path_for_nginx = f'{tramite.folio}/{filename}'
+            return cls.build_file_response(
+                final_path=final_path,
+                cache_path_for_nginx=cache_path_for_nginx,
+                filename=filename,
+            )
+        except SFTPConnectionError:
+            raise
+        except Exception as exc:
+            logger.error(
+                'Error inesperado al servir archivo %s para folio %s: %s',
+                filename,
+                tramite.folio,
+                exc,
+                exc_info=True,
+            )
+            raise SFTPConnectionError(
+                'Error al descargar el archivo. Por favor intenta nuevamente más tarde.'
+            ) from exc
+        finally:
+            service.close_connection()
+
+    @classmethod
+    def fetch_requisito_files(
+        cls,
+        folio: str,
+    ) -> tuple[list[RequisitoFile], str | None]:
+        """List requisito PDFs with catalog names from the database.
+
+        Validates the folio, fetches the file listing from SFTP, and enriches
+        each entry with the requisito name from the database catalog.
+        Connection lifecycle is managed internally.
+
+        Args:
+            folio: Folio of the tramite.
+
+        Returns:
+            ``(files, warning_message)`` — *warning_message* is ``None``
+            when everything is normal.
+
+        Raises:
+            SFTPConnectionError: On validation or SFTP failure.
+        """
+        validate_folio(folio)
+
+        service = cls()
+        try:
+            return service._list_requisito_files(folio)
+        except SFTPConnectionError:
+            raise
+        except Exception as exc:
+            logger.error(
+                'Error inesperado al listar requisitos para folio %s: %s',
+                folio,
+                exc,
+                exc_info=True,
+            )
+            raise SFTPConnectionError(
+                'Ocurrió un error inesperado al cargar los archivos. '
+                'Por favor contacta al administrador del sistema.'
+            ) from exc
+        finally:
+            service.close_connection()
+
+    @classmethod
+    def download_to_path(
+        cls,
+        folio: str,
+        filename: str,
+        local_path: Path,
+    ) -> None:
+        """Download a file from SFTP to an arbitrary local path.
+
+        Validates folio and filename, then downloads the file. Connection
+        lifecycle is managed internally.  Intended for CLI use.
+
+        Args:
+            folio: Folio of the tramite.
+            filename: Name of the PDF file to download.
+            local_path: Local path where the file should be saved.
+
+        Raises:
+            SFTPConnectionError: On validation, connection, or download failure.
+        """
+        validate_folio(folio)
+        validate_filename(filename)
+
+        service = cls()
+        try:
+            service.download_file(folio=folio, filename=filename, local_path=local_path)
+        except SFTPConnectionError:
+            raise
+        except Exception as exc:
+            logger.error(
+                'Error inesperado descargando archivo %s para folio %s: %s',
+                filename,
+                folio,
+                exc,
+                exc_info=True,
+            )
+            raise SFTPConnectionError(
+                'Error al descargar el archivo. Por favor intenta nuevamente más tarde.'
+            ) from exc
+        finally:
+            service.close_connection()
+
+    @classmethod
+    def ping(cls) -> None:
+        """Test SFTP connectivity by connecting and listing the base directory.
+
+        Raises:
+            SFTPConnectionError: If the connection or listing fails.
+        """
+        service = cls()
+        try:
+            client = service.get_sftp_client()
+            sftp = client.open_sftp()
+            try:
+                sftp.listdir(settings.SFTP_BASE_DIR)
+            except FileNotFoundError:
+                raise SFTPConnectionError(
+                    f'El directorio base {settings.SFTP_BASE_DIR} no existe en el servidor.'
+                ) from None
+            except (OSError, paramiko.SSHException, EOFError) as exc:
+                logger.error('Error en ping SFTP al listar %s: %s', settings.SFTP_BASE_DIR, exc)
+                raise SFTPConnectionError(
+                    'Error al conectar al servidor SFTP. Intenta nuevamente más tarde.'
+                ) from exc
+            finally:
+                sftp.close()
+        except SFTPConnectionError:
+            raise
+        except Exception as exc:
+            logger.error('Error inesperado en ping SFTP: %s', exc, exc_info=True)
+            raise SFTPConnectionError(
+                'Error al conectar al servidor SFTP. Intenta nuevamente más tarde.'
+            ) from exc
+        finally:
+            service.close_connection()
+
+    # ------------------------------------------------------------------
+    # Connection lifecycle (internal)
     # ------------------------------------------------------------------
 
     def get_sftp_client(self) -> paramiko.SSHClient:
@@ -406,7 +601,7 @@ class SFTPService:
         )
 
     # ------------------------------------------------------------------
-    # Cached catalog lookups
+    # Cached catalog lookups (internal)
     # ------------------------------------------------------------------
 
     def _get_cached_requisitos(self) -> dict[int, Requisito]:
@@ -414,7 +609,7 @@ class SFTPService:
         return Requisito.objects.all_cached_as_dict()
 
     # ------------------------------------------------------------------
-    # File listing
+    # File listing (internal)
     # ------------------------------------------------------------------
 
     def list_files_for_tramite(self, folio: str) -> list[tuple[str, float]]:
@@ -429,7 +624,7 @@ class SFTPService:
         Raises:
             SFTPConnectionError: On connection / listing failure.
         """
-        _validate_folio(folio)
+        validate_folio(folio)
         folio_dir = f'{settings.SFTP_BASE_DIR}/{folio}'
 
         client = self.get_sftp_client()
@@ -459,11 +654,14 @@ class SFTPService:
             if e.filename.endswith('.pdf')
         ]
 
-    def list_requisito_files(
+    def _list_requisito_files(
         self,
         folio: str,
     ) -> tuple[list[RequisitoFile], str | None]:
         """List requisito PDFs with catalog names from the database.
+
+        Internal method — callers should use the ``fetch_requisito_files``
+        classmethod instead.
 
         Args:
             folio: Folio of the tramite.
@@ -514,7 +712,7 @@ class SFTPService:
             ) from exc
 
     # ------------------------------------------------------------------
-    # File download
+    # File download (internal)
     # ------------------------------------------------------------------
 
     def download_file(
@@ -534,8 +732,8 @@ class SFTPService:
             SFTPConnectionError: On SFTP failure or validation error.
         """
         # Validate inputs to prevent path traversal
-        _validate_folio(folio)
-        _validate_filename(filename)
+        validate_folio(folio)
+        validate_filename(filename)
 
         # Ensure local_path parent directory exists
         local_path.parent.mkdir(parents=True, exist_ok=True)
@@ -560,9 +758,6 @@ class SFTPService:
                 raise SFTPConnectionError(
                     'El archivo es demasiado grande para descargar. El tamaño máximo es 50 MB.'
                 )
-                raise SFTPConnectionError(
-                    'El archivo es demasiado grande para descargar. El tamaño máximo es 50 MB.'
-                )
 
             # Download file to local path
             sftp.get(remote_path, str(local_path))
@@ -582,7 +777,7 @@ class SFTPService:
             sftp.close()
 
     # ------------------------------------------------------------------
-    # Warning helpers
+    # Warning helpers (internal)
     # ------------------------------------------------------------------
 
     @staticmethod
@@ -599,3 +794,144 @@ class SFTPService:
             'Esto es inusual y puede afectar el rendimiento. '
             'Por favor verifica que todos los archivos sean necesarios.'
         )
+
+    # ------------------------------------------------------------------
+    # Cache helpers (internal)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _is_cache_hit(path: Path) -> bool:
+        """Check if a cached file exists and is valid.
+
+        Uses O_NOFOLLOW to prevent symlink attacks and checks file size > 0.
+
+        Args:
+            path: Path to the cached file.
+
+        Returns:
+            True if file exists and is valid, False otherwise.
+        """
+        try:
+            fd = os.open(str(path), os.O_NOFOLLOW | os.O_RDONLY)
+        except OSError:
+            return False
+
+        try:
+            st = os.fstat(fd)
+            return stat.S_ISREG(st.st_mode) and st.st_size > 0
+        finally:
+            os.close(fd)
+
+    @staticmethod
+    def _is_within_cache(path: Path, cache_dir: Path) -> bool:
+        """Check if a path is safely within the cache directory.
+
+        Resolves both paths and uses is_relative_to for containment check.
+
+        Args:
+            path: Path to check.
+            cache_dir: Cache directory path.
+
+        Returns:
+            True if path is within cache_dir, False otherwise.
+        """
+        resolved = path.resolve()
+        resolved_cache = cache_dir.resolve()
+        return resolved.is_relative_to(resolved_cache)
+
+    # ------------------------------------------------------------------
+    # Response builder (internal)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def build_file_response(
+        final_path: Path,
+        cache_path_for_nginx: str,
+        filename: str,
+    ) -> HttpResponse:
+        """Build HTTP response for file download.
+
+        In dev mode, serves file directly via FileResponse.
+        In prod mode, delegates to nginx via X-Accel-Redirect.
+
+        Args:
+            final_path: Local path to the file (dev mode only).
+            cache_path_for_nginx: Path for nginx X-Accel-Redirect (prod mode only).
+            filename: Original filename for Content-Disposition header.
+
+        Returns:
+            HttpResponse with appropriate headers.
+        """
+        if settings.DEBUG:
+            # Dev mode: serve file directly with FileResponse
+            response = FileResponse(final_path, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response['X-Content-Type-Options'] = 'nosniff'
+            response['X-Frame-Options'] = 'DENY'
+        else:
+            # Production: delegate to nginx via X-Accel-Redirect
+            response = HttpResponse()
+            response['X-Accel-Redirect'] = f'/sftp-cache/{cache_path_for_nginx}'
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response['X-Content-Type-Options'] = 'nosniff'
+            response['X-Frame-Options'] = 'DENY'
+
+        return response
+
+    # -------------------------------------------------------------------------
+    # Cache download (internal)
+    # -------------------------------------------------------------------------
+
+    def _download_with_cache(
+        self,
+        tramite: object,
+        filename: str,
+    ) -> Path:
+        """Download file to cache with atomic operations and temp file management.
+
+        Internal method — callers should use the ``serve_requisito_pdf``
+        classmethod instead.
+
+        Args:
+            tramite: Tramite instance (accessed via .folio attribute).
+            filename: PDF filename.
+
+        Returns:
+            Path to the final cached file.
+        """
+        folio = tramite.folio
+        cache_dir = Path(settings.SFTP_CACHE_DIR)
+        folio_cache_dir = cache_dir / folio
+        final_path = folio_cache_dir / filename
+
+        # Cache hit check
+        if self._is_within_cache(final_path, cache_dir) and self._is_cache_hit(final_path):
+            return final_path
+
+        # Cache miss - download from SFTP with atomic rename
+        pid = os.getpid()
+        uuid_suffix = uuid.uuid4().hex[:8]
+        temp_filename = f'.{filename}.{pid}.{uuid_suffix}.downloading'
+        temp_path = folio_cache_dir / temp_filename
+
+        try:
+            folio_cache_dir.mkdir(parents=True, exist_ok=True)
+
+            self.download_file(
+                folio=folio,
+                filename=filename,
+                local_path=temp_path,
+            )
+
+            # Atomic rename: .downloading -> final name
+            os.rename(temp_path, final_path)
+            return final_path
+
+        except BaseException:
+            # Cleanup temp file on any failure (download, rename, etc.)
+            try:
+                if temp_path.exists():
+                    temp_path.unlink()
+            except OSError:
+                pass
+            raise

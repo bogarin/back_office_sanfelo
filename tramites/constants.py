@@ -21,3 +21,9 @@ FILENAME_REGEX = re.compile(r'^[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]-(?P<requisito_id>\d+)
 # Characters that must NEVER appear in a filename (path traversal vectors)
 # Note: '.' is NOT forbidden here (needed for .pdf extension)
 FORBIDDEN_FILENAME_CHARS = frozenset('/\\\x00')
+
+# Warning threshold for file count
+FILE_COUNT_WARNING_THRESHOLD = 100
+
+# Maximum file size allowed for download (50 MB)
+MAX_DOWNLOAD_FILE_SIZE_BYTES = 50 * 1024 * 1024

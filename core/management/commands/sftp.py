@@ -18,9 +18,8 @@ import paramiko
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from tramites.constants import FORBIDDEN_FOLIO_CHARS, FORBIDDEN_FILENAME_CHARS
 from tramites.exceptions import SFTPConnectionError
-from tramites.services import SFTPService
+from tramites.sftp import SFTPService, validate_folio
 
 logger = logging.getLogger(__name__)
 
@@ -180,52 +179,31 @@ class Command(BaseCommand):
 
         self.stdout.write('Probando conexión SFTP...')
 
-        service = SFTPService()
-
         try:
-            client = service.get_sftp_client()
-            sftp = client.open_sftp()
-            sftp.listdir(settings.SFTP_BASE_DIR)
-
+            SFTPService.ping()
         except SFTPConnectionError as e:
             self.stdout.write(self.style.ERROR(f'✗ {e}'))
             raise CommandError(str(e)) from None
-
-        except FileNotFoundError:
-            self.stdout.write(
-                self.style.ERROR(f'✗ Directorio no encontrado: {settings.SFTP_BASE_DIR}')
-            )
-            raise CommandError(
-                f'El directorio base {settings.SFTP_BASE_DIR} no existe en el servidor.'
-            ) from None
-
-        except Exception as e:
-            logger.error('Error inesperado en ping SFTP: %s', e)
-            self.stdout.write(self.style.ERROR('✗ Error al conectar al servidor SFTP.'))
-            raise CommandError('Error inesperado. Revisa los logs del servidor.') from None
-
-        finally:
-            service.close_connection()
 
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('✓ Conexión SFTP exitosa'))
 
     def _list_files(self, folio: str):
         """Lista archivos de un trámite usando el servicio SFTP."""
-        # Early rejection of path traversal characters
-        if any(c in folio for c in FORBIDDEN_FOLIO_CHARS):
-            raise CommandError(f'Folio contiene caracteres no permitidos: {folio!r}')
+        # Validate folio using centralized validator
+        try:
+            validate_folio(folio)
+        except SFTPConnectionError as exc:
+            raise CommandError(str(exc)) from None
 
         self._validate_sftp_config()
 
         self.stdout.write(f'Listando archivos para trámite: {folio}')
         self.stdout.write('')
 
-        service = SFTPService()
-
         try:
             # Obtener archivos desde el servicio
-            files, warning_message = service.list_requisito_files(folio)
+            files, warning_message = SFTPService.fetch_requisito_files(folio)
 
             # Mostrar advertencia si existe
             if warning_message:
@@ -260,15 +238,14 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR('✗ Error inesperado. Revisa los logs del servidor.'))
             raise CommandError('Error inesperado. Contacta al administrador.') from None
 
-        finally:
-            service.close_connection()
-
     def _cleanup_cache(self):
         """Clean up expired or oversized cached PDF files.
 
         This command removes:
         1. Files older than SFTP_CACHE_TTL seconds
         2. Oldest files if cache exceeds SFTP_CACHE_MAX_SIZE_MB
+        3. Orphaned .downloading temp files (older than 2x TTL)
+        4. Empty directories after file cleanup
 
         Usage:
             python manage.py sftp cleanup_cache
@@ -286,29 +263,36 @@ class Command(BaseCommand):
 
         # Check if cache directory exists
         if not cache_dir.exists():
-            self.stdout.write(self.style.WARNING('⚠ El directorio de caché no existe.'))
+            self.stdout.write('⚠ El directorio de caché no existe.')
             return
 
-        # Get all files in cache directory
+        # Get all files and directories in cache (symlink-safe)
         all_files = []
+        all_dirs = []
         total_size = 0
         current_time = time.time()
 
-        for file_path in cache_dir.iterdir():
-            if file_path.is_file():
-                file_size = file_path.stat().st_size
-                file_mtime = file_path.stat().st_mtime
-                file_age = current_time - file_mtime
+        for dirpath, dirnames, filenames in os.walk(cache_dir, follow_symlinks=False):
+            for fname in filenames:
+                file_path = Path(dirpath) / fname
+                if file_path.is_file():
+                    file_size = file_path.stat().st_size
+                    file_mtime = file_path.stat().st_mtime
+                    file_age = current_time - file_mtime
 
-                all_files.append(
-                    {
-                        'path': file_path,
-                        'size': file_size,
-                        'age': file_age,
-                        'mtime': file_mtime,
-                    }
-                )
-                total_size += file_size
+                    all_files.append(
+                        {
+                            'path': file_path,
+                            'size': file_size,
+                            'age': file_age,
+                            'mtime': file_mtime,
+                        }
+                    )
+                    total_size += file_size
+
+            # Track directories for bottom-up removal
+            for dname in dirnames:
+                all_dirs.append(Path(dirpath) / dname)
 
         if not all_files:
             self.stdout.write('  No hay archivos en caché.')
@@ -330,9 +314,7 @@ class Command(BaseCommand):
                 self.stdout.write(f'  ✗ Eliminado (expirado): {file_info["path"].name}')
             except OSError as e:
                 logger.error('Error eliminando archivo %s: %s', file_info['path'], e)
-                self.stdout.write(
-                    self.style.ERROR(f'  ✗ Error eliminando {file_info["path"].name}: {e}')
-                )
+                self.stdout.write(f'  ✗ Error eliminando {file_info["path"].name}: {e}')
 
         # Recalculate total size after removing expired files
         total_size -= removed_size
@@ -357,12 +339,40 @@ class Command(BaseCommand):
                     self.stdout.write(f'  ✗ Eliminado (espacio): {file_info["path"].name}')
                 except OSError as e:
                     logger.error('Error eliminando archivo %s: %s', file_info['path'], e)
-                    self.stdout.write(
-                        self.style.ERROR(f'  ✗ Error eliminando {file_info["path"].name}: {e}')
-                    )
+                    self.stdout.write(f'  ✗ Error eliminando {file_info["path"].name}: {e}')
+
+        # Clean up orphaned .downloading temp files (older than 2x TTL)
+        temp_threshold = 2 * ttl
+        for dirpath, dirnames, filenames in os.walk(cache_dir, follow_symlinks=False):
+            for fname in filenames:
+                file_path = Path(dirpath) / fname
+                if fname.endswith('.downloading') and file_path.is_file():
+                    file_age = current_time - file_path.stat().st_mtime
+                    if file_age > temp_threshold:
+                        try:
+                            file_size = file_path.stat().st_size
+                            file_path.unlink()
+                            removed_count += 1
+                            removed_size += file_size
+                            self.stdout.write(f'  ✗ Eliminado (temp): {file_path.name}')
+                        except OSError as e:
+                            logger.error('Error eliminando archivo %s: %s', file_path, e)
+
+        # Remove empty directories (bottom-up: longest paths first)
+        if all_dirs:
+            dirs_to_check = sorted(
+                (p for p in all_dirs if p.is_dir()),
+                key=lambda p: len(p.parts),
+                reverse=True,
+            )
+            for d in dirs_to_check:
+                try:
+                    d.rmdir()  # Only removes empty dirs
+                except OSError:
+                    pass
 
         self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS(f'✓ Limpieza completada'))
+        self.stdout.write(f'✓ Limpieza completada')
         self.stdout.write(f'  Archivos eliminados: {removed_count}')
         self.stdout.write(f'  Espacio liberado: {removed_size / (1024 * 1024):.2f} MB')
         self.stdout.write(
@@ -406,11 +416,9 @@ class Command(BaseCommand):
         self.stdout.write(f'  Destino: {output_path}')
         self.stdout.write('')
 
-        service = SFTPService()
-
         try:
             # Download file (includes all validations)
-            service.download_file(
+            SFTPService.download_to_path(
                 folio=folio,
                 filename=filename,
                 local_path=local_path,
@@ -438,6 +446,3 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.ERROR('✗ Error inesperado. Revisa los logs del servidor.'))
             raise CommandError('Error inesperado. Contacta al administrador.') from None
-
-        finally:
-            service.close_connection()

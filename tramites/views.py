@@ -14,69 +14,26 @@ they can be added here.
 """
 
 import logging
-import os
-import uuid
-from pathlib import Path
 
-from django.conf import settings
-from django.http import FileResponse, HttpRequest, HttpResponse
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.exceptions import PermissionDenied
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 
 from core.rbac.constants import BackOfficeRole
 from tramites.exceptions import SFTPConnectionError
 from tramites.models import Tramite
-from tramites.services import SFTPService
-
-
-logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Helper Classes
-# =============================================================================
-
-
-class _AutoDeleteFileWrapper:
-    """File wrapper that auto-deletes the file on close.
-
-    Used in dev mode to clean up temp cache files after serving.
-    Django's FileResponse holds the file object and calls .close() after
-    the response is sent, so this wrapper ensures cleanup happens.
-
-    Example:
-        with open('/tmp/file.txt', 'rb') as raw_file:
-            wrapper = _AutoDeleteFileWrapper(raw_file, '/tmp/file.txt')
-            return FileResponse(wrapper)
-    """
-
-    def __init__(self, file_obj, file_path: Path) -> None:
-        self._file = file_obj
-        self._path = Path(file_path)
-
-    def __iter__(self):
-        return iter(self._file)
-
-    def read(self, size=-1):
-        return self._file.read(size)
-
-    def close(self) -> None:
-        # Close the underlying file
-        self._file.close()
-        # Delete the temp file (ignore errors if it's already gone)
-        try:
-            self._path.unlink()
-        except OSError:
-            pass
-
+from tramites.sftp import SFTPService, validate_filename
 
 logger = logging.getLogger(__name__)
+
 
 # =============================================================================
 # Download Views
 # =============================================================================
 
 
+@staff_member_required
 def download_requisito_pdf(
     request: HttpRequest,
     pk: int,
@@ -85,11 +42,11 @@ def download_requisito_pdf(
     """Download a PDF requisito file from SFTP server.
 
     This view implements a secure file download pattern:
-    1. Validates the user has permission to download (object-level authorization)
-    2. Validates the tramite exists and user can access it
-    3. Downloads file from SFTP to local cache with unique temp filename
-    4. Serves the file (dev: FileResponse with auto-cleanup, prod: X-Accel-Redirect)
-    5. Logs the download for audit purposes
+    1. Validates filename format (defense-in-depth early reject)
+    2. Fetches the tramite and checks object-level authorization
+    3. Delegates to ``SFTPService.serve_requisito_pdf()`` which handles
+       cache checking, SFTP download, and response building
+    4. Logs the download for audit purposes
 
     Args:
         request: The HTTP request.
@@ -100,74 +57,30 @@ def download_requisito_pdf(
         HttpResponse with FileResponse (dev) or X-Accel-Redirect header (prod).
 
     Raises:
-        PermissionError: If user lacks download permission.
+        PermissionDenied: If user lacks download permission.
         SFTPConnectionError: If SFTP download fails.
         Http404: If tramite does not exist.
     """
+    # Validate filename BEFORE any filesystem access
+    validate_filename(filename)
+
     # Get the tramite instance (raises Http404 if not found)
     tramite = get_object_or_404(Tramite, pk=pk)
 
     # Check object-level authorization
     _check_download_permission(request.user, tramite)
 
-    # Initialize SFTP service
-    sftp_service = SFTPService()
-
-    # Generate unique temp filename to prevent race conditions
-    pid = os.getpid()
-    uuid_suffix = uuid.uuid4().hex[:8]
-    temp_filename = f'.{filename}.{pid}.{uuid_suffix}.tmp'
-    cache_dir = Path(settings.SFTP_CACHE_DIR)
-    local_path = cache_dir / temp_filename
-
     try:
-        # Download file from SFTP to local cache
-        sftp_service.download_file(
-            folio=tramite.folio,
+        response = SFTPService.serve_requisito_pdf(
+            tramite=tramite,
             filename=filename,
-            local_path=local_path,
         )
-
-        # Log successful download for audit
         _log_download(request, tramite, filename, success=True)
-
-        # Dev mode: serve file directly with FileResponse + auto-cleanup
-        # Prod mode: delegate to nginx via X-Accel-Redirect
-        if settings.DEBUG:
-            # Open file and wrap with auto-delete wrapper
-            raw_file = open(local_path, 'rb')
-            wrapper = _AutoDeleteFileWrapper(raw_file, local_path)
-
-            # Serve file directly (FileResponse will close wrapper after sending)
-            response = FileResponse(wrapper, content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            response['X-Content-Type-Options'] = 'nosniff'
-            response['X-Frame-Options'] = 'DENY'
-        else:
-            # Production: delegate to nginx via X-Accel-Redirect
-            # Nginx will handle serving and cache cleanup
-            response = HttpResponse()
-            response['X-Accel-Redirect'] = f'/sftp-cache/{temp_filename}'
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            response['X-Content-Type-Options'] = 'nosniff'
-            response['X-Frame-Options'] = 'DENY'
-
         return response
 
     except SFTPConnectionError:
         _log_download(request, tramite, filename, success=False)
         raise
-    except Exception as exc:
-        logger.error(
-            'Error inesperado al descargar archivo %s para tramite %s: %s',
-            filename,
-            tramite.folio,
-            exc,
-        )
-        _log_download(request, tramite, filename, success=False)
-        raise SFTPConnectionError(
-            'Error al descargar el archivo. Por favor intenta nuevamente más tarde.'
-        ) from exc
 
 
 def _check_download_permission(user, tramite: Tramite) -> None:
@@ -189,7 +102,7 @@ def _check_download_permission(user, tramite: Tramite) -> None:
         tramite: Tramite instance.
 
     Raises:
-        PermissionError: If user lacks download permission.
+        PermissionDenied: If user lacks download permission.
     """
     # Superusers always have access
     if user.is_superuser:
@@ -217,7 +130,7 @@ def _check_download_permission(user, tramite: Tramite) -> None:
             return
 
     # If we get here, user doesn't have permission
-    raise PermissionError(
+    raise PermissionDenied(
         'No tienes permiso para descargar archivos de este trámite. '
         'Verifica que el trámite esté asignado a ti o que sea un trámite disponible.'
     )
@@ -240,32 +153,21 @@ def _log_download(
     user = request.user
     ip_address = _get_client_ip(request)
 
-    log_data = {
-        'user_id': user.id,
-        'username': user.username,
-        'tramite_pk': tramite.pk,
-        'tramite_folio': tramite.folio,
-        'filename': filename,
-        'ip_address': ip_address,
-        'success': success,
-        'timestamp': timezone.now(),
-    }
-
     if success:
         logger.info(
             'Descarga exitosa: user=%s tramite=%s file=%s ip=%s',
-            log_data['username'],
-            log_data['tramite_folio'],
-            log_data['filename'],
-            log_data['ip_address'],
+            user.username,
+            tramite.folio,
+            filename,
+            ip_address,
         )
     else:
         logger.warning(
             'Descarga fallida: user=%s tramite=%s file=%s ip=%s',
-            log_data['username'],
-            log_data['tramite_folio'],
-            log_data['filename'],
-            log_data['ip_address'],
+            user.username,
+            tramite.folio,
+            filename,
+            ip_address,
         )
 
 
