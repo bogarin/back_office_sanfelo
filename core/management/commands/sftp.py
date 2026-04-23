@@ -4,10 +4,13 @@ Django management command for SFTP operations.
 Usage:
     python manage.py sftp ping
     python manage.py sftp list <folio>
+    python manage.py sftp cleanup_cache
 """
 
 import importlib.metadata
 import logging
+import os
+import time
 from pathlib import Path
 
 import django
@@ -15,7 +18,7 @@ import paramiko
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from tramites.constants import FORBIDDEN_FOLIO_CHARS
+from tramites.constants import FORBIDDEN_FOLIO_CHARS, FORBIDDEN_FILENAME_CHARS
 from tramites.exceptions import SFTPConnectionError
 from tramites.services import SFTPService
 
@@ -23,27 +26,41 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    """SFTP management command with ping and list subcommands."""
+    """SFTP management command with ping, list, cleanup_cache, and download subcommands."""
 
-    help = 'Test SFTP connection and list files for tramites'
+    help = 'Test SFTP connection, list files, cleanup cache, and download PDF files'
 
     def add_arguments(self, parser):
         parser.add_argument(
             'action',
             type=str,
-            choices=['ping', 'list'],
-            help='Action to perform: ping (test connection) or list (list files for tramite)',
+            choices=['ping', 'list', 'cleanup_cache', 'download'],
+            help='Action to perform: ping (test connection), list (list files for tramite), cleanup_cache (clean cached PDF files), or download (download PDF file from SFTP)',
         )
         parser.add_argument(
             'folio',
             type=str,
             nargs='?',
-            help='Folio del trámite para listar sus archivos (solo para acción list)',
+            help='Folio del trámite (requerido para acciones list y download)',
+        )
+        parser.add_argument(
+            'filename',
+            type=str,
+            nargs='?',
+            help='Nombre del archivo PDF a descargar (solo para acción download)',
+        )
+        parser.add_argument(
+            '--output-dir',
+            type=str,
+            default='.',
+            help='Directorio de destino para descargar archivos (default: directorio actual)',
         )
 
     def handle(self, *args, **options):
         action = options['action']
         folio = options.get('folio')
+        filename = options.get('filename')
+        output_dir = options.get('output_dir')
 
         match action:
             case 'ping':
@@ -54,6 +71,14 @@ class Command(BaseCommand):
                         'Error: Se requiere el parámetro <folio> para la acción list.'
                     )
                 self._list_files(folio)
+            case 'cleanup_cache':
+                self._cleanup_cache()
+            case 'download':
+                if not folio or not filename:
+                    raise CommandError(
+                        'Error: Se requieren los parámetros <folio> y <filename> para la acción download.'
+                    )
+                self._download(folio, filename, output_dir)
 
     def _print_versions(self):
         """Imprime versiones de dependencias críticas."""
@@ -232,6 +257,185 @@ class Command(BaseCommand):
 
         except Exception as e:
             logger.error('Error inesperado listando archivos para folio %s: %s', folio, e)
+            self.stdout.write(self.style.ERROR('✗ Error inesperado. Revisa los logs del servidor.'))
+            raise CommandError('Error inesperado. Contacta al administrador.') from None
+
+        finally:
+            service.close_connection()
+
+    def _cleanup_cache(self):
+        """Clean up expired or oversized cached PDF files.
+
+        This command removes:
+        1. Files older than SFTP_CACHE_TTL seconds
+        2. Oldest files if cache exceeds SFTP_CACHE_MAX_SIZE_MB
+
+        Usage:
+            python manage.py sftp cleanup_cache
+        """
+        cache_dir = Path(settings.SFTP_CACHE_DIR)
+        ttl = getattr(settings, 'SFTP_CACHE_TTL', 3600)
+        max_size_mb = getattr(settings, 'SFTP_CACHE_MAX_SIZE_MB', 500)
+        max_size_bytes = max_size_mb * 1024 * 1024
+
+        self.stdout.write('🧹 Limpiando caché SFTP...')
+        self.stdout.write(f'  Directorio: {cache_dir}')
+        self.stdout.write(f'  TTL: {ttl} segundos')
+        self.stdout.write(f'  Tamaño máximo: {max_size_mb} MB')
+        self.stdout.write('')
+
+        # Check if cache directory exists
+        if not cache_dir.exists():
+            self.stdout.write(self.style.WARNING('⚠ El directorio de caché no existe.'))
+            return
+
+        # Get all files in cache directory
+        all_files = []
+        total_size = 0
+        current_time = time.time()
+
+        for file_path in cache_dir.iterdir():
+            if file_path.is_file():
+                file_size = file_path.stat().st_size
+                file_mtime = file_path.stat().st_mtime
+                file_age = current_time - file_mtime
+
+                all_files.append(
+                    {
+                        'path': file_path,
+                        'size': file_size,
+                        'age': file_age,
+                        'mtime': file_mtime,
+                    }
+                )
+                total_size += file_size
+
+        if not all_files:
+            self.stdout.write('  No hay archivos en caché.')
+            return
+
+        # Sort by modification time (oldest first)
+        all_files.sort(key=lambda x: x['mtime'])
+
+        # Remove expired files
+        expired_files = [f for f in all_files if f['age'] > ttl]
+        removed_count = 0
+        removed_size = 0
+
+        for file_info in expired_files:
+            try:
+                file_info['path'].unlink()
+                removed_count += 1
+                removed_size += file_info['size']
+                self.stdout.write(f'  ✗ Eliminado (expirado): {file_info["path"].name}')
+            except OSError as e:
+                logger.error('Error eliminando archivo %s: %s', file_info['path'], e)
+                self.stdout.write(
+                    self.style.ERROR(f'  ✗ Error eliminando {file_info["path"].name}: {e}')
+                )
+
+        # Recalculate total size after removing expired files
+        total_size -= removed_size
+
+        # If still over max size, remove oldest files
+        if total_size > max_size_bytes:
+            self.stdout.write('')
+            self.stdout.write(
+                f'⚠ Caché excede tamaño máximo ({total_size / (1024 * 1024):.2f} MB > {max_size_mb} MB)'
+            )
+            self.stdout.write('  Eliminando archivos más antiguos...')
+
+            for file_info in all_files:
+                if total_size <= max_size_bytes:
+                    break
+
+                try:
+                    file_info['path'].unlink()
+                    total_size -= file_info['size']
+                    removed_count += 1
+                    removed_size += file_info['size']
+                    self.stdout.write(f'  ✗ Eliminado (espacio): {file_info["path"].name}')
+                except OSError as e:
+                    logger.error('Error eliminando archivo %s: %s', file_info['path'], e)
+                    self.stdout.write(
+                        self.style.ERROR(f'  ✗ Error eliminando {file_info["path"].name}: {e}')
+                    )
+
+        self.stdout.write('')
+        self.stdout.write(self.style.SUCCESS(f'✓ Limpieza completada'))
+        self.stdout.write(f'  Archivos eliminados: {removed_count}')
+        self.stdout.write(f'  Espacio liberado: {removed_size / (1024 * 1024):.2f} MB')
+        self.stdout.write(
+            f'  Tamaño actual: {total_size / (1024 * 1024):.2f} MB / {max_size_mb} MB'
+        )
+
+    def _download(self, folio: str, filename: str, output_dir: str):
+        """Download a PDF file from SFTP to local directory.
+
+        This command validates both folio and filename, then downloads the file
+        from SFTP to the specified output directory (defaults to cwd).
+
+        Args:
+            folio: Folio of the tramite.
+            filename: Name of the PDF file to download.
+            output_dir: Destination directory (default: current working directory).
+
+        Raises:
+            CommandError: If validation fails or download fails.
+        """
+        # Validate SFTP configuration
+        self._validate_sftp_config()
+
+        # Resolve and validate output directory
+        output_path = Path(output_dir).resolve()
+        if not output_path.exists():
+            raise CommandError(f'El directorio de destino no existe: {output_path}')
+        if not output_path.is_dir():
+            raise CommandError(f'La ruta de destino no es un directorio: {output_path}')
+
+        # Build local file path
+        local_path = output_path / filename
+
+        # Check if file already exists (no silent overwrite)
+        if local_path.exists():
+            raise CommandError(f'El archivo ya existe en el directorio de destino: {local_path}')
+
+        self.stdout.write('📥 Descargando archivo desde SFTP...')
+        self.stdout.write(f'  Folio: {folio}')
+        self.stdout.write(f'  Archivo: {filename}')
+        self.stdout.write(f'  Destino: {output_path}')
+        self.stdout.write('')
+
+        service = SFTPService()
+
+        try:
+            # Download file (includes all validations)
+            service.download_file(
+                folio=folio,
+                filename=filename,
+                local_path=local_path,
+            )
+
+            # Get file size for reporting
+            file_size = local_path.stat().st_size
+            file_size_mb = file_size / (1024 * 1024)
+
+            self.stdout.write('')
+            self.stdout.write(self.style.SUCCESS(f'✓ Archivo descargado exitosamente'))
+            self.stdout.write(f'  Ruta: {local_path}')
+            self.stdout.write(f'  Tamaño: {file_size_mb:.2f} MB')
+
+        except SFTPConnectionError as e:
+            self.stdout.write(self.style.ERROR(f'✗ {e}'))
+            raise CommandError(str(e)) from None
+
+        except Exception as e:
+            logger.error(
+                'Error inesperado descargando archivo %s para folio %s: %s',
+                filename,
+                folio,
+                e,
+            )
             self.stdout.write(self.style.ERROR('✗ Error inesperado. Revisa los logs del servidor.'))
             raise CommandError('Error inesperado. Contacta al administrador.') from None
 

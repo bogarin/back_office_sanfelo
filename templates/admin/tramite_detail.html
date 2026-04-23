@@ -244,7 +244,11 @@
                             <tr>
                                 <td>{{ requisito.requisito_id }}</td>
                                 <td>{{ requisito.requisito_nombre|default:"—" }}</td>
-                                <td>{{ requisito.file_name }}</td>
+                                <td>
+                                    <a href="{% url 'tramites:download-requisito-pdf' pk=tramite.pk filename=requisito.file_name %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download m-2"></i>{{ requisito.file_name }}
+                                    </a>
+                                </td>
                                 <td>{{ requisito.size_mb|floatformat:2 }} MB</td>
                             </tr>
                             {% endfor %}

@@ -57,6 +57,17 @@ def configure_sftp(env: Env) -> dict:
         'SFTP_BASE_DIR': env('SFTP_BASE_DIR', default=''),
         # Subdirectory for uploaded/received PDF files
         'SFTP_PDF_DIR': env('SFTP_PDF_DIR', default='pdfs'),
+        # =============================================================================
+        # LOCAL CACHE SETTINGS
+        # =============================================================================
+        # Directory for caching downloaded PDF files from SFTP
+        # Note: Dockerfile sets this to /app/.sftp_cache via env var
+        # Local dev uses default relative path: ./sftp_cache
+        'SFTP_CACHE_DIR': env('SFTP_CACHE_DIR', default='.sftp_cache'),
+        # Time-to-live for cached files in seconds (default: 3600s = 1 hour)
+        'SFTP_CACHE_TTL': env.int('SFTP_CACHE_TTL', default=3600),
+        # Maximum cache size in megabytes (default: 500MB)
+        'SFTP_CACHE_MAX_SIZE_MB': env.int('SFTP_CACHE_MAX_SIZE_MB', default=500),
     }
 
     # DO NOT overwrite STORAGES - return separate config for merge

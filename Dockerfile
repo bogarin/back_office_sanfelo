@@ -34,16 +34,25 @@ ENV PYTHONUNBUFFERED=1 \
     HTTP_PORT=8080 \
     DJANGO_SETTINGS_MODULE=sanfelipe.settings
 
+# Gunicorn configuration
+ENV GUNICORN_PORT=8081 \
+    GUNICORN_WORKERS=4 \
+    GUNICORN_TIMEOUT=60
+
 # Dummy values for collectstatic (will be overridden at runtime)
 ENV DJANGO_SECRET_KEY=dummy-build-time-secret \
     BACKEND_DB_URL=postgresql://user:pass@localhost/db
 
+# SFTP cache configuration
+ENV SFTP_CACHE_DIR=/app/.sftp_cache
+
 # Set working directory
 WORKDIR /app
 
-# Install runtime dependencies for PostgreSQL
+# Install runtime dependencies for PostgreSQL and nginx
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only the .venv from builder stage to avoid copying build tools
@@ -60,23 +69,32 @@ RUN useradd -m -u 1000 appuser && \
 RUN mkdir -p /app/logs && \
     chown appuser:appuser /app/logs
 
+# Create SFTP cache directory
+RUN mkdir -p /app/.sftp_cache && \
+    chown appuser:appuser /app/.sftp_cache
+
+# Copy nginx configuration
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
+
+# Copy entrypoint and healthcheck scripts
+COPY docker/entrypoint.sh /app/docker/entrypoint.sh
+COPY docker/healthcheck.py /app/docker/healthcheck.py
+
+# Make scripts executable
+RUN chmod +x /app/docker/entrypoint.sh /app/docker/healthcheck.py
+
 # Collect static files (as root before switching to appuser)
 RUN /app/.venv/bin/python manage.py collectstatic --noinput --clear
 
 # Switch to non-root user
 USER appuser
 
-# Expose the HTTP port (8090 by default, but configurable via HTTP_PORT env var)
-EXPOSE ${HTTP_PORT}
+# Expose the HTTP port (nginx listens on 8080)
+EXPOSE 8080
 
-# Use uv to run gunicorn with the specified HTTP_PORT
-# gunicorn will bind to 0.0.0.0:8080
-# We use --bind flag to specify the port dynamically
-CMD /app/.venv/bin/gunicorn \
-     --bind 0.0.0.0:8080 \
-     --workers 4 \
-     --threads 2 \
-     --timeout 120 \
-     --access-logfile - \
-     --error-logfile - \
-     sanfelipe.wsgi:application
+# Health check (checks both nginx and Django)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD /app/docker/healthcheck.py
+
+# Use entrypoint script to manage both nginx and gunicorn
+CMD ["/app/docker/entrypoint.sh"]

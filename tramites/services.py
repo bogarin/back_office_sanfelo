@@ -13,7 +13,12 @@ from pathlib import Path
 import paramiko
 from django.conf import settings
 
-from .constants import FOLIO_REGEX, FORBIDDEN_FOLIO_CHARS
+from .constants import (
+    FOLIO_REGEX,
+    FORBIDDEN_FOLIO_CHARS,
+    FILENAME_REGEX,
+    FORBIDDEN_FILENAME_CHARS,
+)
 from .exceptions import SFTPConnectionError
 from .models import Requisito, RequisitoFile
 
@@ -23,15 +28,14 @@ logger = logging.getLogger(__name__)
 # SFTP SERVICE
 # =============================================================================
 
-# Regex for parsing requisito_id from filename
-# Example: DAU-260420-AAAE-B-19.pdf → requisito_id=19
-FILENAME_REGEX = re.compile(r'[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]-(?P<requisito_id>\d+)\.pdf')
-
 # Thread-local storage for SFTP connection
 _local = threading.local()
 
 # Warning threshold for file count
 FILE_COUNT_WARNING_THRESHOLD = 100
+
+# Maximum file size allowed for download (50 MB)
+MAX_DOWNLOAD_FILE_SIZE_BYTES = 50 * 1024 * 1024
 
 
 # =============================================================================
@@ -106,6 +110,41 @@ def _validate_folio(folio: str) -> str:
         raise SFTPConnectionError('Formato de folio inválido. Verifica que el folio sea correcto.')
 
     return folio
+
+
+def _validate_filename(filename: str) -> str:
+    """Validate PDF filename format to prevent SFTP path traversal.
+
+    Args:
+        filename: The filename string to validate.
+
+    Returns:
+        The validated filename string.
+
+    Raises:
+        SFTPConnectionError: If filename contains forbidden characters
+            or doesn't match the expected format.
+    """
+    if not filename:
+        raise SFTPConnectionError('Nombre de archivo no puede estar vacío.')
+
+    # Reject path traversal characters FIRST (defense-in-depth)
+    # Note: Use FORBIDDEN_FILENAME_CHARS (without '.') for filenames
+    if any(c in FORBIDDEN_FILENAME_CHARS for c in filename):
+        logger.error('Seguridad: archivo rechazado por caracteres no permitidos: %r', filename)
+        raise SFTPConnectionError(
+            'El nombre de archivo contiene caracteres no permitidos. '
+            'Verifica que el archivo sea correcto.'
+        )
+
+    # Enforce expected format (anchored regex)
+    if not FILENAME_REGEX.match(filename):
+        logger.error('Seguridad: archivo no coincide formato esperado: %r', filename)
+        raise SFTPConnectionError(
+            'Formato de nombre de archivo inválido. Verifica que el archivo sea correcto.'
+        )
+
+    return filename
 
 
 # =============================================================================
@@ -473,6 +512,74 @@ class SFTPService:
                 'Ocurrió un error inesperado al cargar los archivos. '
                 'Por favor contacta al administrador del sistema.'
             ) from exc
+
+    # ------------------------------------------------------------------
+    # File download
+    # ------------------------------------------------------------------
+
+    def download_file(
+        self,
+        folio: str,
+        filename: str,
+        local_path: Path,
+    ) -> None:
+        """Download a PDF file from SFTP server to local cache.
+
+        Args:
+            folio: Folio of the tramite.
+            filename: Name of the PDF file to download.
+            local_path: Local path where the file should be saved.
+
+        Raises:
+            SFTPConnectionError: On SFTP failure or validation error.
+        """
+        # Validate inputs to prevent path traversal
+        _validate_folio(folio)
+        _validate_filename(filename)
+
+        # Ensure local_path parent directory exists
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Remote path on SFTP server
+        remote_path = f'{settings.SFTP_BASE_DIR}/{folio}/{filename}'
+
+        client = self.get_sftp_client()
+        sftp = client.open_sftp()
+
+        try:
+            # Check file size before download (security: enforce max size)
+            file_stat = sftp.stat(remote_path)
+            file_size = file_stat.st_size or 0
+            if file_size > MAX_DOWNLOAD_FILE_SIZE_BYTES:
+                logger.error(
+                    'Archivo excede tamaño máximo: %s (%d bytes > %d bytes)',
+                    filename,
+                    file_size,
+                    MAX_DOWNLOAD_FILE_SIZE_BYTES,
+                )
+                raise SFTPConnectionError(
+                    'El archivo es demasiado grande para descargar. El tamaño máximo es 50 MB.'
+                )
+                raise SFTPConnectionError(
+                    'El archivo es demasiado grande para descargar. El tamaño máximo es 50 MB.'
+                )
+
+            # Download file to local path
+            sftp.get(remote_path, str(local_path))
+            logger.info('Archivo descargado exitosamente: %s', filename)
+
+        except FileNotFoundError:
+            logger.error('Archivo no encontrado en SFTP: %s', remote_path)
+            raise SFTPConnectionError(
+                'El archivo solicitado no existe. Por favor verifica que el trámite sea correcto.'
+            ) from None
+        except (OSError, paramiko.SSHException, EOFError) as exc:
+            logger.error('Error al descargar archivo %s: %s', filename, exc)
+            raise SFTPConnectionError(
+                'Error al descargar el archivo. Por favor intenta nuevamente más tarde.'
+            ) from exc
+        finally:
+            sftp.close()
 
     # ------------------------------------------------------------------
     # Warning helpers
