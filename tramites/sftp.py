@@ -848,7 +848,7 @@ class SFTPService:
         final_path: Path,
         cache_path_for_nginx: str,
         filename: str,
-    ) -> HttpResponse:
+    ) -> FileResponse | HttpResponse:
         """Build HTTP response for file download.
 
         In dev mode, serves file directly via FileResponse.
@@ -864,7 +864,10 @@ class SFTPService:
         """
         if settings.DEBUG:
             # Dev mode: serve file directly with FileResponse
-            response = FileResponse(final_path, content_type='application/pdf')
+            response = FileResponse(
+                final_path.open('rb'),
+                content_type='application/pdf',
+            )
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             response['X-Content-Type-Options'] = 'nosniff'
             response['X-Frame-Options'] = 'DENY'
@@ -924,7 +927,7 @@ class SFTPService:
             )
 
             # Atomic rename: .downloading -> final name
-            os.rename(temp_path, final_path)
+            temp_path.rename(final_path)
             return final_path
 
         except BaseException:

@@ -118,7 +118,7 @@ class TramiteTipoFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(tramite_catalogo_id=self.value())
+            return queryset.filter(tramite_id=self.value())
         return queryset
 
 
