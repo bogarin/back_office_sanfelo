@@ -43,8 +43,7 @@ docs/
 │   ├── README.md
 │   ├── 001 a 013              # 13 ADRs
 │   └── adr-template.md
-├── COMANDOS_DJANGO.md         # Redirect → 05-reference/commands.md
-├── SCHEMA_VALIDATOR.md        # DEPRECATED
+├── COMANDOS_DDJANGO.md         # Redirect → 05-reference/commands.md
 └── _templates/                # Plantillas para nuevos documentos
 ```
 

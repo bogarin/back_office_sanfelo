@@ -125,10 +125,6 @@ The `core.db_router.ModelBasedRouter` enforces these rules:
 - **Backend:** In-memory SQLite for all tests
 - **Fixture loading:** `catalog_fixtures` fixture loads test data from `fixtures/backend.json`
 
-### Schema Validation
-
-Schema validation is critical for maintaining synchronization between Django models and PostgreSQL schema. The `core.schema_validator` module should be run before commits and after receiving SQL schema changes.
-
 ## Consequences
 
 ### Positive
@@ -153,7 +149,7 @@ Schema validation is critical for maintaining synchronization between Django mod
 | Risk | Mitigation |
 |-------|------------|
 | Accidental writes to legacy tables | Strict enforcement of read-only rules via custom managers and code reviews |
-| Schema drift between models and PostgreSQL | Mandatory schema validation in CI/CD and before commits |
+| Schema drift between models and PostgreSQL | Code reviews and manual verification when schema changes are received |
 | Cross-schema relation attempts | Database router prevents cross-schema FK relations, code must use IntegerField pattern |
 | Cache invalidation issues | Proper signal-based cache invalidation on Tramite and Actividades changes |
 | Accidental migration generation | Migration guard raises "Read-Only Constraint Violation" for protected models |
@@ -177,8 +173,7 @@ Schema validation is critical for maintaining synchronization between Django mod
 1. Export existing auth/admin data from SQLite (if any exists)
 2. Create backoffice schema in PostgreSQL (if not exists)
 3. Import auth/admin data to backoffice schema
-4. Validate schema with `core.schema_validator`
-5. Run migrations on default database only (backoffice schema)
+4. Run migrations on default database only (backoffice schema)
 
 ### Phase 4: Documentation Updates
 1. Update README.md architecture table
@@ -206,6 +201,5 @@ Schema validation is critical for maintaining synchronization between Django mod
 ## Related Documentation
 
 - [ADR-002: Configuración de múltiples bases de datos](002-configuracion-multiples-bases-de-datos.md) - Superseded by this ADR
-- [Schema Validator Guide](../SCHEMA_VALIDATOR.md) - Critical for maintaining model synchronization
 - [Database Router Implementation](../../core/db_router.py) - Enforces these rules
 - [Environment Variables Reference](../05-reference/configuration/environment-vars.md) - Database URL configuration

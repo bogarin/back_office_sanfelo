@@ -456,14 +456,6 @@ Los esquemas SQL se encuentran en:
 
 ---
 
-## Validación de Sincronización
-
-Ejecutar el validador para verificar que los modelos coinciden con el esquema:
-
-```bash
-uv run python -m core.schema_validator
-```
-
 ---
 
 ## Notas Importantes

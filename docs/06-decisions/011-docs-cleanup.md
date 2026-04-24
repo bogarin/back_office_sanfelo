@@ -58,9 +58,9 @@ Ejecutar una limpieza completa con los siguientes criterios:
 | `sftp-host-key.md` | `03-guides/sysadmins/sftp-setup.md` | Guía práctica |
 | `05-reference/commands/index.md` | `05-reference/commands.md` | Aplanar estructura |
 
-### Deprecados
+### Eliminados
 
-- `SCHEMA_VALIDATOR.md` — El feature se depreca (fue diseñado para SQLite, ya no aplica)
+- `SCHEMA_VALIDATOR.md` — Removido junto con el schema validator (ver ADR-009)
 
 ### Actualizados (pedagogía preservada, contenido corregido)
 

@@ -89,4 +89,6 @@ SCHEMA VALIDATION REPORT
 
 ## Superseded by
 
-(ninguno)
+[ADR-008: PostgreSQL Schema Separation for Multi-Database Architecture](003-postgresql-schema-separation.md)
+
+**Nota:** El schema validator descrito en la sección "Schema Validation" fue removido del proyecto. Ver [ADR-009: Remoción del Schema Validator](009-remove-schema-validator.md).
