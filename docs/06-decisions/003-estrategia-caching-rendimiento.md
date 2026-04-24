@@ -1,7 +1,8 @@
 # 003: Estrategia de caching y rendimiento
 
-**Fecha:** 26 de febrero de 2026  
-**Estado:** Propuesto
+**Fecha:** 26 de febrero de 2026
+**Estado:** Parcialmente superseded
+**Última actualización:** 23 de abril de 2026
 
 ## Contexto
 
@@ -64,4 +65,49 @@ Se ha decidido utilizar la siguiente estrategia de caching:
 
 ## Superseded by
 
-(ninguno)
+Este ADR ha sido **parcialmente superseded** por [ADR-009: Vista PostgreSQL Unificada para Trámites](009-vista-postgresql-para-tramites.md).
+
+**Estatus:** Parcialmente superseded
+**Fecha de actualización:** 2026-04-23
+
+**Detalles de la supersección parcial:**
+
+### Componentes que permanecen válidos:
+- **Caching por entorno:** Configuración de DummyCache (desarrollo/testing) y LocMemCache (producción) sigue siendo el fundamento de la arquitectura
+- **Optimización de SQLite:** Aunque ADR-008 migró a PostgreSQL con esquemas, los principios de optimización de base de datos siguen aplicando
+- **Escalado horizontal:** Estrategia de múltiples contenedores Docker y configuración de gunicorn permanece válida
+
+### Componentes expandidos en ADR-009:
+
+**Arquitectura de cache expandida de 1 nivel a 4 niveles:**
+
+1. **Process-level cache (`@lru_cache`)** - Nuevo en ADR-009
+   - Manager: `CachedCatalogManager`
+   - Uso: Catálogos read-only que cambian raramente
+   - Alcance: Por worker process de Django
+   - Timeout: Permanente (hasta reinicio del worker)
+
+2. **Django Cache Framework** - Expandido desde ADR-003
+   - Manager: `CachedReadOnlyManager` (nuevo)
+   - Backend: LocMemCache (mantiene configuración de ADR-003)
+   - Timeout: 1 hora (3600 segundos) - más específico que ADR-003
+   - Keys: `'sf_tramites:catalog:v1:{model_name}:all'`
+
+3. **Redis-based cache** - Nuevo en ADR-009
+   - Caché de métricas: `estatus_distribution` con 60s TTL
+   - Invalidación vía signals Django (`post_save`, `post_delete`)
+   - Implementa la "posibilidad de integrar Redis" mencionada en ADR-003
+
+4. **Request-level cache** - Nuevo en ADR-009
+   - Middleware: `CacheUserRolesMiddleware`
+   - Carga roles de usuario una vez por request
+   - Almacenamiento: `request.user.roles` como `set`
+
+### Impacto en decisiones:
+
+- **Riesgo "Escalabilidad del caching"** en ADR-003 fue mitigado mediante implementación de Redis en ADR-009
+- **Riesgo "Invalidación de cache"** en ADR-003 fue abordado con signals de invalidación consistentes en ADR-009
+- **Trade-off "Limitaciones de escalabilidad del caching en memoria local"** en ADR-003 fue resuelto con Redis en ADR-009
+
+### Recomendación:
+Para detalles completos de la implementación actual de cache, referirse a [ADR-009](009-vista-postgresql-para-tramites.md). Este documento se mantiene como referencia histórica de la arquitectura inicial de caching del proyecto.

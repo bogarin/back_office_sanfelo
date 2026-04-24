@@ -239,7 +239,7 @@ Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Featu
 
 ## Superseded by
 
-(ninguno)
+**[ADR-013: Sistema RBAC con Tres Roles](013-rbac-tres-roles.md)** — El sistema evolucionó de 2 roles (Operador/Administrador) a 3 roles (Administrador/Coordinador/Analista). La autenticación migró de SQLite a PostgreSQL (ADR-008). Se eliminó la bitácora como tabla separada (Actividades es la fuente de verdad). Los permisos custom controlan visibilidad en Jazzmin sidebar.
 
 ## Referencias
 

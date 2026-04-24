@@ -1,5 +1,18 @@
 # Validador de Esquema (Schema Validator)
 
+> ⚠️ **DEPRECATED** — Este documento describe una funcionalidad que está siendo deprecada.
+>
+> El validador de esquema fue diseñado originalmente para sincronizar modelos Django con
+> tablas SQLite + PostgreSQL. Desde la migración a PostgreSQL con separación de esquemas
+> (ADR-008), toda la base de datos es PostgreSQL y la necesidad de este validador ha cambiado.
+>
+> La validación de esquema sigue siendo necesaria pero será reemplazada por un mecanismo
+> más simple que refleje la arquitectura actual.
+>
+> **Ver:** [ADR-008: PostgreSQL Schema Separation](06-decisions/008-postgresql-schema-separation.md)
+
+---
+
 ## Visión General
 
 El `schema_validator.py` es una herramienta esencial que valida que los modelos Django estén sincronizados con el esquema externo de PostgreSQL.

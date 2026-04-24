@@ -60,4 +60,4 @@ Se ha decidido utilizar el siguiente stack tecnológico:
 
 ## Superseded by
 
-(ninguno)
+**[ADR-012: Stack Tecnológico Actualizado](012-stack-base-actualizado.md)** — El stack evolucionó de SQLite+PostgreSQL a un solo PostgreSQL con separación de esquemas. El cache cambió de "posible Redis" a LocMemCache. Los roles evolucionaron de 2 a 3. Se añadió SFTP, Nginx, y Gunicorn.

@@ -17,15 +17,19 @@ Un **ADR (Architecture Decision Record)** es un documento corto que captura una 
 
 | Número ADR | Descripción |
 |------------|-------------|
-| [ADR-001](001-seleccion-stack-base.md) | Selección de Stack Tecnológico Base (Django, PostgreSQL, SQLite, Django Admin) |
-| [ADR-002](002-configuracion-multiples-bases-de-datos.md) | Configuración de múltiples bases de datos y routers *(Superseded)* |
+| [ADR-001](001-seleccion-stack-base.md) | Selección de Stack Tecnológico Base *(Superseded by ADR-012)* |
+| [ADR-002](002-configuracion-multiples-bases-de-datos.md) | Configuración de múltiples bases de datos y routers *(Superseded by ADR-008)* |
 | [ADR-003](003-estrategia-caching-rendimiento.md) | Estrategia de caching y rendimiento |
 | [ADR-004](004-logging-monitoreo.md) | Logging y monitoreo |
 | [ADR-005](005-despliegue-docker-gunicorn.md) | Despliegue con Docker y gunicorn |
-| [ADR-006](006-permisos-admin-operador.md) | Permisos de admin y operador *(Superseded)* |
-| [ADR-007](007-implementacion-rbac-django-60.md) | Implementación de Control de Acceso Basado en Roles (RBAC) para Django 6.0 |
-| [ADR-008](003-postgresql-schema-separation.md) | PostgreSQL Schema Separation for Multi-Database Architecture |
-
+| [ADR-006](006-permisos-admin-operador.md) | Permisos de admin y operador *(Superseded by ADR-007)* |
+| [ADR-007](007-implementacion-rbac-django-60.md) | Implementación de RBAC para Django 6.0 *(Superseded by ADR-013)* |
+| [ADR-008](008-postgresql-schema-separation.md) | PostgreSQL Schema Separation |
+| [ADR-009](009-vista-postgresql-para-tramites.md) | Vista PostgreSQL unificada para trámites |
+| [ADR-010](010-integracion-con-sftp.md) | Integración con servicio SFTP para requisitos |
+| [ADR-011](011-docs-cleanup.md) | Limpieza y reestructuración de documentación |
+| [ADR-012](012-stack-base-actualizado.md) | Stack tecnológico actualizado *(Supersedes ADR-001)* |
+| [ADR-013](013-rbac-tres-roles.md) | Sistema RBAC con tres roles *(Supersedes ADR-007)* |
 
 ## Cómo crear un nuevo ADR
 

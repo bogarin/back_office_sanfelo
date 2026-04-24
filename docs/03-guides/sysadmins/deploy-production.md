@@ -1,620 +1,494 @@
-# Despliegue en Producción - Guía para Sysadmins
+# Guía: Instalación y Configuración en Producción
 
-> **Guía para sysadmins**
-> Tiempo estimado: 2 horas
-> Última actualización: 26 de Febrero de 2026
+> **Para:** Sysadmins y equipo de operaciones
+> **Última actualización:** 23 de abril de 2026
 
 ---
 
 ## Resumen
 
-Esta guía te mostrará cómo desplegar el Backoffice de Trámites en el entorno de producción (intranet del Gobierno de San Felipe). Al final, tendrás el sistema corriendo con Docker y Gunicorn, configurado para alta disponibilidad y seguridad.
+Esta guía describe cómo desplegar el Backoffice de Trámites en un servidor de producción usando Docker/Podman y Docker Compose. El sistema consiste en:
 
-## Lo que aprenderás
-
-- Configurar variables de entorno para producción
-- Configurar Docker Compose para producción
-- Iniciar los servicios (backoffice, PostgreSQL, Redis)
-- Verificar que todos los servicios estén corriendo correctamente
-- Configurar logs y monitoreo
-- Realizar backup y restore de la base de datos
-
-## Requisitos previos
-
-- Docker y Docker Compose instalados
-- Docker Hub access (para pull de imágenes)
-- PostgreSQL y Redis disponibles
-- Usuario con permisos para Docker en el servidor de producción
-- Conexión a la intranet del Gobierno de San Felipe
-- Conocimiento básico de contenedores Docker
+- **1 contenedor de aplicación** (Nginx + Gunicorn + Django)
+- **1 contenedor de PostgreSQL 16** (con dos schemas)
+- **1 servidor SFTP externo** (para archivos PDF)
 
 ---
 
-## Paso 1: Preparar Variables de Entorno
+## Requisitos Previos
 
-### 1.1 Obtener el Archivo de Ejemplo
+### Servidor
+
+| Requisito | Mínimo | Recomendado |
+|-----------|--------|-------------|
+| **CPU** | 2 cores | 4 cores |
+| **RAM** | 2 GB | 4 GB |
+| **Disco** | 10 GB | 20 GB |
+| **SO** | Linux (Debian/Ubuntu) | Debian 12+ |
+
+### Software requerido
+
+- **Docker** >= 20.x o **Podman** >= 3.x
+- **Docker Compose** >= 2.x (o `podman-compose`)
+- **Git** (para clonar el repositorio)
+- Acceso al **servidor SFTP** donde se almacenan los PDFs
+
+### Información necesaria antes de empezar
+
+- URL de la base de datos PostgreSQL (o credenciales para crear una nueva)
+- Credenciales del servidor SFTP (host, usuario, contraseña o llave SSH)
+- Nombre de dominio o IP pública donde será accesible el sistema
+- Certificado SSL (si se usará HTTPS)
+
+---
+
+## Paso 1: Preparar la Base de Datos
+
+### Opción A: Usar el PostgreSQL de Docker Compose (recomendado para inicio)
+
+El `docker-compose.yml` incluye un servicio PostgreSQL. Solo necesitas configurar las credenciales en el `.env`:
 
 ```bash
-# Copiar el archivo de ejemplo
+POSTGRES_DB=backoffice_tramites
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=STRONG_PASSWORD_HERE
+POSTGRES_PORT=5432
+```
+
+### Opción B: Usar un PostgreSQL externo
+
+Si ya tienes un servidor PostgreSQL:
+
+1. **Crear la base de datos:**
+   ```sql
+   CREATE DATABASE backoffice_tramites;
+   CREATE USER backoffice_user WITH PASSWORD 'STRONG_PASSWORD';
+   GRANT ALL PRIVILEGES ON DATABASE backoffice_tramites TO backoffice_user;
+   ```
+
+2. **Crear el schema `backoffice`:**
+   ```sql
+   \c backoffice_tramites
+   CREATE SCHEMA IF NOT EXISTS backoffice AUTHORIZATION backoffice_user;
+   ```
+
+3. **Verificar que el schema `public` existe** (default en PostgreSQL).
+
+4. **Configurar la URL en `.env`:**
+   ```bash
+   POSTGRESQL_DB_URL=postgres://backoffice_user:STRONG_PASSWORD@db-host:5432/backoffice_tramites
+   ```
+
+5. **Eliminar el servicio postgres del docker-compose.yml** y apuntar la URL al servidor externo.
+
+### Verificar conectividad
+
+```bash
+psql postgres://backoffice_user:STRONG_PASSWORD@HOST:5432/backoffice_tramites -c "\dn"
+```
+
+Debes ver los schemas `backoffice` y `public`.
+
+---
+
+## Paso 2: Obtener el Código
+
+```bash
+# Clonar el repositorio
+git clone <URL_DEL_REPOSITORIO> backoffice_tramites
+cd backoffice_tramites
+```
+
+---
+
+## Paso 3: Configurar Variables de Entorno
+
+### 3.1 Crear el archivo `.env`
+
+```bash
 cp .env.example .env
 ```
 
-### 1.2 Editar el Archivo .env
+### 3.2 Variables obligatorias para producción
 
-Edita el archivo `.env` con los valores reales de producción:
+Editar `.env` con los valores de producción:
 
 ```bash
-# Usar tu editor favorito (nano, vim, VS Code, etc.)
-nano .env
-```
-
-### 1.3 Variables de Entorno Obligatorias
-
-Las siguientes variables DEBEN estar configuradas:
-
-```env
-# Core
-DJANGO_SECRET_KEY=<your-secret-key-here>
+# === DJANGO CORE ===
 DJANGO_DEBUG=False
-DJANGO_ALLOWED_HOSTS=backoffice.intranet.gob.sanfelipe
+DJANGO_SECRET_KEY=GENERAR_CON_EL_COMANDO_DE_ABAJO
+DJANGO_ALLOWED_HOSTS=backoffice.sanfelipe.gob.mx
 
-# Database
-BACKEND_DB_URL=postgresql://backoffice:secure_password@postgres:5432/backoffice_tramites
+# === BASE DE DATOS ===
+POSTGRESQL_DB_URL=postgres://backoffice_user:STRONG_PASSWORD@postgres:5432/backoffice_tramites
+BACKOFFICE_DB_SCHEMA=backoffice
+BACKEND_DB_SCHEMA=public
 
-# Redis
-REDIS_URL=redis://:6379:0
+# === SEGURIDAD (con HTTPS) ===
+DJANGO_SECURE_SSL_REDIRECT=True
+DJANGO_SESSION_COOKIE_SECURE=True
+DJANGO_CSRF_COOKIE_SECURE=True
+DJANGO_SECURE_CONTENT_TYPE_NOSNIFF=True
+DJANGO_SECURE_BROWSER_XSS_FILTER=True
+DJANGO_CSRF_TRUSTED_ORIGINS=https://backoffice.sanfelipe.gob.mx
 
-# Email
-DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-DJANGO_EMAIL_HOST=smtp.gob.sanfelipe
-DJANGO_EMAIL_PORT=587
-DJANGO_EMAIL_USE_TLS=True
-DJANGO_EMAIL_HOST_USER=noreply@sanfelipe.gob.mx
-DJANGO_EMAIL_HOST_PASSWORD=<your-smtp-password>
-
-# Logging
+# === LOGGING ===
 DJANGO_LOG_LEVEL=INFO
+
+# === POSTGRESQL (Docker Compose) ===
+POSTGRES_DB=backoffice_tramites
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=STRONG_PASSWORD_HERE
+POSTGRES_PORT=5432
+
+# === SFTP ===
+SFTP_HOST=sftp.example.com
+SFTP_PORT=22
+SFTP_USERNAME=backoffice_user
+SFTP_PASSWORD=SFTP_PASSWORD_HERE
+SFTP_HOST_KEY=ssh-ed25519 AAAA...
+SFTP_BASE_DIR=/data/tramites
+SFTP_PDF_DIR=pdfs
+SFTP_CACHE_DIR=/app/.sftp_cache
+SFTP_CACHE_TTL=3600
+SFTP_CACHE_MAX_SIZE_MB=500
 ```
 
-> **IMPORTANTE**:
-> - `DJANGO_SECRET_KEY`: Debe ser una clave secreta fuerte. Genera una única vez y guárdala en lugar seguro.
-> - `BACKEND_DB_URL`: Cambia `secure_password` por la contraseña real de PostgreSQL.
-> - `DJANGO_ALLOWED_HOSTS`: Lista de hosts permitidos separados por comas.
-> - NO NUNCA uses el `.env.example` directamente en producción.
-
-### 1.4 Generar Clave Secreta Segura
+### 3.3 Generar SECRET_KEY
 
 ```bash
-# Generar una clave secreta usando Python
-python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-
-# O usar OpenSSL
-openssl rand -base64 48
+python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 ```
 
-Copia la clave generada al campo `DJANGO_SECRET_KEY` en tu archivo `.env`.
+Pegar el resultado como valor de `DJANGO_SECRET_KEY`.
+
+### 3.4 Obtener SFTP_HOST_KEY
+
+```bash
+ssh-keyscan -t rsa,ed25519 sftp.example.com
+```
+
+Copiar la línea que empieza con `ssh-ed25519` o `ssh-rsa` y pegarla como valor de `SFTP_HOST_KEY`.
+
+> **Ver guía completa:** [Guía de configuración SFTP](sftp-setup.md)
+
+### 3.5 Variables de branding (opcional)
+
+```bash
+BACKOFFICE_SITE_TITLE="Backoffice de Trámites"
+BACKOFFICE_SITE_HEADER="San Felipe"
+BACKOFFICE_SITE_BRAND="Ventanilla Urbana Digital"
+BACKOFFICE_WELCOME_SIGN="Ventanilla Urbana Digital - Municipio de San Felipe"
+BACKOFFICE_COPYRIGHT="Municipio de San Felipe - Todos los derechos reservados"
+```
+
+> **Referencia completa:** [Variables de Entorno](../../05-reference/environment-vars.md)
 
 ---
 
-## Paso 2: Configurar Docker Compose
-
-El proyecto incluye un archivo `docker-compose.yml` que define todos los servicios necesarios.
-
-### 2.1 Revisar el Archivo docker-compose.yml
+## Paso 4: Construir la Imagen Docker
 
 ```bash
-# Revisar la configuración
-cat docker-compose.yml
+# Con Docker
+docker build -t backoffice-tramites:latest .
+
+# Con Podman
+podman build -t backoffice-tramites:latest .
 ```
 
-Verás una configuración similar a esta:
-
-```yaml
-version: '3.8'
-
-services:
-  backoffice:
-    build: .
-    ports:
-      - "${HTTP_PORT:-8090}:8090"
-    environment:
-      - BACKEND_DB_URL
-      - REDIS_URL
-      - DJANGO_SECRET_KEY
-      - DJANGO_DEBUG
-      - DJANGO_ALLOWED_HOSTS
-      - DJANGO_LOG_LEVEL
-    volumes:
-      - ./logs:/app/logs
-      - ./media:/app/media
-      - ./static:/app/static
-    depends_on:
-      - postgres
-      - redis
-    restart: always
-
-  postgres:
-    image: postgres:15-alpine
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    environment:
-      - POSTGRES_DB: backoffice_tramites
-      - POSTGRES_USER: backoffice
-      - POSTGRES_PASSWORD: secure_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: always
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-    restart: always
-
-volumes:
-  postgres_data:
-  redis_data:
-```
-
-### 2.2 Entender la Configuración
-
-**Servicio backoffice**:
-- Port: 8090 (configurable con `HTTP_PORT`)
-- Environment: Usa variables del archivo `.env`
-- Volumes: Logs, media, static para persistencia
-- Depends_on: PostgreSQL y Redis (inicia antes de estos)
-
-**Servicio postgres**:
-- Image: PostgreSQL 15 Alpine
-- Port: 5432 (configurable con `POSTGRES_PORT`)
-- Database: `backoffice_tramites`
-- User: `backoffice`
-- Password: `secure_password` (cámbiar en producción)
-- Volume: `postgres_data` para persistencia
-
-**Servicio redis**:
-- Image: Redis 7 Alpine
-- Port: 6379 (configurable con `HTTP_PORT`)
-- Volume: `redis_data` para persistencia
+El build:
+1. Instala dependencias con `uv`
+2. Instala nginx y libpq5
+3. Crea usuario `appuser` (uid 1000)
+4. Ejecuta `collectstatic`
+5. Expone puerto 8080
 
 ---
 
-## Paso 3: Iniciar los Servicios
-
-### 3.1 Verificar que no haya Servicios Corriendo
+## Paso 5: Desplegar con Docker Compose
 
 ```bash
-# Verificar contenedores existentes
-docker-compose ps
+# Iniciar servicios (PostgreSQL + aplicación)
+docker compose up -d
+
+# Ver logs
+docker compose logs -f
 ```
 
-Si ves contenedores del proyecto corriendo, detén primero:
-```bash
-docker-compose down
-```
-
-### 3.2 Crear y Levantar Volúmenes
+### Verificar que los servicios están corriendo
 
 ```bash
-# Crear volúmenes (si no existen)
-docker volume create postgres_data
-docker volume create redis_data
-```
+# Ver contenedores activos
+docker compose ps
 
-### 3.3 Iniciar Todos los Servicios
-
-```bash
-# Iniciar todos los servicios
-docker-compose up -d
-```
-
-**Resultado esperado**: Verás salida como esta:
-```
-Creating network "backoffice_default"
-Creating volume "backoffice_postgres_data"
-Creating volume "backoffice_redis_data"
-Creating volume "backoffice_static"
-Creating volume "backoffice_media"
-Creating volume "backoffice_logs"
-Creating backoffice_postgres_1 ...
-Creating backoffice_backoffice_1 ...
-Creating backoffice_redis_1 ...
-Creating backoffice_backoffice_1 ... done
-```
-
-**Tiempo estimado**: 30-60 segundos (dependiendo de la velocidad de descarga de imágenes).
-
----
-
-## Paso 4: Verificar que los Servicios Estén Funcionando
-
-### 4.1 Verificar el Estado de los Servicios
-
-```bash
-# Ver estado de los servicios
-docker-compose ps
-```
-
-Deberías ver algo como:
-
-```
-NAME                    STATUS         PORTS
-backoffice_backoffice_1   Up              0.0.0.0:8090->8090/tcp
-backoffice_postgres_1      Up              0.0.0.0:5432->5432/tcp
-backoffice_redis_1         Up              0.0.0.0:6379->6379/tcp
-```
-
-**Verifica que todos los servicios estén en estado "Up"**.
-
-### 4.2 Verificar los Logs del Backoffice
-
-```bash
-# Ver logs del backoffice
-docker-compose logs backoffice -f
-
-# Ver últimos 20 líneas
-docker-compose logs backoffice --tail 20
-```
-
-Deberías ver mensajes de inicio del servidor Django, como:
-```
-Watching for file changes with StatReloader
-Performing system checks...
-
-System check identified no issues (1 silenced).
-...
-
-Starting development server at http://0.0.0.0:8090/...
-Quit the server with CONTROL-C.
-```
-
-### 4.3 Verificar la Conexión a PostgreSQL
-
-```bash
-# Ver logs de postgres
-docker-compose logs postgres -f
-
-# Ver que la base de datos se inició correctamente
-```
-
-Busca mensajes como:
-```
-database system is ready to accept connections
-```
-
-### 4.4 Verificar la Conexión a Redis
-
-```bash
-# Ver logs de redis
-docker-compose logs redis -f
-```
-
-Busca mensajes como:
-```
-Ready to accept connections
-```
-
-### 4.5 Verificar el Health Check
-
-```bash
 # Verificar health check
 curl http://localhost:8090/health/
 ```
 
-**Resultado esperado**: Deberías ver `"OK"`.
+La respuesta debe ser `200 OK`.
+
+### Qué hace el entrypoint automáticamente
+
+Cuando el contenedor inicia, el `entrypoint.sh` ejecuta:
+
+1. **Verifica que no corre como root** (security)
+2. **Ejecuta migraciones** (`manage.py migrate`) — Solo afecta el schema `backoffice`
+3. **Recolecta archivos estáticos** (`manage.py collectstatic`)
+4. **Inicia Nginx** en puerto 8080
+5. **Inicia Gunicorn** en puerto 8081 (interno)
+6. **Maneja señales** SIGTERM/SIGINT para apagado graceful
 
 ---
 
-## Paso 5: Aplicar Migraciones de Django (SQLite)
+## Paso 6: Post-Instalación
+
+### 6.1 Crear el superusuario
 
 ```bash
-# Ejecutar comando desde el contenedor
-docker-compose exec backoffice python manage.py migrate
+docker compose exec backoffice python manage.py createsuperuser
 ```
 
-**Resultado esperado**:
-```
-Operations to perform:
-  Apply all migrations: tramites, catalogos, bitacora, costos, core, contenttypes, auth, s...
-Running migrations:
-  No migrations to apply.
-```
+Sigue las instrucciones interactivas (username, email, password).
 
-### 5.1 Crear Superusuario en Producción
+### 6.2 Configurar roles RBAC
 
 ```bash
-# Crear superusuario en el contenedor
-docker-compose exec backoffice python manage.py createsuperuser
-
-# O usar --noinput para no interactivo
-docker-compose exec -T backoffice python manage.py createsuperuser \
-  --username admin \
-  --email admin@sanfelipe.gob.mx \
-  --noinput \
-  --password <secure-password>
+docker compose exec backoffice python manage.py setup_roles
 ```
 
-**Resultado esperado**: `Superuser created successfully.`
+Esto crea los 3 grupos de Django:
+- **Administrador** — Acceso completo
+- **Coordinador** — Puede asignar/reasignar trámites
+- **Analista** — Ve sus trámites asignados + disponibles
 
-> **IMPORTANTE**: Reemplaza `<secure-password>` por una contraseña segura real para producción.
+### 6.3 Asignar roles a usuarios
 
----
+Desde el admin de Django (`https://DOMINIO/admin/`):
 
-## Paso 6: Verificar el Despliegue
+1. Ir a **Autenticación y Autorización → Usuarios**
+2. Seleccionar un usuario
+3. En la sección **Grupos**, agregar al grupo correspondiente:
+   - `Administrador`, `Coordinador`, o `Analista`
+4. Guardar
 
-### 6.1 Acceder desde el Navegador
-
-1. Abre tu navegador web
-2. Navega a la URL de producción: `http://<server-ip>:8090/`
-3. Deberías ver la página de inicio o redirección
-
-### 6.2 Acceder al Django Admin
-
-1. Navega a: `http://<server-ip>:8090/admin/`
-2. Ingresa las credenciales de superusuario
-3. Verás el panel de administración
-
-### 6.3 Verificar una Operación CRUD
-
-1. Desde el panel de admin, navega a "Trámites"
-2. Intenta crear un trámite de prueba
-3. Verifica que se guardó correctamente en la base de datos
-
-**Resultado esperado**: El trámite debería aparecer en la lista de trámites y la información persistir en PostgreSQL.
-
----
-
-## Paso 7: Configurar Logs y Monitoreo
-
-### 7.1 Ubicación de Logs
-
-Los logs se guardan en:
-- **Servidor**: `./logs/` (volumen Docker montado)
-- **Contenedor**: `/app/logs` (dentro del contenedor backoffice)
-- **Rotación automática**: Máximo 10 MB por archivo, hasta 10 archivos históricos
-
-### 7.2 Tipos de Logs
-
-- **django.log**: Logs generales de la aplicación Django
-- **gunicorn-access.log**: Logs de acceso HTTP
-- **gunicorn-error.log**: Logs de errores de Gunicorn
-
-### 7.3 Ver Logs en Tiempo Real
+### 6.4 Verificar conectividad SFTP
 
 ```bash
-# Ver logs en tiempo real
-docker-compose logs -f backoffice
-
-# Ver logs específicos de un servicio
-docker-compose logs -f postgres
+docker compose exec backoffice python manage.py sftp ping
 ```
 
-### 7.4 Niveles de Logging
-
-Los niveles de logging configurados:
-- **DEBUG**: Información detallada para desarrollo
-- **INFO**: Información normal de operación
-- **WARNING**: Algo inesperado pero no crítico
-- **ERROR**: Error que requiere atención
-- **CRITICAL**: Error crítico que requiere acción inmediata
-
-Configuración en `.env`:
-```env
-DJANGO_LOG_LEVEL=INFO  # Cambia a DEBUG para desarrollo
-```
+Debe responder sin errores.
 
 ---
 
-## Paso 8: Backup y Restore
+## Paso 7: Configurar HTTPS (Recomendado)
 
-### 8.1 Backup de la Base de Datos PostgreSQL
+### Opción A: Reverse proxy externo (recomendado)
+
+Colocar un Nginx/Caddy/Traefik delante del contenedor:
+
+```nginx
+# /etc/nginx/sites-available/backoffice
+server {
+    listen 443 ssl http2;
+    server_name backoffice.sanfelipe.gob.mx;
+
+    ssl_certificate /etc/letsencrypt/live/backoffice.sanfelipe.gob.mx/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/backoffice.sanfelipe.gob.mx/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8090;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+    }
+}
+
+server {
+    listen 80;
+    server_name backoffice.sanfelipe.gob.mx;
+    return 301 https://$host$request_uri;
+}
+```
+
+### Opción B: Let's Encrypt con Certbot
 
 ```bash
-# Backup de la base de datos
-docker exec postgres pg_dump -U backoffice backoffice_tramites > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Guardar en el host
-docker cp <container-id>:/backup_YYYYMMDD_HHMMSS.sql ./backups/
+apt install certbot python3-certbot-nginx
+certbot --nginx -d backoffice.sanfelipe.gob.mx
 ```
 
-**Resultado esperado**: Tienes un archivo `.sql` con el respaldo completo de la base de datos.
+---
 
-### 8.2 Restore de la Base de Datos
+## Verificación Final
+
+### Checklist
+
+- [ ] Contenedores corriendo (`docker compose ps`)
+- [ ] Health check responde (`curl http://localhost:8090/health/`)
+- [ ] Admin accesible (`https://DOMINIO/admin/`)
+- [ ] Login funciona con el superusuario
+- [ ] Roles creados (`setup_roles` ejecutado)
+- [ ] SFTP conectividad verificada (`sftp ping`)
+- [ ] HTTPS configurado (si aplica)
+- [ ] Headers de seguridad activos (verificar con `curl -I`)
+- [ ] Logs visibles (`docker compose logs -f`)
+- [ ] Backup de base de datos configurado
+
+### Verificar headers de seguridad
 
 ```bash
-# Restaurar la base de datos
-docker exec -i postgres psql -U backoffice backoffice_tramites < backup_YYYYMMDD_HHMMSS.sql
+curl -I https://backoffice.sanfelipe.gob.mx/admin/
 ```
 
-### 8.3 Automatización de Backups
+Debes ver:
+```
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 1; mode=block
+```
 
-**Crontab para backups diarios**:
+---
+
+## Operaciones Comunes
+
+### Ver logs
 
 ```bash
-# Editar crontab
-crontab -e
+# Todos los servicios
+docker compose logs -f
 
-# Agregar línea para backup diario a las 3 AM
-0 3 * * * /usr/bin/docker exec postgres pg_dump -U backoffice backoffice_tramites > /backups/daily_backups.sql
+# Solo la aplicación
+docker compose logs -f backoffice
+
+# Solo PostgreSQL
+docker compose logs -f postgres
 ```
 
----
-
-## Paso 9: Actualizar la Aplicación
-
-### 9.1 Desplegar Nueva Versión
+### Reiniciar servicios
 
 ```bash
-# Actualizar código (git pull)
-git pull origin main
-
-# Detener servicios temporalmente
-docker-compose down
-
-# Reconstruir la imagen
-docker-compose build
-
-# Iniciar servicios nuevamente
-docker-compose up -d
+docker compose restart backoffice
 ```
 
-### 9.2 Rollback si hay Problemas
-
-Si el nuevo despliegue tiene problemas:
+### Actualizar la aplicación
 
 ```bash
-# Volver a versión anterior
-git revert
-
-# Rebuild de imagen anterior
-docker-compose build
-
-# Iniciar servicios
-docker-compose up -d
+git pull
+docker compose build backoffice
+docker compose up -d backoffice
 ```
 
----
-
-## Paso 10: Troubleshooting Común
-
-### 10.1 El Contenedor No Inicia
-
-**Posibles causas**:
-- Puerto ya en uso
-- Error en variables de entorno
-- Error en configuración de Docker
-
-**Soluciones**:
+### Backup de base de datos
 
 ```bash
-# Ver puertos en uso
-netstat -tulpn
-
-# Ver logs detallados
-docker-compose logs backoffice
-
-# Ver configuración de variables
-docker-compose config
+docker compose exec postgres pg_dump -U postgres backoffice_tramites > backup_$(date +%Y%m%d).sql
 ```
 
-### 10.2 Conexión a Base de Datos Falla
+### Restaurar backup
 
-**Verificar**:
 ```bash
-# Verificar que postgres está corriendo
-docker-compose ps
-
-# Ver logs de postgres
-docker-compose logs postgres -f
-
-# Verificar conectividad
-docker-compose exec backoffice python manage.py dbshell -c "SELECT 1;"
+cat backup_20260423.sql | docker compose exec -T postgres psql -U postgres backoffice_tramites
 ```
 
-**Si falla, revisa**:
-- `BACKEND_DB_URL` en `.env`
-- Credenciales correctas en Docker Compose
-- Firewall o reglas de seguridad
+### Escalar workers de Gunicorn
 
-### 10.3 La Aplicación No Responde
+Editar `.env`:
+```bash
+GUNICORN_WORKERS=8
+```
 
-**Pasos**:
-1. Verificar que backoffice está "Up" en `docker-compose ps`
-2. Verificar logs del backoffice: `docker-compose logs backoffice -f`
-3. Verificar que el puerto 8090 esté accesible
-4. Usar `curl` para health check: `curl http://localhost:8090/health/`
-5. Verificar logs de Gunicorn en `logs/gunicorn-error.log`
-
-### 10.4 Problemas de Rendimiento
-
-**Pasos para diagnosticar**:
-1. Usar `docker stats` para verificar uso de recursos
-2. Verificar logs de Gunicorn para errores
-3. Revisar logs de Django para consultas lentas
-4. Verificar que Redis está siendo usado correctamente
+Luego reiniciar: `docker compose restart backoffice`
 
 ---
 
-## Resumen
+## Troubleshooting
 
-En esta guía has aprendido:
+### El contenedor no inicia
 
-✅ Configurar variables de entorno para producción
-✅ Configurar Docker Compose para producción
-✅ Iniciar todos los servicios (backoffice, PostgreSQL, Redis)
-✅ Verificar que los servicios están funcionando correctamente
-✅ Configurar logs y monitoreo
-✅ Realizar backup de la base de datos
-✅ Desplegar nuevas versiones del sistema
-✅ Solucionar problemas comunes de despliegue
+```bash
+# Ver logs del contenedor
+docker compose logs backoffice
 
----
+# Verificar que .env existe y tiene las variables obligatorias
+grep -c 'DJANGO_SECRET_KEY\|POSTGRESQL_DB_URL\|DJANGO_DEBUG' .env
+```
 
-## ¿Qué sigue?
+### Error de conexión a PostgreSQL
 
-### Para mantenimiento operativo continuo:
-- 📋 [Guía: Backup y Restore](./backup-restore.md) - Guía detallada de backups
-- 🔧 [Guía: Monitoring](./monitoring.md) - Configuración de monitoreo
-- 🔧 [Guía: Troubleshooting avanzado](./troubleshoot.md) - Solución de problemas complejos
+```bash
+# Verificar que PostgreSQL está healthy
+docker compose ps postgres
 
-### Para desarrolladores:
-- 💻 [Tutorial: Setup de Desarrollo Local](../../02-tutorials/developers/local-dev-setup.md) - Para desarrollo local
-- 🧠 [Concepto: Arquitectura Dual](../../04-concepts/dual-database.md) - Para entender la arquitectura
+# Probar conexión manual
+docker compose exec backoffice python -c "
+import psycopg2
+conn = psycopg2.connect('postgres://postgres:PASSWORD@postgres:5432/backoffice_tramites')
+print('Conexión OK')
+conn.close()
+"
+```
 
-### Para todos los roles:
-- 🔍 [Referencia: Variables de Entorno](../../05-reference/configuration/environment-vars.md) - Documentación completa de variables
-- 📋 [Guía: Troubleshooting](../../03-guides/sysadmins/troubleshoot.md) - Solución de problemas comunes
+### Error de migraciones
 
----
+```bash
+# Ver estado de migraciones
+docker compose exec backoffice python manage.py showmigrations
 
-## Problemas Comunes
+# Ejecutar migraciones manualmente
+docker compose exec backoffice python manage.py migrate --no-input
+```
 
-| Problema | Posible Causa | Solución |
-|----------|---------------------------|
-| `Error: port 8090 already in use` | Puerto ocupado por otro servicio | Cambia `HTTP_PORT` en `.env` o verifica qué servicio usa el puerto |
-| `Error: Connection refused` | PostgreSQL no accesible | Verifica firewall y configuración de red |
-| `Error: Host not found` | `DJANGO_ALLOWED_HOSTS` mal configurado | Verifica que el host esté incluido en la lista |
-| `docker-compose up: Build failed` | Error en código o dependencias | Ver logs para identificar el error |
-| `Container restarting repeatedly` | Error en configuración | Ver logs para identificar la causa |
-| `Health check returns error` | Aplicación no está sana | Verifica logs y usa curl con -v para más detalles |
+### Nginx no sirve archivos estáticos
 
----
+```bash
+# Recollect static
+docker compose exec backoffice python manage.py collectstatic --no-input --clear
 
-## Consejos y Mejores Prácticas
+# Verificar que los archivos existen
+docker compose exec backoffice ls -la /app/staticfiles/
+```
 
-1. **Usa secrets management**: No almacenes contraseñas en texto plano. Usa `docker secrets` o variables de entorno del sistema.
+### SFTP no conecta
 
-2. **Configura TLS/SSL**: En producción, usa HTTPS. Configura NGINX o proxy para terminación TLS.
+```bash
+# Probar conectividad
+docker compose exec backoffice python manage.py sftp ping
 
-3. **Limita recursos**: Configura límites en Docker Compose para que los contenedores no usen todos los recursos del servidor.
-
-4. **Usa tags de Docker**: Usa tags para versionar tus despliegues: `docker tag backoffice:latest`, `docker tag backoffice:v1.0.0`.
-
-5. **Documenta cambios**: Mantén un registro de cambios para saber qué se desplegó y cuándo.
-
-6. **Monitorea logs regularmente**: Revisa los logs al menos una vez al día para detectar problemas temprano.
-
-7. **Ten plan de rollback**: Siempre mantén la versión anterior funcionando por si la nueva versión tiene problemas.
-
----
-
-## Referencias Adicionales
-
-- [Documentación de Gunicorn](https://docs.gunicorn.org/) - Configuración completa
-- [Documentación de Docker](https://docs.docker.com/) - Guía de referencia
-- [Documentación de PostgreSQL](https://www.postgresql.org/docs/) - Configuración y administración
-- [Documentación de Redis](https://redis.io/documentation) - Configuración y administración
-- [Docker Compose](https://docs.docker.com/compose/) - Orquestación de múltiples contenedores
+# Ver configuración SFTP
+docker compose exec backoffice python -c "
+from django.conf import settings
+print(f'Host: {settings.SFTP_HOST}')
+print(f'Port: {settings.SFTP_PORT}')
+print(f'User: {settings.SFTP_USERNAME}')
+"
+```
 
 ---
 
-**¿Necesitas ayuda?**
-- Consulta las [Guías Sysadmin](../../03-guides/sysadmins/)
-- Contacta a tu equipo de DevOps
-- Revisa el [Glosario de Términos](../01-onboarding/glossary.md) para entender términos técnicos
+## Estructura del Contenedor
+
+```
+Contenedor (appuser, uid 1000)
+├── Nginx (:8080 externo)
+│   ├── /static/     → /app/static/ (archivos estáticos)
+│   ├── /media/      → /app/media/ (archivos subidos)
+│   ├── /admin/      → proxy a Gunicorn (:8081)
+│   ├── /sftp-cache/ → X-Accel-Redirect (PDFs desde cache)
+│   └── /healthz     → 200 OK (health check)
+└── Gunicorn (:8081 interno)
+    └── Django WSGI application
+```
 
 ---
 
-*Última actualización: 26 de Febrero de 2026*
+## Ver también
+
+- [Referencia de Variables de Entorno](../../05-reference/environment-vars.md)
+- [Referencia de SFTP](../../05-reference/sftp.md)
+- [Guía de configuración SFTP](sftp-setup.md)
+- [ADR-005: Despliegue Docker + Gunicorn](../../06-decisions/005-despliegue-docker-gunicorn.md)
+- [ADR-008: PostgreSQL Schema Separation](../../06-decisions/008-postgresql-schema-separation.md)
+- [ADR-010: Integración SFTP](../../06-decisions/010-integracion-con-sftp.md)

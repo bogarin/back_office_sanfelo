@@ -1,115 +1,89 @@
 # Backoffice de Trámites - Gobierno de San Felipe
 
-Microservicio de gestión de trámites para las dependencias del gobierno de San Felipe.
+Microservicio de gestión de trámites para las dependencias del gobierno de San Felipe. Interfaz basada en Django Admin con roles RBAC (Administrador, Coordinador, Analista).
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### 👷 Operadores
-**Empezar a usar el sistema**: [Tutorial: Crear tu primer trámite](docs/02-tutorials/operators/create-tramite.md)
+### Desarrolladores
 
-### 👔 Administradores
-**Configurar el sistema**: [Tutorial: Configurar usuarios](docs/02-tutorials/admins/setup-users.md)
+```bash
+# Requisitos: Python 3.14, uv, PostgreSQL
+git clone <URL> && cd backoffice_tramites
+cp .env.example .env          # Editar con tus valores
+just install                   # uv sync
+just migrate                   # Crear tablas en schema backoffice
+just setup_roles               # Crear grupos RBAC
+just createsuperuser           # Crear usuario admin
+just run                       # Iniciar servidor en localhost:8000
+```
 
-### 💻 Desarrolladores
-**Setup de desarrollo local**: [Tutorial: Setup de desarrollo](docs/02-tutorials/developers/local-dev-setup.md)
+**Tutorial completo:** [Setup de desarrollo](docs/02-tutorials/developers/local-dev-setup.md)
 
-### 🔧 Sysadmins
-**Despliegue en producción**: [Guía: Despliegue en producción](docs/03-guides/sysadmins/deploy-production.md)
+### Sysadmins (Producción)
 
----
+```bash
+cp .env.example .env          # Configurar TODAS las variables de producción
+docker compose up -d           # Iniciar PostgreSQL + aplicación
+docker compose exec backoffice python manage.py createsuperuser
+docker compose exec backoffice python manage.py setup_roles
+```
 
-## 📋 Overview
-
-### ¿Qué es este proyecto?
-
-Sistema de gestión de trámites con:
-- 📝 Gestión completa de trámites con historial
-- 🗃️ Catálogos configurables (tipos, estatus, requisitos, peritos)
-- 💰 Sistema de costos calculado por UMA
-- 📊 Auditoría completa (bitácora de cambios)
-- 🔐 Sistema de permisos y roles
-
-**Leer más**: [Overview completo](docs/01-onboarding/overview.md)
-
----
-
-## 🏗️ Arquitectura
-
-| Componente | Tecnología |
-|------------|------------|
-| **Backend** | Django 6.0.2 (Python 3.14) |
-| **BD Backoffice** | PostgreSQL (backoffice schema) |
-| **BD Negocio** | PostgreSQL (public schema) |
-| **Cache** | Redis |
-| **Interface** | Django Admin |
-| **Deploy** | Docker + Gunicorn |
-
-**Leer más**: [Arquitectura detallada](docs/01-onboarding/architecture-overview.md)
+**Guía completa:** [Despliegue en producción](docs/03-guides/sysadmins/deploy-production.md)
 
 ---
 
-## 📚 Documentación
+## Arquitectura
 
-### Por Rol
+| Componente | Tecnología | Detalle |
+|------------|------------|---------|
+| **Framework** | Django 6.0.2 | Python 3.14 |
+| **Interface** | Django Admin | jazzmin (Bootstrap) |
+| **Base de datos** | PostgreSQL 16 | 2 schemas: `backoffice` + `public` |
+| **Cache** | LocMemCache | En memoria por proceso |
+| **Servidor** | Nginx + Gunicorn | Contenedor único |
+| **Archivos PDF** | SFTP | Servidos via Nginx X-Accel-Redirect |
+| **Package manager** | uv | Con justfile |
 
-| Rol | Documentación principal |
-|-----|---------------------|
-| 👷 **Operadores** | [Tutoriales operadores](docs/02-tutorials/operators/) |
-| 👔 **Administradores** | [Tutoriales administradores](docs/02-tutorials/admins/) |
-| 💻 **Desarrolladores** | [Tutoriales desarrolladores](docs/02-tutorials/developers/) |
-| 🔧 **Sysadmins** | [Guías sysadmin](docs/03-guides/sysadmins/) |
-| 🤖 **AI Agents** | [Documentación optimizada para LLMs](docs/08-ai-optimized/) |
+### Roles
 
-### Por Tipo
-
-| Tipo | Descripción |
-|------|-------------|
-| 📖 **Tutoriales** | Aprendizaje guiado paso a paso |
-| 📋 **Guías** | Soluciones a problemas específicos |
-| 🧠 **Conceptos** | Explicaciones teóricas del sistema |
-| 📖 **Referencias** | Documentación técnica completa |
-| 📋 **ADRs** | Decisiones de arquitectura |
-
-**Ver mapa completo**: [Mapa de documentación](docs/README.md)
+| Rol | Permisos |
+|-----|----------|
+| **Administrador** | Acceso completo (auth + trámites) |
+| **Coordinador** | Asignar/reasignar, ver todos los trámites |
+| **Analista** | Solo trámites propios + disponibles |
 
 ---
 
-## 🔗 Enlaces Útiles
+## Documentación
 
-### Desarrollo
-- [API Reference](docs/05-reference/api/endpoints.md)
-- [Environment Variables](docs/05-reference/configuration/environment-vars.md)
-- [Commands Reference](docs/05-reference/commands/index.md)
-- [Model Reference](docs/05-reference/models/data-models.md)
-
-### Operaciones
-- [Troubleshooting](docs/03-guides/sysadmins/troubleshoot.md)
-- [Backup & Restore](docs/03-guides/sysadmins/backup-restore.md)
-- [Monitoring](docs/03-guides/sysadmins/monitoring.md)
-
-### Arquitectura
-- [Decisiones de Arquitectura (ADRs)](docs/06-decisions/README.md)
-- [Dual Database Strategy](docs/04-concepts/dual-database.md)
-- [Caching Strategy](docs/04-concepts/caching-strategy.md)
+| Documento | Descripción |
+|-----------|-------------|
+| [Arquitectura](docs/01-onboarding/architecture-overview.md) | Visión general del sistema |
+| [Variables de entorno](docs/05-reference/environment-vars.md) | Referencia completa (~45 variables) |
+| [Despliegue producción](docs/03-guides/sysadmins/deploy-production.md) | Guía paso a paso |
+| [Setup desarrollo](docs/02-tutorials/developers/local-dev-setup.md) | Tutorial para desarrolladores |
+| [Comandos](docs/05-reference/commands.md) | Management commands + justfile |
+| [ADRs](docs/06-decisions/README.md) | Decisiones de arquitectura |
+| [Mapa completo](docs/README.md) | Índice de toda la documentación |
 
 ---
 
-## 🛠️ Tecnologías
+## Comandos Útiles
 
-| Componente | Versión |
-|------------|---------|
-| Python | 3.14 |
-| Django | 6.0.2 |
-| uv | latest |
-| PostgreSQL | - |
-| Redis | - |
-| Gunicorn | - |
-| Docker | - |
+```bash
+just run              # Servidor de desarrollo
+just test             # Ejecutar tests
+just lint             # Linting con ruff
+just typecheck        # Type checking con pyright
+just check            # lint + typecheck
+just shell            # Django shell
+just setup_roles      # Crear grupos RBAC
+```
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Copyright © 2026 Gobierno de San Felipe. Todos los derechos reservados.
