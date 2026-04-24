@@ -1,5 +1,4 @@
 from .actividades import Actividades
-from .asignacion import AsignacionTramite
 from .catalogos import (
     Actividad,
     Categoria,
@@ -35,8 +34,6 @@ __all__ = [
     'Tipo',
     # Transaccional
     'Actividades',
-    # Asignaciones
-    'AsignacionTramite',
     # Relaciones (pivotes)
     'TramiteCatalogoCategoria',
     'TramiteCatalogoRequisito',

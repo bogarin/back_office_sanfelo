@@ -90,6 +90,14 @@ convention = "google"
 # Use single quotes for Python
 quote-style = "single"
 
+[tool.ty.environment]
+root = [
+    "./core",
+    "./sanfelipe",
+    "./tramites",
+    "./tests"
+]
+
 # =============================================================================
 # Pytest Configuration
 # =============================================================================

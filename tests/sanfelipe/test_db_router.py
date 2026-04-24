@@ -38,7 +38,7 @@ class TestDatabaseRouter(TestCase):
     def test_business_models_routing(self) -> None:
         """Test that business models route to correct database based on @register_model configuration."""
         try:
-            from tramites.models import Actividad, Tramite, AsignacionTramite
+            from tramites.models import Actividad, Tramite
             from core.model_config import get_model_config
         except ImportError:
             self.skipTest('Business models not available')
@@ -51,10 +51,6 @@ class TestDatabaseRouter(TestCase):
         self.assertEqual(self.router.db_for_read(Actividad), 'backend')
         self.assertEqual(self.router.db_for_write(Actividad), 'backend')
 
-        # Test AsignacionTramite routes to default (FULL_ACCESS)
-        self.assertEqual(self.router.db_for_read(AsignacionTramite), 'default')
-        self.assertEqual(self.router.db_for_write(AsignacionTramite), 'default')
-
         # Verify model configurations
         tramite_config = get_model_config(Tramite)
         self.assertIsNotNone(tramite_config)
@@ -64,18 +60,14 @@ class TestDatabaseRouter(TestCase):
         self.assertIsNotNone(actividad_config)
         self.assertEqual(actividad_config.db_alias, 'backend')
 
-        asignacion_config = get_model_config(AsignacionTramite)
-        self.assertIsNotNone(asignacion_config)
-        self.assertEqual(asignacion_config.db_alias, 'default')
-
     def test_cross_db_relations_blocked(self) -> None:
         """Test that cross-database relations are blocked."""
         try:
-            from tramites.models import Actividad, Tramite, AsignacionTramite
+            from tramites.models import Actividad, Tramite
         except ImportError:
             self.skipTest('Business models not available')
 
-        # Test relations within backend apps (PostgreSQL) - should be allowed
+        # Test relations within backend apps (PostgreSQL) - should be blocked
         # Note: Tramite is now in default (backoffice), not backend
         # Actividad is in backend - cross-DB relation should be blocked
         self.assertFalse(self.router.allow_relation(Tramite, Actividad))
@@ -83,17 +75,14 @@ class TestDatabaseRouter(TestCase):
         # Test relations within default apps - should be allowed
         self.assertTrue(self.router.allow_relation(Group, Permission))
 
-        # Test cross-database relations - should be blocked
+        # Test same-database relations - should be allowed
         # Tramite (default) with Group (default) - same DB, should be allowed
         self.assertTrue(self.router.allow_relation(Tramite, Group))
-
-        # AsignacionTramite (default) with Actividad (backend) - cross-DB
-        self.assertFalse(self.router.allow_relation(AsignacionTramite, Actividad))
 
     def test_migration_routing(self) -> None:
         """Test that migrations are routed correctly based on model configuration."""
         try:
-            from tramites.models import Actividad, Tramite, AsignacionTramite
+            from tramites.models import Actividad, Tramite
             from core.model_config import get_model_config
             from core.model_config import AccessPattern
         except ImportError:
@@ -109,12 +98,6 @@ class TestDatabaseRouter(TestCase):
         self.assertIsNotNone(actividad_config)
         self.assertEqual(actividad_config.access_pattern, AccessPattern.READ_ONLY)
         self.assertFalse(actividad_config.allow_migrations)
-
-        # Test FULL_ACCESS model - should allow migrations
-        asignacion_config = get_model_config(AsignacionTramite)
-        self.assertIsNotNone(asignacion_config)
-        self.assertEqual(asignacion_config.access_pattern, AccessPattern.FULL_ACCESS)
-        self.assertTrue(asignacion_config.allow_migrations)
 
     def test_unregistered_models_routing(self) -> None:
         """Test that unregistered models route to default database."""

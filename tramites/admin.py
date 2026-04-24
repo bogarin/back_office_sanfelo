@@ -36,7 +36,6 @@ from tramites.exceptions import (
 from tramites.forms import TramiteDetailForm
 from tramites.models import (
     Actividades,
-    AsignacionTramite,
     Buzon,
     Disponible,
     Perito,
@@ -244,7 +243,6 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         Render quick action buttons for trámites.
 
         Acciones rápidas disponibles:
-        - Tomar Tramite: Para analistas (se auto-asignan)
         - Liberar Tramite: Para coordinadores/admin (libera asignación)
         """
         request = getattr(self, '_request', None)
@@ -257,14 +255,9 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         is_admin = user.is_superuser or user.is_staff
         roles = getattr(user, 'roles', set())
         is_coordinador = BackOfficeRole.COORDINADOR in roles
-        is_analista = BackOfficeRole.ANALISTA in roles
 
         # (action_name, label) pairs for applicable actions
         actions_map: list[tuple[str, str]] = []
-
-        if is_analista and not esta_asignado:
-            # Analista puede tomar trámites sin asignar
-            actions_map.append(('tomar_rapido', '📌 Tomar'))
 
         if is_admin or is_coordinador:
             if esta_asignado:
@@ -295,6 +288,21 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         """
         actions = super().get_actions(request)
         return actions
+
+    # ========== BATCH ACTION: Tomar Asignación ==========
+
+    @admin.action(description='📌 Tomar Asignación')
+    def tomar_asignacion(self, request: HttpRequest, queryset) -> HttpResponse:
+        """
+        Acción para que el analista actual se autoasigne trámites.
+
+        Inyecta los parámetros necesarios y delega a modificar_asignacion.
+        """
+        request.POST._mutable = True
+        request.POST['analista'] = str(request.user.id)
+        request.POST['observacion'] = 'Autoasignado'
+        request.POST._mutable = False
+        return self.modificar_asignacion(request, queryset)
 
     # ========== BATCH ACTION: Modificar Asignación ==========
 
@@ -358,9 +366,10 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                         errores.append(f'{tramite.folio}: {str(e)}')
 
                 if asignados:
+                    nombre_analista = analista.get_full_name() or analista.username
                     messages.success(
                         request,
-                        f'✅ {len(asignados)} trámites asignados a {analista.get_full_name()}',
+                        f'✅ {len(asignados)} trámites asignados a {nombre_analista}',
                     )
                 if errores:
                     messages.warning(request, f'⚠️ Errores: {"; ".join(errores[:5])}')
@@ -381,41 +390,12 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
     # ========== QUICK ACTIONS HANDLERS ==========
 
-    def tomar_rapido(self, request: HttpRequest, object_id: str) -> HttpResponseRedirect:
-        """
-        Quick action: Permite a los analistas asignarse un trámite.
-
-        Solo funciona para trámites NO asignados.
-        """
-        if BackOfficeRole.ANALISTA not in getattr(request.user, 'roles', set()):
-            messages.error(request, '❌ Solo los analistas pueden tomar trámites')
-            return redirect(request.get_full_path())
-
-        try:
-            tramite = self.model.objects.get(pk=object_id)
-        except self.model.DoesNotExist:
-            messages.error(request, '❌ Trámite no encontrado')
-            return redirect(request.get_full_path())
-
-        try:
-            tramite.asignar(
-                analista=request.user,
-                asignado_por=request.user,
-                observacion='Trámite autoasignado',
-            )
-            messages.success(request, f'✅ Has tomado el trámite {tramite.folio}')
-        except TramiteNoAsignableError as e:
-            messages.error(request, f'❌ {str(e)}')
-        except Exception as e:
-            logger.error(f'Error tomando {tramite.folio}: {e}')
-            messages.error(request, '❌ Error inesperado al tomar el trámite')
-
-        return redirect(request.get_full_path())
-
-    def liberar_rapido(self, request: HttpRequest, object_id: str) -> HttpResponseRedirect:
+    @admin.action(description='🔓 Liberar Rápido')
+    def liberar_rapido(self, request: HttpRequest, queryset) -> HttpResponseRedirect:
         """
         Quick action: Libera un trámite asignado.
 
+        Funciona como batch action pero procesa un solo objeto desde queryset.
         Solo disponible para coordinadores/admin.
         """
         user = request.user
@@ -427,13 +407,17 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             messages.error(request, '❌ Solo los coordinadores pueden liberar trámites')
             return redirect(request.get_full_path())
 
-        try:
-            tramite = self.model.objects.get(pk=object_id)
-        except self.model.DoesNotExist:
-            messages.error(request, '❌ Trámite no encontrado')
+        if not queryset.exists():
+            messages.error(request, '❌ No se ha seleccionado ningún trámite')
             return redirect(request.get_full_path())
 
+        tramite = None
         try:
+            tramite = queryset.first()
+            if not tramite:
+                messages.error(request, '❌ Trámite no encontrado')
+                return redirect(request.get_full_path())
+
             tramite.asignar(
                 analista=None,
                 asignado_por=request.user,
@@ -441,7 +425,8 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             )
             messages.success(request, f'✅ Trámite {tramite.folio} liberado')
         except Exception as e:
-            logger.error(f'Error liberando {tramite.folio}: {e}')
+            folio = tramite.folio if tramite else 'desconocido'
+            logger.error(f'Error liberando {folio}: {e}')
             messages.error(request, '❌ Error inesperado al liberar el trámite')
 
         return redirect(request.get_full_path())
@@ -597,7 +582,7 @@ class TramitesDisponiblesAdmin(TramiteBaseAdmin):
 
         Única acción disponible: Tomar asignación.
         """
-        return render_quick_action('📌 Tomar', attrs={'action': 'tomar_rapido', 'pk': obj.pk})
+        return render_quick_action('📌 Tomar', attrs={'action': 'tomar_asignacion', 'pk': obj.pk})
 
 
 @admin.register(Tramite)
