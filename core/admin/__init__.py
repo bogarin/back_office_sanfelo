@@ -9,23 +9,10 @@ Configures the admin interface for the backoffice with:
 
 import logging
 
-from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.models import User
 
 from core.admin.base import BaseModelAdmin, ReadOnlyModelAdmin, ActionableReadOnlyMixin
-from core.admin.actions import (
-    mark_as_active,
-    mark_as_inactive,
-    mark_urgent,
-    mark_not_urgent,
-    mark_as_paid,
-    mark_as_unpaid,
-    asignar_rol,
-)
-from core.admin.user_admin import BackofficeUserAdmin
-from core.admin.site import BackofficeAdminSite
-from core.admin.mixins import RoleBasedAccessMixin
 from core.admin.user_admin import BackofficeUserAdmin
 from core.admin.site import BackofficeAdminSite
 from core.admin.mixins import RoleBasedAccessMixin
@@ -52,14 +39,6 @@ __all__ = [
     'BaseModelAdmin',
     'ReadOnlyModelAdmin',
     'ActionableReadOnlyMixin',
-    # Actions
-    'mark_as_active',
-    'mark_as_inactive',
-    'mark_urgent',
-    'mark_not_urgent',
-    'mark_as_paid',
-    'mark_as_unpaid',
-    'asignar_rol',
     # User admin
     'BackofficeUserAdmin',
     # Admin site

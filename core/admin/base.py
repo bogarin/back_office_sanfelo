@@ -22,11 +22,6 @@ class BaseModelAdmin(admin.ModelAdmin):
     list_per_page = 25
     list_max_show_all = 100
 
-    # class Media:
-    #     css = {
-    #         'all': ('admin/css/custom.css',),
-    #     }
-
 
 class ReadOnlyModelAdmin(BaseModelAdmin):
     """ModelAdmin for read-only models."""
