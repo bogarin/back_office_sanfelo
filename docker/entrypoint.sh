@@ -168,6 +168,9 @@ main() {
     # Django setup
     collectstatic
 
+    # Fix ownership of runtime-generated files (collectstatic runs as root)
+    chown -R appuser:appuser /app/logs /app/staticfiles 2>/dev/null || true
+
     # Start services
     start_nginx
     start_gunicorn

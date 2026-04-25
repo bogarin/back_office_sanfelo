@@ -57,6 +57,7 @@ COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY . .
 
 RUN chmod +x /app/docker/entrypoint.sh /app/docker/healthcheck.py && \
+    chown -R appuser:appuser /app/logs /app/.sftp_cache /app/staticfiles /app/media && \
     /app/.venv/bin/python manage.py collectstatic --noinput --clear && \
     chown -R appuser:appuser /app/staticfiles
 

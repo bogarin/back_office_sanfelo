@@ -37,10 +37,12 @@ urlpatterns = [
 
 # Debug configuration - only in development
 if settings.DEBUG:
-    # Django Debug Toolbar URLs
-    import debug_toolbar
+    import importlib.util
 
-    urlpatterns = [path('__debug__/', include(debug_toolbar.urls)), *urlpatterns]
+    if importlib.util.find_spec('debug_toolbar'):
+        import debug_toolbar
+
+        urlpatterns = [path('__debug__/', include(debug_toolbar.urls)), *urlpatterns]
 
     # Static files serving in development
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

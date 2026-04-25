@@ -119,7 +119,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-if DEBUG and not TESTING:
+if DEBUG and not TESTING and importlib.util.find_spec('debug_toolbar'):
     MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
 
 ROOT_URLCONF = 'sanfelipe.urls'

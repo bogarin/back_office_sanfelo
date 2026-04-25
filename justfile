@@ -85,25 +85,29 @@ test-create-db *ARGS:
 check-system:
     uv run manage.py check
 
+# Test nginx configuration
+check-nginx:
+    nginx -t -c {{justfile_directory()}}/nginx/nginx.conf
+
 # Build docker container
 container-build:
     @echo "\033[36m▶ Building Docker image...\033[0m"
-    podman build -t sanfelipe-backoffice:{{SHORT_SHA}}-dev .
-    podman tag sanfelipe-backoffice:{{SHORT_SHA}}-dev sanfelipe-backoffice:latest
+    podman build -t sanfelipe-backoffice:dev-{{SHORT_SHA}} .
+    podman tag sanfelipe-backoffice:dev-{{SHORT_SHA}} sanfelipe-backoffice:latest
     mkdir -p .docker-images
-    rm -f .docker-images/sanfelipe-backoffice-{{SHORT_SHA}}-dev.*
-    podman save -o .docker-images/sanfelipe-backoffice-{{SHORT_SHA}}-dev.raw "sanfelipe-backoffice:{{SHORT_SHA}}-dev"
-    zstd -19 -o .docker-images/sanfelipe-backoffice-{{SHORT_SHA}}-dev.tar.zst .docker-images/sanfelipe-backoffice-{{SHORT_SHA}}-dev.raw
+    rm -f .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.*
+    podman save -o .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.raw "sanfelipe-backoffice:dev-{{SHORT_SHA}}"
+    zstd -19 -o .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.tar.zst .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.raw
 
 container-push:
     @echo "\033[36m▶ Pushing Docker image to sanfelo.stage \033[0m"
-    scp .docker-images/sanfelipe-backoffice-{{SHORT_SHA}}-dev.tar.zst sanfelo.stage:/tmp/
+    scp .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.tar.zst sanfelo.stage:/tmp/
     ssh sanfelo.stage "\
-      zstd -d -c /tmp/sanfelipe-backoffice-{{SHORT_SHA}}-dev.tar.zst | docker load && \
-      docker tag localhost/sanfelipe-backoffice:{{SHORT_SHA}}-dev sanfelipe-backoffice:{{SHORT_SHA}}-dev && \
-      docker tag sanfelipe-backoffice:{{SHORT_SHA}}-dev sanfelipe-backoffice:latest && \
-      docker rmi localhost/sanfelipe-backoffice:{{SHORT_SHA}}-dev && \
-      rm -f /tmp/sanfelipe-backoffice-{{SHORT_SHA}}-dev.tar.zst"
+      zstd -d -c /tmp/sanfelipe-backoffice-dev-{{SHORT_SHA}}.tar.zst | docker load && \
+      docker tag localhost/sanfelipe-backoffice:dev-{{SHORT_SHA}} sanfelipe-backoffice:dev-{{SHORT_SHA}} && \
+      docker tag sanfelipe-backoffice:dev-{{SHORT_SHA}} sanfelipe-backoffice:latest && \
+      docker rmi localhost/sanfelipe-backoffice:dev-{{SHORT_SHA}} && \
+      rm -f /tmp/sanfelipe-backoffice-dev-{{SHORT_SHA}}.tar.zst"
 
 container-run:
     @podman rm -f backoffice 2>/dev/null || true
