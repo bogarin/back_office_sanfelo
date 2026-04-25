@@ -296,18 +296,25 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         """
         Acción para que el analista actual se autoasigne trámites.
 
-        Inyecta los parámetros necesarios y delega a modificar_asignacion.
+        Delega a modificar_asignacion con parámetros explícitos.
         """
-        request.POST._mutable = True
-        request.POST['analista'] = str(request.user.id)
-        request.POST['observacion'] = 'Autoasignado'
-        request.POST._mutable = False
-        return self.modificar_asignacion(request, queryset)
+        return self.modificar_asignacion(
+            request,
+            queryset,
+            analista_override=str(request.user.id),
+            observacion_override='Autoasignado',
+        )
 
     # ========== BATCH ACTION: Modificar Asignación ==========
 
     @admin.action(description='👤 Modificar Asignación')
-    def modificar_asignacion(self, request: HttpRequest, queryset) -> HttpResponse:
+    def modificar_asignacion(
+        self,
+        request: HttpRequest,
+        queryset,
+        analista_override: str | None = None,
+        observacion_override: str | None = None,
+    ) -> HttpResponse:
         """
         Action para Asignar/Reasignar/Liberar trámites.
 
@@ -316,10 +323,23 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         - Ninguno (Liberar): Eliminar asignaciones de trámites seleccionados
 
         La acción se infiere del analista seleccionado (ninguno = liberar).
+
+        Args:
+            request: La request HTTP
+            queryset: QuerySet de trámites seleccionados
+            analista_override: ID del analista (sobreescibe POST). Para autoasignación.
+            observacion_override: Observación (sobreescibe POST). Para autoasignación.
         """
-        if 'analista' in request.POST:
+        # Usar overrides si se proveen, si no, leer de POST
+        if analista_override is not None:
+            analista_id = analista_override
+            observacion = observacion_override or ''
+        elif 'analista' in request.POST:
             analista_id = request.POST.get('analista')
             observacion = request.POST.get('observacion', '')
+        else:
+            analista_id = None
+            observacion = ''
 
             # Acción: Liberar (ninguno seleccionado)
             if analista_id == 'ninguno':

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import environ
 
-from .security import configure_security
+from .security import configure_security, validate_secret_key
 from .tenancy import configure_tenancy
 from .jazzmin import configure_jazzmin
 from .logging import configure_logging
@@ -194,8 +194,25 @@ else:
 # =============================================================================
 # PASSWORD VALIDATION
 # =============================================================================
+# Usamos Argon2 por default
+# https://docs.djangoproject.com/en/6.0/topics/auth/passwords/#using-argon2-with-django
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.ScryptPasswordHasher',
+]
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 10},
+    },
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
 
-AUTH_PASSWORD_VALIDATORS = []
 
 # =============================================================================
 # INTERNATIONALIZATION
@@ -355,7 +372,23 @@ TRAMITE_STATS_CACHE_TIMEOUT = env.int(
 # SANITY CHECK
 # =============================================================================
 
-if not SECRET_KEY and DEBUG:
+from sanfelipe.settings.security import validate_secret_key
+
+is_valid, reason = validate_secret_key(SECRET_KEY)
+if not is_valid:
+    if not DEBUG:
+        from django.core.exceptions import ImproperlyConfigured
+
+        raise ImproperlyConfigured(reason)
     import warnings
 
-    warnings.warn('Using insecure SECRET_KEY. Only do this in development!', RuntimeWarning)
+    warnings.warn(f'INSECURE SECRET_KEY: {reason}', RuntimeWarning)
+
+# Validate ALLOWED_HOSTS in production
+if not DEBUG and (not ALLOWED_HOSTS or ALLOWED_HOSTS == ['*']):
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured(
+        'ALLOWED_HOSTS must be explicitly set in production. '
+        'Wildcard "*" or empty list is not allowed.'
+    )

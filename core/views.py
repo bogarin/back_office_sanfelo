@@ -6,6 +6,7 @@ Following Django's best practices with proper separation of concerns.
 """
 
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import Group, User
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render
@@ -40,6 +41,7 @@ def health_check(request: HttpRequest) -> HttpResponse:
     return HttpResponse('OK', status=200)
 
 
+@staff_member_required
 def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
     """
     View to assign roles to selected users.
@@ -116,6 +118,7 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
 
 
 @require_POST
+@staff_member_required
 def invalidate_catalog_cache(request: HttpRequest) -> HttpResponse:
     """Invalidate all cached catalog data.
 

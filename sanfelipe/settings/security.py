@@ -7,6 +7,9 @@ This module contains all security-related configuration including:
 - Content Security Policy (CSP) configuration
 """
 
+import math
+from collections import Counter
+
 from django.utils.csp import CSP
 from environ import Env
 
@@ -28,15 +31,15 @@ def configure_security(env: Env) -> dict:
         'SECRET_KEY': env('DJANGO_SECRET_KEY'),
         'DEBUG': env.bool('DJANGO_DEBUG', default=False),
         'TESTING': env.bool('TESTING', default=False),
-        'ALLOWED_HOSTS': env.list('DJANGO_ALLOWED_HOSTS', default=['*']),
+        'ALLOWED_HOSTS': env.list('DJANGO_ALLOWED_HOSTS', default=[]),
         # =============================================================================
         # PRODUCTION SECURITY HEADERS
         # =============================================================================
         # Security settings for intranet (relaxed, no SSL needed)
         # In DEBUG mode, use 'SAMEORIGIN' instead of None to allow dev tools
-        'SECURE_CONTENT_TYPE_NOSNIFF': False,
-        'SECURE_BROWSER_XSS_FILTER': False,
-        'X_FRAME_OPTIONS': 'SAMEORIGIN',  # Changed from None
+        'SECURE_CONTENT_TYPE_NOSNIFF': True,
+        'SECURE_BROWSER_XSS_FILTER': True,
+        'X_FRAME_OPTIONS': 'SAMEORIGIN',
         'SECURE_SSL_REDIRECT': False,
         'SESSION_COOKIE_SECURE': False,
         'CSRF_COOKIE_SECURE': False,
@@ -46,12 +49,6 @@ def configure_security(env: Env) -> dict:
     if not security_settings['DEBUG']:
         security_settings.update(
             {
-                'SECURE_CONTENT_TYPE_NOSNIFF': env.bool(
-                    'DJANGO_SECURE_CONTENT_TYPE_NOSNIFF', default=True
-                ),
-                'SECURE_BROWSER_XSS_FILTER': env.bool(
-                    'DJANGO_SECURE_BROWSER_XSS_FILTER', default=True
-                ),
                 'X_FRAME_OPTIONS': 'DENY',
                 'SECURE_SSL_REDIRECT': env.bool('DJANGO_SECURE_SSL_REDIRECT', default=False),
                 'SESSION_COOKIE_SECURE': env.bool('DJANGO_SESSION_COOKIE_SECURE', default=False),
@@ -136,3 +133,76 @@ def configure_security(env: Env) -> dict:
     # Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-SECRET'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; media-src 'self'; frame-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; manifest-src 'self'
 
     return security_settings
+
+
+# =============================================================================
+# SECRET KEY VALIDATION
+# =============================================================================
+
+FORBIDDEN_PATTERNS = (
+    'django-insecure',
+    'change',
+    'changeme',
+    'secret',
+    'password',
+    'example',
+    'test',
+    'dev-key',
+)
+
+
+def validate_secret_key(key: str) -> tuple[bool, str]:
+    """
+    Validate DJANGO_SECRET_KEY entropy and security.
+
+    This function performs multiple security checks:
+    - Minimum length (32 characters)
+    - Forbidden patterns (e.g., 'django-insecure', 'change-me')
+    - Character diversity (at least 10 unique characters)
+    - Shannon entropy (minimum 3.0 bits per character)
+
+    Args:
+        key: The DJANGO_SECRET_KEY value to validate
+
+    Returns:
+        Tuple of (is_valid, reason):
+            - is_valid: True if the key passes all checks
+            - reason: Empty string if valid, otherwise error message explaining why
+
+    Note:
+        Shannon entropy measures the randomness/unpredictability of data.
+        For a truly random 50-character key with 64 possible characters:
+        - Expected entropy: ~5.9 bits per character
+        - A repetitive key like 'aaaaaaaa...' has ~0.0 bits per character
+        - A key like 'abcabcabc...' has ~1.6 bits per character
+        - Our threshold of 3.0 rejects obviously weak keys while allowing
+          slight repetition in human-generated keys
+    """
+    if not key:
+        return False, 'DJANGO_SECRET_KEY is empty or not set.'
+
+    # Check minimum length (Django generates 50 by default)
+    if len(key) < 32:
+        return False, f'DJANGO_SECRET_KEY is too short ({len(key)} chars, minimum 32).'
+
+    # Check for forbidden patterns
+    lower = key.lower()
+    for pattern in FORBIDDEN_PATTERNS:
+        if pattern in lower:
+            return False, f'DJANGO_SECRET_KEY contains forbidden pattern: "{pattern}".'
+
+    # Check character diversity (avoid repetitive keys)
+    char_counts = Counter(key)
+    unique_chars = len(char_counts)
+    if unique_chars < 10:
+        return False, f'DJANGO_SECRET_KEY has only {unique_chars} unique characters (minimum 10).'
+
+    # Calculate Shannon entropy
+    # Higher entropy = more randomness = harder to brute force
+    total = len(key)
+    entropy = -sum((count / total) * math.log2(count / total) for count in char_counts.values())
+
+    if entropy < 3.0:
+        return False, f'DJANGO_SECRET_KEY has low entropy ({entropy:.2f} bits/char, minimum 3.0).'
+
+    return True, ''

@@ -25,6 +25,46 @@ docs/
 │   ├── glossary.md
 │   └── architecture-overview.md
 ├── 02-tutorials/              # Aprendizaje paso a paso
+│   ├── developers/
+│   │   └── local-dev-setup.md
+│   └── admins/
+│       ├── manage-catalogs.md
+│       ├── manage-groups.md
+│       ├── setup-users.md
+│       └── seguridad-auditoria-produccion.md  # ← Checklist obligatorio antes de deploy
+├── 03-guides/                 # Soluciones a problemas específicos
+│   ├── sysadmins/
+│   │   ├── deploy-production.md
+│   │   └── sftp-setup.md
+│   └── admins/
+│       ├── configure-costs.md
+│       ├── manage-workflow.md
+│       ├── add-peritos.md
+│       ├── change-status.md
+│       └── manage-tramites.md
+├── 05-reference/              # Referencia técnica (SSOT)
+│   ├── commands.md
+│   ├── environment-vars.md    # ← TODAS las variables de entorno
+│   ├── models.md
+│   ├── admin-setup.md
+│   ├── sftp.md
+│   ├── estados-tramites.md
+│   └── rbac.md
+├── 06-decisions/              # ADRs (Architecture Decision Records)
+│   ├── README.md
+│   ├── 001 a 013              # 13 ADRs
+│   └── adr-template.md
+├── COMANDOS_DJANGO.md         # Redirect → 05-reference/commands.md
+└── _templates/                # Plantillas para nuevos documentos
+```
+docs/
+├── 00-system-design/          # Requisitos y diseño del sistema
+│   └── REQUERIMIENTOS_ALTO_NIVEL.md
+├── 01-onboarding/             # Onboarding y visión general
+│   ├── overview.md
+│   ├── glossary.md
+│   └── architecture-overview.md
+├── 02-tutorials/              # Aprendizaje paso a paso
 │   └── developers/
 │       └── local-dev-setup.md
 ├── 03-guides/                 # Soluciones a problemas específicos
@@ -71,6 +111,7 @@ docs/
 |-----------|-----|-------------|
 | [Despliegue en producción](03-guides/sysadmins/deploy-production.md) | Sysadmin | Instalación completa en servidor |
 | [Configuración SFTP](03-guides/sysadmins/sftp-setup.md) | Sysadmin | Host keys y conectividad SFTP |
+| [Auditoría de Seguridad en Producción](02-tutorials/admins/seguridad-auditoria-produccion.md) | **Sysadmin / Admin** | **OBLIGATORIO** antes de primer deploy en producción. Checklist de validación de todas las correcciones de seguridad críticas y de alta prioridad implementadas en Fases 1-2. |
 
 ### Referencia (Detalles técnicos)
 

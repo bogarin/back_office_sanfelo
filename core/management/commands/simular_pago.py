@@ -14,6 +14,7 @@ Usage::
 The command will prompt for explicit confirmation before making any changes.
 """
 
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from tramites.models.catalogos import TramiteEstatus
@@ -49,6 +50,14 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options) -> None:
+        # GUARD DE PRODUCCIÓN: Este comando SOLO puede ejecutarse en modo DEBUG
+        if not settings.DEBUG:
+            raise CommandError(
+                '❌ SEGURIDAD: Este comando SOLO puede ejecutarse en modo DEBUG. '
+                'Nunca debe usarse en producción. Modifica directamente el '
+                'estado de trámites sin pasar por el flujo de pagos real.'
+            )
+
         folio: str = options['folio']
 
         # ── Buscar trámite ──────────────────────────────────────────
