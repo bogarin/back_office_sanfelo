@@ -7,10 +7,11 @@ This module contains all SFTP-related configuration including:
 - Django-storages SFTP backend configuration
 """
 
+from django.core.exceptions import ImproperlyConfigured
 from environ import Env
 
 
-def configure_sftp(env: Env) -> dict:
+def configure_sftp(env: Env, debug: bool = False) -> dict:
     """
     Configure and return all SFTP storage-related settings.
 
@@ -19,10 +20,24 @@ def configure_sftp(env: Env) -> dict:
 
     Args:
         env: Environ instance for reading environment variables
+        debug: DEBUG mode flag for conditional validation
 
     Returns:
         Dictionary containing all SFTP settings
+
+    Raises:
+        ImproperlyConfigured: If SFTP_HOST_KEY is not set in production
+            when SFTP is configured (SFTP_HOST is non-empty).
     """
+    sftp_host = env('SFTP_HOST', default='')
+    sftp_host_key = env('SFTP_HOST_KEY', default='')
+
+    if not debug and sftp_host and not sftp_host_key:
+        raise ImproperlyConfigured(
+            'SFTP_HOST_KEY is required when SFTP is configured (SFTP_HOST is set) '
+            'and DEBUG=False. Obtain the host key with: '
+            'ssh-keyscan -t rsa,ed25519 <host>'
+        )
     sftp_settings = {
         # =============================================================================
         # SFTP CONNECTION SETTINGS

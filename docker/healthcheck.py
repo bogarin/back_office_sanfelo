@@ -22,7 +22,7 @@ from urllib.request import urlopen
 
 # Configuration
 NGINX_HEALTH_URL = 'http://127.0.0.1:8080/healthz'
-DJANGO_HEALTH_URL = 'http://127.0.0.1:8081/admin/'
+DJANGO_HEALTH_URL = 'http://127.0.0.1:8081/health/'
 TIMEOUT_SECONDS = 5
 
 

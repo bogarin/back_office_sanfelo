@@ -63,6 +63,7 @@ dependencies = [
     { name = "django-environ" },
     { name = "django-jazzmin" },
     { name = "django-storages", extra = ["sftp"] },
+    { name = "gunicorn" },
     { name = "psycopg2-binary" },
 ]
 
@@ -77,9 +78,6 @@ dev = [
     { name = "pytest-factoryboy" },
     { name = "ruff" },
 ]
-prod = [
-    { name = "gunicorn" },
-]
 
 [package.metadata]
 requires-dist = [
@@ -87,6 +85,7 @@ requires-dist = [
     { name = "django-environ", specifier = ">=0.13.0" },
     { name = "django-jazzmin", specifier = ">=3.0.3" },
     { name = "django-storages", extras = ["sftp"], specifier = ">=1.14.6" },
+    { name = "gunicorn", specifier = ">=25.1.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
 ]
 
@@ -101,7 +100,6 @@ dev = [
     { name = "pytest-factoryboy", specifier = ">=2.8.1" },
     { name = "ruff", specifier = ">=0.15.2" },
 ]
-prod = [{ name = "gunicorn", specifier = ">=25.1.0" }]
 
 [[package]]
 name = "bcrypt"

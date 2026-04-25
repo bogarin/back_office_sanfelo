@@ -29,13 +29,18 @@ env = environ.Env()
 # Copy .env.example to .env and customize with your actual values
 env_file = BASE_DIR / '.env'
 
-try:
+if env_file.exists():
     environ.Env.read_env(env_file)
-except FileNotFoundError:
-    raise FileNotFoundError(
+else:
+    import warnings
+
+    warnings.warn(
         f'Environment file not found: {env_file}. '
-        f'Please copy .env.example to .env and customize it with your actual values.'
-    ) from None
+        f'Using environment variables directly. '
+        f'Set DJANGO_* and POSTGRESQL_DB_URL environment variables for configuration.',
+        RuntimeWarning,
+        stacklevel=2,
+    )
 
 # =============================================================================
 # SECURITY SETTINGS
@@ -245,7 +250,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # =============================================================================
 
 if DEBUG:
-    INTERNAL_IPS = env.list('DJANGO_INTERNAL_IPS', default=['127.0.0.1', '0.0.0.0'])
+    INTERNAL_IPS = env.list('DJANGO_INTERNAL_IPS', default=['127.0.0.1'])
 
     DEBUG_TOOLBAR_CONFIG = {
         'SHOW_TOOLBAR_CALLBACK': lambda request: not TESTING,
@@ -271,7 +276,7 @@ for key, value in logging_config.items():
 # Configure SFTP storage settings from dedicated SFTP module
 # This includes connection settings, remote directory paths,
 # and django-storages SFTP backend configuration
-sftp_config = configure_sftp(env)
+sftp_config = configure_sftp(env, debug=DEBUG)
 
 # Apply all SFTP settings to the module namespace
 for key, value in sftp_config.items():
@@ -308,9 +313,7 @@ LOGOUT_REDIRECT_URL = 'admin:login'
 # Role-based access control is managed by core.rbac.constants.BackOfficeRole
 
 # CSRF trusted origins
-CSRF_TRUSTED_ORIGINS = env.list(
-    'DJANGO_CSRF_TRUSTED_ORIGINS', default=['http://localhost', 'http://127.0.0.1']
-)
+CSRF_TRUSTED_ORIGINS = env.list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
 
 # =============================================================================
 # SESSION SETTINGS

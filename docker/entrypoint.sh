@@ -4,14 +4,11 @@
 #
 # This script manages both nginx (port 8080) and gunicorn (localhost:8081)
 # as a single-container deployment. It:
-# 1. Runs as non-root user (security best practice)
+# 1. Runs as root so nginx master can bind port 8080
 # 2. Starts nginx in the background
-# 3. Starts gunicorn in the foreground
+# 3. Starts gunicorn as appuser (non-root) via runuser
 # 4. Handles signals (SIGTERM, SIGINT) to gracefully shutdown both services
 # 5. Waits for child processes and reports exit codes
-#
-# Note: This container runs as a non-root user. The script enforces this
-# to prevent privilege escalation attacks.
 
 set -e
 
@@ -19,7 +16,7 @@ set -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Configuration
 GUNICORN_PORT="${GUNICORN_PORT:-8081}"
@@ -52,19 +49,6 @@ log_warn() {
 
 log_error() {
     echo -e "${RED}[ERROR]${NC} $*"
-}
-
-# =============================================================================
-# Security Check
-# =============================================================================
-
-check_not_root() {
-    if [ "$(id -u)" = "0" ]; then
-        log_error "This container should NOT run as root for security reasons."
-        log_error "Please run as a non-root user."
-        exit 1
-    fi
-    log_info "Running as non-root user: $(id -un) (uid=$(id -u))"
 }
 
 # =============================================================================
@@ -102,7 +86,7 @@ start_nginx() {
         exit 1
     }
 
-    # Start nginx in background with error output to stderr
+    # Start nginx in background
     nginx -g 'daemon off;' 2>&1 &
     NGINX_PID=$!
 
@@ -119,7 +103,7 @@ start_nginx() {
 }
 
 start_gunicorn() {
-    log_info "Starting gunicorn (port $GUNICORN_PORT, $GUNICORN_WORKERS workers)..."
+    log_info "Starting gunicorn as appuser (port $GUNICORN_PORT, $GUNICORN_WORKERS workers)..."
 
     # Build gunicorn command
     GUNICORN_CMD="gunicorn sanfelipe.wsgi:application"
@@ -133,8 +117,8 @@ start_gunicorn() {
     GUNICORN_CMD="$GUNICORN_CMD --log-level info"
     GUNICORN_CMD="$GUNICORN_CMD --capture-output"
 
-    # Start gunicorn in foreground
-    $GUNICORN_CMD &
+    # Start gunicorn as appuser (non-root)
+    runuser -u appuser -- $GUNICORN_CMD &
     GUNICORN_PID=$!
 
     # Wait a moment for gunicorn to start
@@ -146,13 +130,13 @@ start_gunicorn() {
         exit 1
     fi
 
-    log_info "Gunicorn started successfully (PID: $GUNICORN_PID)."
+    log_info "Gunicorn started successfully as appuser (PID: $GUNICORN_PID)."
 }
 
 shutdown() {
     log_warn "Received shutdown signal. Stopping services..."
 
-    # Stop gunicorn (foreground process)
+    # Stop gunicorn
     if [ -n "$GUNICORN_PID" ]; then
         log_info "Stopping gunicorn (PID: $GUNICORN_PID)..."
         kill -TERM "$GUNICORN_PID" 2>/dev/null || true
@@ -160,7 +144,7 @@ shutdown() {
         log_info "Gunicorn stopped."
     fi
 
-    # Stop nginx (background process)
+    # Stop nginx
     if [ -n "$NGINX_PID" ]; then
         log_info "Stopping nginx (PID: $NGINX_PID)..."
         kill -TERM "$NGINX_PID" 2>/dev/null || true
@@ -180,14 +164,12 @@ main() {
     log_info "=========================================="
     log_info "San Felipe Backoffice Container"
     log_info "=========================================="
+    log_info "Running as: $(id -un) (uid=$(id -u))"
     log_info "Gunicorn port: $GUNICORN_PORT"
     log_info "Gunicorn workers: $GUNICORN_WORKERS"
     log_info "Gunicorn timeout: ${GUNICORN_TIMEOUT}s"
     log_info "Django settings: $DJANGO_SETTINGS_MODULE"
     log_info "=========================================="
-
-    # Security check
-    check_not_root
 
     # Django setup
     run_migrations
@@ -203,7 +185,7 @@ main() {
     log_info "Django: http://127.0.0.1:$GUNICORN_PORT (internal)"
     log_info "=========================================="
 
-    # Wait for gunicorn (foreground process)
+    # Wait for gunicorn process
     # If gunicorn exits, we should exit too
     wait "$GUNICORN_PID"
     GUNICORN_EXIT_CODE=$?

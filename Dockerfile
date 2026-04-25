@@ -39,9 +39,15 @@ ENV GUNICORN_PORT=8081 \
     GUNICORN_WORKERS=4 \
     GUNICORN_TIMEOUT=60
 
-# Dummy values for collectstatic (will be overridden at runtime)
-ENV DJANGO_SECRET_KEY=dummy-build-time-secret \
-    BACKEND_DB_URL=postgresql://user:pass@localhost/db
+# Build-time dummy values for collectstatic (overridden at runtime)
+# DEBUG=False + a valid SECRET_KEY avoids debug_toolbar (not installed with --no-dev)
+# and passes SECRET_KEY validation.
+ENV DJANGO_DEBUG=False \
+    DJANGO_SECRET_KEY=abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ \
+    DJANGO_ALLOWED_HOSTS=localhost \
+    POSTGRESQL_DB_URL=postgresql://user:pass@localhost/db \
+    BACKOFFICE_DB_SCHEMA=backoffice \
+    BACKEND_DB_SCHEMA=public
 
 # SFTP cache configuration
 ENV SFTP_CACHE_DIR=/app/.sftp_cache
@@ -61,17 +67,12 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy application code
 COPY . .
 
-# Create a non-root user for running the application
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
+# Create a non-root user for running gunicorn
+RUN useradd -m -u 1000 appuser
 
-# Create logs directory
-RUN mkdir -p /app/logs && \
-    chown appuser:appuser /app/logs
-
-# Create SFTP cache directory
-RUN mkdir -p /app/.sftp_cache && \
-    chown appuser:appuser /app/.sftp_cache
+# Create required directories and set ownership
+RUN mkdir -p /app/logs /app/.sftp_cache /app/staticfiles /app/media && \
+    chown -R appuser:appuser /app/logs /app/.sftp_cache /app/staticfiles /app/media
 
 # Copy nginx configuration
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
@@ -83,11 +84,19 @@ COPY docker/healthcheck.py /app/docker/healthcheck.py
 # Make scripts executable
 RUN chmod +x /app/docker/entrypoint.sh /app/docker/healthcheck.py
 
-# Collect static files (as root before switching to appuser)
-RUN /app/.venv/bin/python manage.py collectstatic --noinput --clear
+# Prepare nginx runtime directories writable by nginx user
+RUN mkdir -p /tmp/nginx_client_body /tmp/nginx_proxy /tmp/nginx_fastcgi \
+    /tmp/nginx_uwsgi /tmp/nginx_scgi /var/log/nginx && \
+    chown -R www-data:www-data /var/log/nginx
 
-# Switch to non-root user
-USER appuser
+# Collect static files (as root, using build-time env vars)
+RUN /app/.venv/bin/python manage.py collectstatic --noinput --clear && \
+    chown -R appuser:appuser /app/staticfiles
+
+# Clear build-time env vars so they don't leak into runtime
+ENV DJANGO_SECRET_KEY= \
+    DJANGO_ALLOWED_HOSTS= \
+    POSTGRESQL_DB_URL=
 
 # Expose the HTTP port (nginx listens on 8080)
 EXPOSE 8080
@@ -96,5 +105,6 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD /app/docker/healthcheck.py
 
-# Use entrypoint script to manage both nginx and gunicorn
+# Container runs as root so nginx master can start.
+# The entrypoint starts gunicorn as appuser via runuser.
 CMD ["/app/docker/entrypoint.sh"]
