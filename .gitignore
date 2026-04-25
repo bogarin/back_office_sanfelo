@@ -67,8 +67,6 @@ htmlcov/
 # ruff
 .ruff_cache/
 
-# uv
-uv.lock
 
 # SQL migrations (schema managed in separate repo)
 # But keep our SQL scripts
@@ -83,3 +81,4 @@ db/
 .opencode
 .sftp/
 .sftp_cache/
+.docker-images/

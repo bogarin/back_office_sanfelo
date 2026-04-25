@@ -11,16 +11,18 @@ env/
 *.egg-info/
 dist/
 build/
+wheels/
+*.whl
 
 # Django
 *.log
 local_settings.py
-db.sqlite3
-db.sqlite3-journal
 media/
 staticfiles/
+static/
+static_root/
 
-# Environment files (copy the one you need in Dockerfile or Dockerfile.production)
+# Environment files
 .env
 .env.local
 .env.*.local
@@ -38,6 +40,10 @@ staticfiles/
 .gitignore
 .gitattributes
 
+# AI/Agent tooling
+.agents/
+.opencode/
+
 # Documentation
 docs/
 *.md
@@ -48,10 +54,14 @@ docs/
 .coverage
 htmlcov/
 .tox/
+tests/
+fixtures/
+
+# Type checking
+.mypy_cache/
 
 # Logs
 logs/
-*.log
 
 # Temporary files
 tmp/
@@ -62,7 +72,23 @@ temp/
 .DS_Store
 Thumbs.db
 
+# SFTP
+.sftp/
+.sftp_cache/
+.sftp-cache/
+
+# Misc
+.python-version
+.ipynb_checkpoints/
+
 # Docker
 Dockerfile*
 docker-compose*.yml
 .dockerignore
+.docker-images/
+
+# Just
+justfile
+
+# CI/CD
+.github/

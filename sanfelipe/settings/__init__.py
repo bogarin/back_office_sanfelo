@@ -10,6 +10,7 @@ Uses PostgreSQL with schema separation:
 from pathlib import Path
 
 import environ
+import importlib.util
 
 from .security import configure_security, validate_secret_key
 from .tenancy import configure_tenancy
@@ -92,8 +93,10 @@ INSTALLED_APPS = [
     # Django Admin
     'jazzmin',
     'django.contrib.admin',
-    # Third-party apps (only in DEBUG mode, not during tests)
-    'debug_toolbar' if (DEBUG and not TESTING) else None,
+    # Third-party apps (only in DEBUG mode, not during tests, and only if installed)
+    'debug_toolbar'
+    if (DEBUG and not TESTING and importlib.util.find_spec('debug_toolbar'))
+    else None,
     # Local apps (backend data in PostgreSQL, managed externally)
     'tramites',
     'core',

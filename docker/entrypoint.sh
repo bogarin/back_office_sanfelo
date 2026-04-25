@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Entrypoint script for San Felipe backoffice container.
 #
@@ -7,7 +7,7 @@
 # 1. Runs as root so nginx master can bind port 8080
 # 2. Starts nginx in the background
 # 3. Starts gunicorn as appuser (non-root) via runuser
-# 4. Handles signals (SIGTERM, SIGINT) to gracefully shutdown both services
+# 4. Handles signals (TERM, INT) to gracefully shutdown both services
 # 5. Waits for child processes and reports exit codes
 
 set -e
@@ -33,7 +33,7 @@ NGINX_PID=
 GUNICORN_PID=
 
 # Trap signals for graceful shutdown
-trap 'shutdown' SIGTERM SIGINT
+trap 'shutdown' TERM INT
 
 # =============================================================================
 # Helper Functions
@@ -54,15 +54,6 @@ log_error() {
 # =============================================================================
 # Django Management
 # =============================================================================
-
-run_migrations() {
-    log_info "Running Django migrations..."
-    python manage.py migrate --no-input || {
-        log_error "Migrations failed!"
-        exit 1
-    }
-    log_info "Migrations completed successfully."
-}
 
 collectstatic() {
     log_info "Collecting static files..."
@@ -161,6 +152,9 @@ shutdown() {
 # =============================================================================
 
 main() {
+    # Activate virtual environment (Django and gunicorn installed here)
+    . /app/.venv/bin/activate
+
     log_info "=========================================="
     log_info "San Felipe Backoffice Container"
     log_info "=========================================="
@@ -172,7 +166,6 @@ main() {
     log_info "=========================================="
 
     # Django setup
-    run_migrations
     collectstatic
 
     # Start services

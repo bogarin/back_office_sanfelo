@@ -2,6 +2,7 @@
 # Run with: just <command>
 
 set dotenv-load
+SHORT_SHA := `git rev-parse --short HEAD`
 
 default:
     @just --list
@@ -85,6 +86,28 @@ check-system:
     uv run manage.py check
 
 # Build docker container
-container-build *ARGS:
-    #!/bin/bash
-    podman build -t sanfelipe-backoffice:latest {{ARGS}} .
+container-build:
+    @echo "\033[36m▶ Building Docker image...\033[0m"
+    podman build -t sanfelipe-backoffice:{{SHORT_SHA}}-dev .
+    podman tag sanfelipe-backoffice:{{SHORT_SHA}}-dev sanfelipe-backoffice:latest
+    mkdir -p .docker-images
+    rm -f .docker-images/sanfelipe-backoffice-{{SHORT_SHA}}-dev.*
+    podman save -o .docker-images/sanfelipe-backoffice-{{SHORT_SHA}}-dev.raw "sanfelipe-backoffice:{{SHORT_SHA}}-dev"
+    zstd -19 -o .docker-images/sanfelipe-backoffice-{{SHORT_SHA}}-dev.tar.zst .docker-images/sanfelipe-backoffice-{{SHORT_SHA}}-dev.raw
+
+container-push:
+    @echo "\033[36m▶ Pushing Docker image to sanfelo.stage \033[0m"
+    scp .docker-images/sanfelipe-backoffice-{{SHORT_SHA}}-dev.tar.zst sanfelo.stage:/tmp/
+    ssh sanfelo.stage "\
+      zstd -d -c /tmp/sanfelipe-backoffice-{{SHORT_SHA}}-dev.tar.zst | docker load && \
+      docker tag localhost/sanfelipe-backoffice:{{SHORT_SHA}}-dev sanfelipe-backoffice:{{SHORT_SHA}}-dev && \
+      docker tag sanfelipe-backoffice:{{SHORT_SHA}}-dev sanfelipe-backoffice:latest && \
+      docker rmi localhost/sanfelipe-backoffice:{{SHORT_SHA}}-dev && \
+      rm -f /tmp/sanfelipe-backoffice-{{SHORT_SHA}}-dev.tar.zst"
+
+container-run:
+    @podman rm -f backoffice 2>/dev/null || true
+    podman run --name backoffice \
+    -p 8090:8080 \
+    --env-file .env \
+    sanfelipe-backoffice:latest
