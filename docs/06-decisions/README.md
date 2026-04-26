@@ -29,7 +29,8 @@ Un **ADR (Architecture Decision Record)** es un documento corto que captura una 
 | [ADR-010](010-integracion-con-sftp.md) | Integración con servicio SFTP para requisitos |
 | [ADR-011](011-docs-cleanup.md) | Limpieza y reestructuración de documentación |
 | [ADR-012](012-stack-base-actualizado.md) | Stack tecnológico actualizado *(Supersedes ADR-001)* |
-| [ADR-013](013-rbac-tres-roles.md) | Sistema RBAC con tres roles *(Supersedes ADR-007)* |
+| [ADR-013](013-rbac-tres-roles.md) | Sistema RBAC con tres roles *(Superseded by ADR-014)* |
+| [ADR-014](014-custom-user-workflow-permissions.md) | Custom User Model, Workflow Refactoring y Permission Methods |
 
 ## Cómo crear un nuevo ADR
 

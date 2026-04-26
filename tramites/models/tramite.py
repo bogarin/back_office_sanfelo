@@ -18,6 +18,30 @@ from tramites.models.catalogos import TramiteEstatus
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
+# =============================================================================
+# Workflow transitions definition
+# =============================================================================
+
+# Maps (from_status, to_status) → True for all valid state transitions.
+# Every business action (asignar, requerir, diligencia, finalizar) must
+# go through _validate_transition() which checks this dict.
+TRANSITIONS: dict[tuple[int, int], bool] = {
+    # Assign: presentado → en revisión
+    (TramiteEstatus.Estatus.PRESENTADO, TramiteEstatus.Estatus.EN_REVISION): True,
+    # Reassign: en revisión → en revisión (change analyst, same status)
+    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.EN_REVISION): True,
+    # Release: en revisión → presentado (back to pool)
+    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.PRESENTADO): True,
+    # Require documents: en revisión → requerimiento
+    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.REQUERIMIENTO): True,
+    # En diligencia: en revisión → en diligencia
+    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.EN_DILIGENCIA): True,
+    # Finalize from any active "in-process" state
+    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.FINALIZADO): True,
+    (TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.FINALIZADO): True,
+    (TramiteEstatus.Estatus.EN_DILIGENCIA, TramiteEstatus.Estatus.FINALIZADO): True,
+}
+
 
 @register_model('default', AccessPattern.READ_ONLY, False)
 class Tramite(models.Model):
@@ -114,34 +138,146 @@ class Tramite(models.Model):
 
     @property
     def historial_actividades(self):
-        """
-        Retorna el queryset de actividades relacionadas a este trámite, ordenadas por fecha.
-
-        Returns:
-            QuerySet de Actividades
-        """
+        """QuerySet de actividades del trámite, ordenadas por fecha descendente."""
         return Actividades.objects.filter(tramite_id=self.pk).order_by('-timestamp')
 
-    def verificar_activo(self):
+    # =====================================================================
+    # Permission checks
+    # =====================================================================
+
+    def can_view(self, user: User) -> bool:
+        """Whether *user* is allowed to view this trámite's detail page.
+
+        Rules:
+        - Superuser / Administrador / Coordinador: always ``True``
+        - Analista: only if assigned to this trámite
+        """
+        if user.is_superuser or user.is_administrador or user.is_coordinador:
+            return True
+        return user.is_analista and self.asignado_user_id == user.id
+
+    def can_download(self, user: User) -> bool:
+        """Whether *user* may download documents attached to this trámite.
+
+        Rules:
+        - Superuser / Administrador / Coordinador: always ``True``
+        - Analista: assigned trámites (any estatus) or unassigned active ones
+        """
+        if user.is_superuser or user.is_administrador or user.is_coordinador:
+            return True
+        if not user.is_analista:
+            return False
+        # Assigned to this analyst → always allow
+        if self.asignado_user_id == user.id:
+            return True
+        # Unassigned active trámite → allow
+        estatus = self.ultima_actividad_estatus_id
+        return (
+            self.asignado_user_id is None
+            and estatus is not None
+            and TramiteEstatus.Estatus.PRESENTADO <= estatus < TramiteEstatus.Estatus.POR_RECOGER
+        )
+
+    def can_assign(self, user: User) -> bool:
+        """Whether *user* may assign or reassign this trámite.
+
+        Only Coordinadores and Administradores can assign trámites to analysts.
+        """
+        return user.is_coordinador or user.is_administrador or user.is_superuser
+
+    def can_release(self, user: User) -> bool:
+        """Whether *user* may release this trámite back to the pool.
+
+        Only Coordinadores and Administradores can release assigned trámites.
+        """
+        return user.is_coordinador or user.is_administrador or user.is_superuser
+
+    def can_execute_action(self, user: User) -> bool:
+        """Whether *user* may execute workflow actions on this trámite.
+
+        Workflow actions: requerir_documentos, en_diligencia, finalizar.
+        Only the assigned analyst (or a Coordinator/Admin) may execute them.
+        """
+        if user.is_superuser or user.is_administrador or user.is_coordinador:
+            return True
+        return user.is_analista and self.asignado_user_id == user.id
+
+    def available_actions(self, user: User) -> list[str]:
+        """Return the list of workflow action names *user* can perform right now.
+
+        The returned list depends on both the user's role AND the current
+        trámite status.  Useful for template rendering.
+
+        Returns:
+            List of action strings: ``'requerir_documentos'``,
+            ``'en_diligencia'``, ``'finalizar'``.
+        """
+        if not self.can_execute_action(user):
+            return []
+
+        status = self.ultima_actividad_estatus_id
+        actions: list[str] = []
+
+        if status == TramiteEstatus.Estatus.EN_REVISION:
+            actions.extend(['requerir_documentos', 'en_diligencia', 'finalizar'])
+        elif status in (
+            TramiteEstatus.Estatus.REQUERIMIENTO,
+            TramiteEstatus.Estatus.EN_DILIGENCIA,
+        ):
+            actions.append('finalizar')
+
+        return actions
+
+    # =====================================================================
+    # Internal helpers
+    # =====================================================================
+
+    def _assert_activo(self) -> None:
+        """Raise if the trámite is not in an active status."""
         if not TramiteEstatus.Estatus.es_activo(self.ultima_actividad_estatus_id):
             raise TramiteNoAsignableError(f'El trámite {self.folio} ya no se encuentra activo')
 
-    def verificar_usuario_asignado(self, usuario: User):
+    def _assert_asignado_a(self, usuario: User) -> None:
+        """Raise if the trámite is not assigned to *usuario*."""
         if self.asignado_user_id != usuario.id:
-            msg = f'El usuario {usuario.username} intento realizar una acción sobre el tramite {self.folio} pero el tramite esta asignado a {self.asignado_username}.'
-            logger.error(msg)
-            msg = 'Este tramite esta asignado a otro analista, solo el analista asignado puede realizar esta acción.'
-            raise PermissionDenied(msg)
+            logger.error(
+                'El usuario %s intento realizar una acción sobre el tramite %s '
+                'pero el tramite esta asignado a %s.',
+                usuario.username,
+                self.folio,
+                self.asignado_username,
+            )
+            raise PermissionDenied(
+                'Este tramite esta asignado a otro analista, '
+                'solo el analista asignado puede realizar esta acción.'
+            )
+
+    def _validate_transition(self, to_status: int) -> None:
+        """Validate that the current status can transition to *to_status*.
+
+        Raises ``EstadoNoPermitidoError`` if the transition is not in TRANSITIONS.
+        """
+        from_status = self.ultima_actividad_estatus_id
+        if (from_status, to_status) not in TRANSITIONS:
+            logger.warning(
+                'Transición inválida: tramite %s estatus %s → %s',
+                self.folio,
+                from_status,
+                to_status,
+            )
+            raise EstadoNoPermitidoError(
+                f'No es posible realizar esta acción en el estatus actual '
+                f'del trámite {self.folio} (estatus actual: {from_status}).'
+            )
 
     def registrar_actividad(
         self, estatus_id: int, analista_id: int | None, observacion: str
     ) -> Actividades:
-        """
-        Registra una actividad al tramite
+        """Registra una actividad al trámite.
 
         Args:
             estatus_id: ID del estatus de la actividad
-            responsable_id: ID del usuario responsable
+            analista_id: ID del usuario responsable
             observacion: Texto de observación para la actividad
 
         Returns:
@@ -155,66 +291,120 @@ class Tramite(models.Model):
                 observacion=observacion,
             )
         except DatabaseError as e:
-            logging.error(f'❌ Error al crear registro de actividad: {e}')
+            logging.error('❌ Error al crear registro de actividad: %s', e)
             raise DatabaseError(
-                f'Error de base de datos al crear registro de actividad {estatus_id} para el tramite {self.pk}: {e}'
+                f'Error de base de datos al crear registro de actividad '
+                f'{estatus_id} para el tramite {self.pk}: {e}'
             ) from e
 
-        logger.info(f'Actividad agregada al trámite {self.folio}: {act.estatus.estatus}')
+        logger.info('Actividad agregada al trámite %s: %s', self.folio, act.estatus.estatus)
         return act
+
+    # =====================================================================
+    # Public workflow actions
+    # =====================================================================
 
     def asignar(
         self,
-        analista: User,
+        analista: User | None,
         asignado_por: User,
-        observacion: str,
+        observacion: str = '',
     ):
-        """
-        Asigna un trámite creando registro en Actividades.
+        """Asigna, reasigna o libera un trámite.
 
-        Source of truth: Actividades table (backend database).
-        La vista v_tramites_unificado se actualiza automáticamente.
+        - ``analista=None`` → liberar (volver al pool de disponibles)
+        - ``analista=user`` → asignar a ese analista
 
         Args:
-            analista: Instancia de User que recibe la asignación
-            asignado_por: Instancia de User que hace la asignación
+            analista: User que recibe la asignación, o None para liberar
+            asignado_por: User que ejecuta la acción
             observacion: Texto opcional para la actividad
 
-        Returns:
-            bool: La asignación se realizó exitosamente
+        Raises:
+            TramiteNoAsignableError: Estatus no activo
+        """
+        if analista is None:
+            self._liberar(asignado_por, observacion)
+        else:
+            self._asignar_analista(analista, asignado_por, observacion)
+
+    def requerir_documentos(self, analista: User, observacion: str) -> None:
+        """Requiere documentos adicionales al trámite (202 → 203)."""
+        self._assert_activo()
+        self._validate_transition(TramiteEstatus.Estatus.REQUERIMIENTO)
+        self._assert_asignado_a(analista)
+        self.registrar_actividad(
+            TramiteEstatus.Estatus.REQUERIMIENTO,
+            analista_id=analista.id,
+            observacion=observacion,
+        )
+
+    def en_diligencia(self, analista: User, observacion: str) -> None:
+        """Pone el trámite en diligencia (202 → 205)."""
+        self._assert_activo()
+        self._validate_transition(TramiteEstatus.Estatus.EN_DILIGENCIA)
+        self._assert_asignado_a(analista)
+        self.registrar_actividad(
+            TramiteEstatus.Estatus.EN_DILIGENCIA,
+            analista_id=analista.id,
+            observacion=observacion,
+        )
+
+    def finalizar(self, analista: User, observacion: str) -> None:
+        """Finaliza el trámite (202/203/205 → 303).
+
+        Args:
+            analista: User que ejecuta la acción
+            observacion: **Required** — debe ser texto no vacío
 
         Raises:
-            TramiteNoAsignableError: Estatus no está en rango 200-299
-            DatabaseError: Si falla el INSERT en Actividades
+            ValueError: Si la observación está vacía
+            EstadoNoPermitidoError: Transición no válida
         """
+        observacion = observacion.strip()
+        if not observacion:
+            raise ValueError('La observación es requerida para finalizar un trámite.')
+
+        self._assert_activo()
+        self._validate_transition(TramiteEstatus.Estatus.FINALIZADO)
+        self._assert_asignado_a(analista)
+        self.registrar_actividad(
+            TramiteEstatus.Estatus.FINALIZADO,
+            analista_id=analista.id,
+            observacion=observacion,
+        )
+
+    # =====================================================================
+    # Private workflow sub-actions
+    # =====================================================================
+
+    def _liberar(self, liberado_por: User, observacion: str) -> None:
+        """Libera el trámite: vuelve al pool de disponibles (→ 201).
+
+        Liberation is a special action: any active status can be released
+        back to the pool, so we only check that the trámite is active
+        (not that a specific transition exists).
+        """
+        self._assert_activo()
+        self.registrar_actividad(
+            TramiteEstatus.Estatus.PRESENTADO,
+            analista_id=None,
+            observacion=observacion or f'Trámite liberado por {liberado_por.get_full_name()}',
+        )
+        logger.info('Trámite %s liberado por %s', self.folio, liberado_por.username)
+
+    def _asignar_analista(self, analista: User, asignado_por: User, observacion: str) -> None:
+        """Asigna el trámite a un analista (201/202 → 202)."""
         autoasignado = analista == asignado_por
 
-        # Liberación: el trámite vuelve al pool de disponibles
-        if analista is None:
-            self.registrar_actividad(
-                TramiteEstatus.Estatus.PRESENTADO,  # 201, no 202
-                analista_id=None,
-                observacion=observacion or f'Trámite liberado por {asignado_por.get_full_name()}',
-            )
-            logger.info(f'Trámite {self.folio} liberado por {asignado_por.username}')
+        self._assert_activo()
+
+        # Already assigned to the same analyst — skip silently
+        if self.asignado_user_id is not None and self.asignado_user_id == analista.id:
             return
 
-        if not TramiteEstatus.Estatus.es_activo(self.ultima_actividad_estatus_id):
-            if autoasignado:
-                msg = f'El usuario {asignado_por.username} intento autoasignarse el tramite {self.folio} '
-            else:
-                msg = f'El usuario {asignado_por.username} intento asignar el tramite {self.folio} a {analista.username} '
-            msg += f'pero el tramite no se encuentra en un estatus asignable (estatus actual: {self.ultima_actividad_estatus_id})'
-            logger.warning(msg)
-            raise TramiteNoAsignableError(
-                f'El trámite {self.folio} no se puede asignar ya que no se encuentra activo'
-            )
+        self._validate_transition(TramiteEstatus.Estatus.EN_REVISION)
 
-        # Validar si ya está asignado al mismo analista (reasignación silenciosa)
-        if self.asignado_user_id == analista.id:
-            return
-
-        # Determinar observación si no se provee (Este mensaje sera visible desde el frontend tambien)
         if not observacion:
             if autoasignado:
                 observacion = (
@@ -225,81 +415,16 @@ class Tramite(models.Model):
                     f'El trámite ha sido asignado a {analista.get_full_name()} para su gestión.'
                 )
 
-        _ = self.registrar_actividad(
-            TramiteEstatus.Estatus.EN_REVISION, analista_id=analista.id, observacion=observacion
+        self.registrar_actividad(
+            TramiteEstatus.Estatus.EN_REVISION,
+            analista_id=analista.id,
+            observacion=observacion,
         )
         logger.info(
-            f'Trámite {self.folio} asignado a {analista.username} por {asignado_por.username}'
-        )
-
-    def requerir_documentos(
-        self,
-        analista: User,
-        observacion: str,
-    ):
-        tmt_status = self.ultima_actividad_estatus_id
-        self.verificar_activo()
-
-        if tmt_status != TramiteEstatus.Estatus.EN_REVISION:
-            msg = f'El usuario {analista.username} intento requerir documentos '
-            msg += f'para el tramite {self.folio} pero el tramite no ha sido asignado a un analista aún.'
-            logger.warning(msg)
-            msg = 'El trámite debe ser asignado a un Analista antes de requerir documentos.'
-            raise EstadoNoPermitidoError(msg)
-
-        self.verificar_usuario_asignado(analista)
-
-        self.registrar_actividad(
-            TramiteEstatus.Estatus.REQUERIMIENTO, analista_id=analista.id, observacion=observacion
-        )
-
-    def en_diligencia(
-        self,
-        analista: User,
-        observacion: str,
-    ):
-        tmt_status = self.ultima_actividad_estatus_id
-        self.verificar_activo()
-
-        if tmt_status != TramiteEstatus.Estatus.EN_REVISION:
-            msg = f'El usuario {analista.username} intento poner en diligencia el tramite {self.folio} pero el tramite no ha sido asignado a  un analista aún.'
-            logger.warning(msg)
-            msg = 'El trámite debe ser asignado a un Analista antes de ser puesto en diligencia.'
-            raise EstadoNoPermitidoError(msg)
-
-        self.verificar_usuario_asignado(analista)
-
-        self.registrar_actividad(
-            TramiteEstatus.Estatus.EN_DILIGENCIA, analista_id=analista.id, observacion=observacion
-        )
-
-    def finalizar(
-        self,
-        analista: User,
-        observacion: str,
-    ):
-        observacion = observacion.strip()
-        if not observacion:
-            raise ValueError('La observación es requerida para finalizar un trámite.')
-
-        tmt_status = self.ultima_actividad_estatus_id
-        if not TramiteEstatus.Estatus.es_activo(tmt_status):
-            raise TramiteNoAsignableError(f'El trámite {self.folio} ya no se encuentra activo')
-
-        if tmt_status not in (
-            TramiteEstatus.Estatus.EN_REVISION,
-            TramiteEstatus.Estatus.REQUERIMIENTO,
-            TramiteEstatus.Estatus.EN_DILIGENCIA,
-        ):
-            msg = f'El usuario {analista.username} intento finalizar el tramite {self.folio} pero el no esta en un estatus que permita finalización (estatus actual: {tmt_status}).'
-            logger.warning(msg)
-            msg = 'No es posible finalizar el trámite en su estatus actual, el trámite debe estar en REVISION, REQUERIMIENTO o EN DILIGENCIA para poder ser finalizado.'
-            raise EstadoNoPermitidoError(msg)
-
-        self.verificar_usuario_asignado(analista)
-
-        self.registrar_actividad(
-            TramiteEstatus.Estatus.FINALIZADO, analista_id=analista.id, observacion=observacion
+            'Trámite %s asignado a %s por %s',
+            self.folio,
+            analista.username,
+            asignado_por.username,
         )
 
 

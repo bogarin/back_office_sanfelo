@@ -12,40 +12,29 @@ from datetime import datetime
 from django.contrib import admin, messages
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth import get_user_model
-from django.db import DatabaseError
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
-from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from core.admin import (
-    ActionableReadOnlyMixin,
-    ReadOnlyModelAdmin,
-)
 from core.admin_utils import (
-    render_activo_badge,
     render_badge,
     render_quick_action,
     render_status_badge,
 )
-from core.rbac.constants import BackOfficeRole
 from tramites.exceptions import (
     EstadoNoPermitidoError,
+    SFTPConnectionError,
     TramiteNoAsignableError,
 )
 from tramites.forms import TramiteDetailForm
 from tramites.models import (
-    Actividades,
     Buzon,
     Disponible,
-    Perito,
     Tramite,
     TramiteCatalogo,
     TramiteEstatus,
 )
-from tramites.exceptions import SFTPConnectionError
 from tramites.sftp import SFTPService
-
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +164,35 @@ DEFAULT_FILTERS = (
 # =============================================================================
 
 
-class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
+class TramiteBaseAdmin(admin.ModelAdmin):
+    """Base admin for all Tramite views.
+
+    Provides read-only display with action support:
+    - No add/delete permissions
+    - ``has_change_permission`` must be overridden by concrete admins
+      to control action visibility per role
+    """
+
+    save_on_top = True
+    list_per_page = 25
+    list_max_show_all = 100
+    list_editable = ()
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """Allow actions on changelist (obj=None), block change form (obj set).
+
+        Concrete admins may override this to implement role-based access.
+        """
+        raise NotImplementedError(
+            f'{self.__class__.__name__} must implement has_change_permission()'
+        )
+
     class Media:
         js = ('admin/js/quick_actions.js',)
 
@@ -249,20 +266,11 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         if request is None:
             return '—'
 
-        user = request.user
-        esta_asignado = obj.asignado_user_id is not None
-
-        is_admin = user.is_superuser or user.is_staff
-        roles = getattr(user, 'roles', set())
-        is_coordinador = BackOfficeRole.COORDINADOR in roles
-
         # (action_name, label) pairs for applicable actions
         actions_map: list[tuple[str, str]] = []
 
-        if is_admin or is_coordinador:
-            if esta_asignado:
-                # Coordinador/Admin puede liberar trámites asignados
-                actions_map.append(('liberar_rapido', '🗑️ Liberar'))
+        if obj.can_release(request.user) and obj.asignado_user_id is not None:
+            actions_map.append(('liberar_rapido', '🗑️ Liberar'))
 
         if not actions_map:
             return '—'
@@ -356,7 +364,7 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                         count += 1
                     except Exception as e:
                         logger.error(f'Error liberando {tramite.folio}: {e}')
-                        errores.append(f'{tramite.folio}: {str(e)}')
+                        errores.append(f'{tramite.folio}: {e!s}')
 
                 if count:
                     messages.success(request, f'✅ {count} trámites liberados')
@@ -383,7 +391,7 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                         asignados.append(tramite.folio)
                     except Exception as e:
                         logger.error(f'Error asignando {tramite.folio} a {analista.username}: {e}')
-                        errores.append(f'{tramite.folio}: {str(e)}')
+                        errores.append(f'{tramite.folio}: {e!s}')
 
                 if asignados:
                     nombre_analista = analista.get_full_name() or analista.username
@@ -419,25 +427,12 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
         Solo disponible para coordinadores/admin.
         """
         user = request.user
-        if not (
-            user.is_superuser
-            or user.is_staff
-            or BackOfficeRole.COORDINADOR in getattr(user, 'roles', set())
-        ):
+        tramite = queryset.first()
+        if not tramite or not tramite.can_release(user):
             messages.error(request, '❌ Solo los coordinadores pueden liberar trámites')
             return redirect(request.get_full_path())
 
-        if not queryset.exists():
-            messages.error(request, '❌ No se ha seleccionado ningún trámite')
-            return redirect(request.get_full_path())
-
-        tramite = None
         try:
-            tramite = queryset.first()
-            if not tramite:
-                messages.error(request, '❌ Trámite no encontrado')
-                return redirect(request.get_full_path())
-
             tramite.asignar(
                 analista=None,
                 asignado_por=request.user,
@@ -445,10 +440,8 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             )
             messages.success(request, f'✅ Trámite {tramite.folio} liberado')
         except Exception as e:
-            folio = tramite.folio if tramite else 'desconocido'
-            logger.error(f'Error liberando {folio}: {e}')
+            logger.error('Error liberando %s: %s', tramite.folio, e)
             messages.error(request, '❌ Error inesperado al liberar el trámite')
-
         return redirect(request.get_full_path())
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
@@ -457,16 +450,21 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
         Muestra:
         - Información completa del trámite (readonly)
-        - Historial de actividades (via tramite.actividades property)
+        - Historial de actividades (via tramite.historial_actividades)
         - Documentos PDF desde SFTP (via SFTPService.fetch_requisito_files())
         - Acciones disponibles (requerir documentos, en diligencia, finalizar)
         """
+        from django.core.exceptions import PermissionDenied
 
         tramite = self.get_object(request, object_id)
 
         if not tramite:
             messages.error(request, '❌ Trámite no encontrado')
             return redirect('admin:index')
+
+        # Object-level permission check (IDOR protection)
+        if not tramite.can_view(request.user):
+            raise PermissionDenied
 
         # Procesar acciones POST (requerir, diligencia, finalizar)
         if request.method == 'POST':
@@ -475,22 +473,33 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
                 action = request.POST.get('action')
                 observacion = form.cleaned_data['observacion']
 
-                try:
-                    if action == 'requerir_documentos':
-                        tramite.requerir_documentos(analista=request.user, observacion=observacion)
-                        messages.success(request, '✅ Requerimiento de documentos registrado')
-                    elif action == 'en_diligencia':
-                        tramite.en_diligencia(analista=request.user, observacion=observacion)
-                        messages.success(request, '✅ Trámite puesto en diligencia')
-                    elif action == 'finalizar':
-                        tramite.finalizar(analista=request.user, observacion=observacion)
-                        messages.success(request, '✅ Trámite finalizado')
+                # Validate action is allowed for this user + status
+                allowed = tramite.available_actions(request.user)
+                if action not in allowed:
+                    messages.error(request, '❌ Acción no permitida')
+                else:
+                    try:
+                        if action == 'requerir_documentos':
+                            tramite.requerir_documentos(
+                                analista=request.user, observacion=observacion
+                            )
+                            messages.success(request, '✅ Requerimiento de documentos registrado')
+                        elif action == 'en_diligencia':
+                            tramite.en_diligencia(analista=request.user, observacion=observacion)
+                            messages.success(request, '✅ Trámite puesto en diligencia')
+                        elif action == 'finalizar':
+                            tramite.finalizar(analista=request.user, observacion=observacion)
+                            messages.success(request, '✅ Trámite finalizado')
 
-                except (TramiteNoAsignableError, EstadoNoPermitidoError, ValueError) as e:
-                    messages.error(request, f'❌ {str(e)}')
-                except Exception as e:
-                    logger.error(f'Error procesando acción en trámite {tramite.folio}: {e}')
-                    messages.error(request, '❌ Error al procesar la acción')
+                    except (TramiteNoAsignableError, EstadoNoPermitidoError, ValueError) as e:
+                        messages.error(request, f'❌ {e}')
+                    except Exception as e:
+                        logger.error(
+                            'Error procesando acción en trámite %s: %s',
+                            tramite.folio,
+                            e,
+                        )
+                        messages.error(request, '❌ Error al procesar la acción')
 
         else:
             form = TramiteDetailForm()
@@ -512,6 +521,7 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
             'is_popup': False,
             'has_change_permission': self.has_change_permission(request, tramite),
             'has_view_permission': self.has_view_permission(request, tramite),
+            'available_actions': tramite.available_actions(request.user),
             **(extra_context or {}),
         }
 
@@ -525,16 +535,18 @@ class TramiteBaseAdmin(ActionableReadOnlyMixin, ReadOnlyModelAdmin):
 
 @admin.register(Buzon)
 class BuzonTramitesAdmin(TramiteBaseAdmin):
-    """
-    Admin para ver trámites asignados al usuario actual. Principalmente orientado a que los analistas
-    vean sus trámites asignados.
-    """
+    """Trámites asignados al usuario actual (orientado a Analistas)."""
 
     list_filter = (
         TramiteTipoFilter,
         TramiteEstatusFilter,
         *DEFAULT_FILTERS,
     )
+
+    def has_change_permission(self, request, obj=None):
+        """Analistas pueden ejecutar acciones (obj=None), no editar form."""
+        user = request.user
+        return obj is None and (user.is_analista or user.is_coordinador or user.is_administrador)
 
     def get_queryset(self, request):
         """
@@ -555,10 +567,7 @@ class BuzonTramitesAdmin(TramiteBaseAdmin):
 
 @admin.register(Disponible)
 class TramitesDisponiblesAdmin(TramiteBaseAdmin):
-    """
-    Admin para ver trámites disponibles (estatus 200-299).
-    Orientado a Analistas que buscan tramites para tomar.
-    """
+    """Trámites disponibles para tomar (orientado a Analistas)."""
 
     list_filter = (
         TramiteTipoFilter,
@@ -567,6 +576,11 @@ class TramitesDisponiblesAdmin(TramiteBaseAdmin):
     )
 
     actions = ('tomar_asignacion',)
+
+    def has_change_permission(self, request, obj=None):
+        """Analistas pueden ejecutar acciones (obj=None), no editar form."""
+        user = request.user
+        return obj is None and (user.is_analista or user.is_coordinador or user.is_administrador)
 
     def get_actions(self, request: HttpRequest):
         """
@@ -607,9 +621,12 @@ class TramitesDisponiblesAdmin(TramiteBaseAdmin):
 
 @admin.register(Tramite)
 class TramitesAdmin(TramiteBaseAdmin):
-    """
-    Admin de tramites orientado a Coordinadores y Administradores para gestión completa de trámites.
-    """
+    """Trámites para Coordinadores y Administradores — gestión completa."""
+
+    def has_change_permission(self, request, obj=None):
+        """Coordinador/Admin pueden ejecutar acciones, no editar form."""
+        user = request.user
+        return obj is None and (user.is_coordinador or user.is_administrador)
 
     def get_list_filter(self, request):
         """

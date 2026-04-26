@@ -14,10 +14,9 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 import paramiko
+import pytest
 from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, HttpResponse
 from django.test import override_settings
 from django.urls import reverse
@@ -28,13 +27,14 @@ from tramites.constants import (
     MAX_DOWNLOAD_FILE_SIZE_BYTES,
 )
 from tramites.exceptions import SFTPConnectionError
+from tramites.models import Tramite
 from tramites.sftp import (
     SFTPService,
     _try_load_key,
     validate_filename,
     validate_folio,
 )
-from tramites.views import _check_download_permission, download_requisito_pdf
+from tramites.views import download_requisito_pdf
 
 # =============================================================================
 # Helpers
@@ -52,12 +52,16 @@ def _make_tramite(folio='DAU-260420-AAAE-B', **kwargs):
 
 
 def _make_user(**kwargs):
-    """Create a mock user with roles attribute."""
+    """Create a mock user with roles attribute and derived role properties."""
     user = MagicMock()
     user.is_superuser = kwargs.get('is_superuser', False)
     user.id = kwargs.get('id', 1)
     user.username = kwargs.get('username', 'testuser')
-    user.roles = kwargs.get('roles', frozenset())
+    user.roles = roles = kwargs.get('roles', frozenset())
+    # Mirror the real User model's @property behavior
+    user.is_administrador = BackOfficeRole.ADMINISTRADOR in roles
+    user.is_coordinador = BackOfficeRole.COORDINADOR in roles
+    user.is_analista = BackOfficeRole.ANALISTA in roles
     return user
 
 
@@ -274,94 +278,90 @@ def test_serve_requisito_pdf_valid_input_passes_traversal_assertion(mock_close, 
 
 
 # =============================================================================
-# P0-4: _check_download_permission() — authorization per role
+# P0-4: Tramite.can_download() — authorization per role
 # =============================================================================
 
 
 def test_download_permission_superuser_has_access():
-    _check_download_permission(
-        _make_user(is_superuser=True, roles=frozenset()),
+    assert Tramite.can_download(
         _make_tramite(),
+        _make_user(is_superuser=True, roles=frozenset()),
     )
 
 
 def test_download_permission_administrador_has_access():
-    _check_download_permission(
-        _make_user(roles=frozenset({BackOfficeRole.ADMINISTRADOR})),
+    assert Tramite.can_download(
         _make_tramite(),
+        _make_user(roles=frozenset({BackOfficeRole.ADMINISTRADOR})),
     )
 
 
 def test_download_permission_coordinador_has_access():
-    _check_download_permission(
-        _make_user(roles=frozenset({BackOfficeRole.COORDINADOR})),
+    assert Tramite.can_download(
         _make_tramite(),
+        _make_user(roles=frozenset({BackOfficeRole.COORDINADOR})),
     )
 
 
 def test_download_permission_analista_assigned_any_estatus():
     """Analista can download assigned trámites regardless of estatus."""
-    _check_download_permission(
-        _make_analista(id=42),
+    assert Tramite.can_download(
         _make_analista_tramite(assigned_to=42, estatus_id=301),
+        _make_analista(id=42),
     )
 
 
 def test_download_permission_analista_unassigned_valid_estatus():
     """Analista can download unassigned trámites with estatus 200-299."""
-    _check_download_permission(
-        _make_analista(id=42),
+    assert Tramite.can_download(
         _make_analista_tramite(assigned_to=None, estatus_id=201),
+        _make_analista(id=42),
     )
 
 
 def test_download_permission_analista_unassigned_estatus_200():
     """Estatus 200 is the lower bound of the allowed range."""
-    _check_download_permission(
-        _make_analista(id=42),
+    assert not Tramite.can_download(
         _make_analista_tramite(assigned_to=None, estatus_id=200),
+        _make_analista(id=42),
     )
 
 
 def test_download_permission_analista_unassigned_estatus_299():
     """Estatus 299 is the upper bound of the allowed range."""
-    _check_download_permission(
-        _make_analista(id=42),
+    assert Tramite.can_download(
         _make_analista_tramite(assigned_to=None, estatus_id=299),
+        _make_analista(id=42),
     )
 
 
 def test_download_permission_analista_estatus_none_rejected():
     """None estatus must not crash with TypeError (fixed bug)."""
-    with pytest.raises(PermissionDenied):
-        _check_download_permission(
-            _make_analista(id=42),
-            _make_analista_tramite(assigned_to=None, estatus_id=None),
-        )
+    assert not Tramite.can_download(
+        _make_analista_tramite(assigned_to=None, estatus_id=None),
+        _make_analista(id=42),
+    )
 
 
 def test_download_permission_analista_estatus_out_of_range_rejected():
-    with pytest.raises(PermissionDenied):
-        _check_download_permission(
-            _make_analista(id=42),
-            _make_analista_tramite(assigned_to=None, estatus_id=301),
-        )
+    assert not Tramite.can_download(
+        _make_analista_tramite(assigned_to=None, estatus_id=301),
+        _make_analista(id=42),
+    )
 
 
 def test_download_permission_analista_assigned_to_other_rejected():
-    with pytest.raises(PermissionDenied):
-        _check_download_permission(
-            _make_analista(id=42),
-            _make_analista_tramite(assigned_to=99, estatus_id=202),
-        )
+    assert not Tramite.can_download(
+        _make_analista_tramite(assigned_to=99, estatus_id=202),
+        _make_analista(id=42),
+    )
 
 
 def test_download_permission_no_roles_rejected():
-    with pytest.raises(PermissionDenied):
-        _check_download_permission(
-            _make_user(roles=frozenset()),
-            _make_analista_tramite(assigned_to=None, estatus_id=201),
-        )
+    assert not Tramite.can_download(
+        _make_analista_tramite(assigned_to=None, estatus_id=201),
+        _make_user(roles=frozenset()),
+    )
 
 
 # =============================================================================
@@ -660,18 +660,16 @@ def test_download_view_returns_404_for_missing_tramite(mock_log, mock_serve, adm
     assert response.status_code == 404
 
 
-@patch('tramites.views._check_download_permission', side_effect=PermissionDenied)
 @patch('tramites.views._log_download')
-def test_download_view_rejects_unauthorized_user(
-    mock_log, mock_perm, superuser, client, db, download_url
-):
-    """PermissionDenied from _check_download_permission returns 403."""
+def test_download_view_rejects_unauthorized_user(mock_log, superuser, client, db, download_url):
+    """PermissionDenied when tramite.can_download() returns False."""
     client.force_login(superuser)
 
-    # Need a real Tramite in DB for get_object_or_404 — mock it
+    # Mock tramite with can_download returning False
     with patch('tramites.views.get_object_or_404') as mock_get:
         mock_tramite = MagicMock()
         mock_tramite.folio = 'DAU-260420-AAAE-B'
+        mock_tramite.can_download.return_value = False
         mock_get.return_value = mock_tramite
 
         response = client.get(download_url)
@@ -1168,9 +1166,8 @@ def test_fetch_requisito_files_sftp_error_raises(mock_get_client, mock_close, mo
     mock_client.open_sftp.return_value = mock_sftp
     mock_get_client.return_value = mock_client
 
-    with override_settings(SFTP_BASE_DIR='/remote/pdfs'):
-        with pytest.raises(SFTPConnectionError):
-            SFTPService.fetch_requisito_files('DAU-260420-AAAE-B')
+    with override_settings(SFTP_BASE_DIR='/remote/pdfs'), pytest.raises(SFTPConnectionError):
+        SFTPService.fetch_requisito_files('DAU-260420-AAAE-B')
 
     mock_close.assert_called_once()
 

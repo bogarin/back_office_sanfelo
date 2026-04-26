@@ -284,6 +284,7 @@
                         </div>
 
                         <div class="d-grid gap-2">
+                            {% if 'requerir_documentos' in available_actions %}
                             <button
                                 type="submit"
                                 class="btn btn-warning"
@@ -291,7 +292,9 @@
                             >
                                 <i class="fas fa-file-alt px-2"></i>Requerir Documentos
                             </button>
+                            {% endif %}
 
+                            {% if 'en_diligencia' in available_actions %}
                             <button
                                 type="submit"
                                 class="btn btn-info"
@@ -299,7 +302,9 @@
                             >
                                 <i class="fas fa-clock px-2"></i>Poner en Diligencia
                             </button>
+                            {% endif %}
 
+                            {% if 'finalizar' in available_actions %}
                             <button
                                 type="submit"
                                 class="btn btn-success"
@@ -307,6 +312,11 @@
                             >
                                 <i class="fas fa-check-circle px-2"></i>Finalizar Trámite
                             </button>
+                            {% endif %}
+
+                            {% if not available_actions %}
+                            <p class="text-muted text-center">No hay acciones disponibles para este trámite.</p>
+                            {% endif %}
 
                             <a href="../.." class="btn btn-secondary">
                                 <i class="fas fa-arrow-left px-2"></i>Regresar a Listado

@@ -1,8 +1,17 @@
 # 013: Sistema RBAC con Tres Roles
 
 **Fecha:** 23 de abril de 2026
-**Estado:** Accepted
+**Estado:** Superseded
 **Supersedes:** [ADR-007: Implementación de RBAC para Django 6.0](007-implementacion-rbac-django-60.md)
+**Superseded by:** [ADR-014: Custom User Model, Workflow Refactoring y Permission Methods](014-custom-user-workflow-permissions.md)
+
+> **Nota:** Este ADR describe el sistema RBAC de roles y permisos que sigue vigente.
+> ADR-014 extiende esta base con un Custom User Model (`core.User` con properties
+> `is_administrador`, `is_coordinador`, `is_analista`), workflow centralizado con
+> `TRANSITIONS` dict, y permission methods a nivel de objeto en `Tramite`
+> (`can_view`, `can_download`, `can_assign`, `can_release`, `can_execute_action`,
+> `available_actions`). La negativa "Sin control a nivel de objeto" queda resuelta
+> por ADR-014.
 
 ## Contexto
 
@@ -105,7 +114,7 @@ La auditoría NO se implementa con una tabla de bitácora separada. En su lugar:
 
 ### Negativas
 
-- **Sin control a nivel de objeto:** Los permisos son por modelo, no por instancia individual
+- **~~Sin control a nivel de objeto:** Los permisos son por modelo, no por instancia individual~~** — Resuelto por ADR-014: permission methods en `Tramite` (`can_view`, `can_download`, etc.)
 - **Coordinador sin permisos estándar:** No puede hacer CRUD directo, solo ver y asignar via acciones custom
 - **Middleware de cache:** Los roles se cachean por request — cambios de grupo requieren nuevo login
 

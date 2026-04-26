@@ -8,8 +8,9 @@ This module contains tests for:
 - Validation logic
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 
@@ -491,11 +492,12 @@ class TestTramiteAsignar:
         self, mock_registrar, coordinador, tramite_activo
     ):
         """
-        Edge case: Assign with user where id is None.
+        Edge case: Assign with user where id is None (should not match).
 
-        Expected behavior:
-        - Returns silently (no-op) because tramite.asignado_user_id == analista.id (None == None)
-        - No Actividades created
+        When tramite.asignado_user_id is None and analista.id is None,
+        the guard `self.asignado_user_id is not None` prevents the
+        False-silent-return. The assignment proceeds normally because
+        a None-id user cannot match a None asignado_user_id.
         """
         tramite = tramite_activo
 
@@ -508,15 +510,16 @@ class TestTramiteAsignar:
         # Ensure tramite is not already assigned (asignado_user_id is already None)
         tramite.asignado_user_id = None
 
-        # This returns silently because asignado_user_id (None) == analista.id (None)
+        # This proceeds with the assignment because None-id does NOT
+        # short-circuit as a "same analyst" match anymore
         tramite.asignar(
             analista=mock_analista,
             asignado_por=coordinador,
             observacion='Test',
         )
 
-        # Silent return - no actividad created
-        assert mock_registrar.call_count == 0
+        # Assignment proceeds — actividad IS created
+        assert mock_registrar.call_count == 1
 
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_asignar_reasignar_a_diferente_analista(
@@ -944,7 +947,7 @@ class TestTramiteRequerirDocumentos:
         """
         tramite = tramite_activo  # PRESENTADO, not EN_REVISION
 
-        with pytest.raises(EstadoNoPermitidoError, match='asignado a un Analista'):
+        with pytest.raises(EstadoNoPermitidoError, match='estatus actual'):
             tramite.requerir_documentos(
                 analista=analista,
                 observacion='Test',
@@ -952,7 +955,7 @@ class TestTramiteRequerirDocumentos:
 
         assert mock_registrar.call_count == 0
 
-    @patch('tramites.models.Tramite.verificar_usuario_asignado')
+    @patch('tramites.models.Tramite._assert_asignado_a')
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_requerir_documentos_usuario_no_asignado_raises_permission(
         self, mock_registrar, mock_verificar, analista, tramite_en_revision
@@ -961,11 +964,11 @@ class TestTramiteRequerirDocumentos:
         Edge case: Request documents by non-assigned analyst.
 
         Expected behavior:
-        - Raises PermissionDenied from verificar_usuario_asignado
+        - Raises PermissionDenied from _assert_asignado_a
         """
         tramite = tramite_en_revision
 
-        # Mock verificar_usuario_asignado to raise PermissionDenied
+        # Mock _assert_asignado_a to raise PermissionDenied
         from django.core.exceptions import PermissionDenied
 
         mock_verificar.side_effect = PermissionDenied('No asignado')
@@ -976,7 +979,7 @@ class TestTramiteRequerirDocumentos:
                 observacion='Test',
             )
 
-        # verificar_usuario_asignado should be called
+        # _assert_asignado_a should be called
         mock_verificar.assert_called_once_with(analista)
         # No actividad created due to permission error
         assert mock_registrar.call_count == 0
@@ -1052,7 +1055,7 @@ class TestTramiteEnDiligencia:
         """
         tramite = tramite_activo  # PRESENTADO, not EN_REVISION
 
-        with pytest.raises(EstadoNoPermitidoError, match='asignado a un Analista'):
+        with pytest.raises(EstadoNoPermitidoError, match='estatus actual'):
             tramite.en_diligencia(
                 analista=analista,
                 observacion='Test',
@@ -1060,7 +1063,7 @@ class TestTramiteEnDiligencia:
 
         assert mock_registrar.call_count == 0
 
-    @patch('tramites.models.Tramite.verificar_usuario_asignado')
+    @patch('tramites.models.Tramite._assert_asignado_a')
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_en_diligencia_usuario_no_asignado_raises_permission(
         self, mock_registrar, mock_verificar, analista, tramite_en_revision
@@ -1069,11 +1072,11 @@ class TestTramiteEnDiligencia:
         Edge case: Set in diligence by non-assigned analyst.
 
         Expected behavior:
-        - Raises PermissionDenied from verificar_usuario_asignado
+        - Raises PermissionDenied from _assert_asignado_a
         """
         tramite = tramite_en_revision
 
-        # Mock verificar_usuario_asignado to raise PermissionDenied
+        # Mock _assert_asignado_a to raise PermissionDenied
         from django.core.exceptions import PermissionDenied
 
         mock_verificar.side_effect = PermissionDenied('No asignado')
@@ -1084,7 +1087,7 @@ class TestTramiteEnDiligencia:
                 observacion='Test',
             )
 
-        # verificar_usuario_asignado should be called
+        # _assert_asignado_a should be called
         mock_verificar.assert_called_once_with(analista)
         # No actividad created due to permission error
         assert mock_registrar.call_count == 0
@@ -1286,7 +1289,7 @@ class TestTramiteDatabaseError:
         # Change to invalid status (PRESENTADO instead of REVISION/REQUERIMIENTO/EN_DILIGENCIA)
         tramite.ultima_actividad_estatus_id = TramiteEstatus.Estatus.PRESENTADO
 
-        with pytest.raises(EstadoNoPermitidoError, match='No es posible finalizar'):
+        with pytest.raises(EstadoNoPermitidoError, match='estatus actual'):
             tramite.finalizar(
                 analista=analista,
                 observacion='Observación de prueba',

@@ -20,7 +20,6 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
 
-from core.rbac.constants import BackOfficeRole
 from tramites.exceptions import SFTPConnectionError
 from tramites.models import Tramite
 from tramites.sftp import SFTPService, validate_filename
@@ -67,8 +66,12 @@ def download_requisito_pdf(
     # Get the tramite instance (raises Http404 if not found)
     tramite = get_object_or_404(Tramite, pk=pk)
 
-    # Check object-level authorization
-    _check_download_permission(request.user, tramite)
+    # Object-level authorization (delegates to Tramite.can_download)
+    if not tramite.can_download(request.user):
+        raise PermissionDenied(
+            'No tienes permiso para descargar archivos de este trámite. '
+            'Verifica que el trámite esté asignado a ti o que sea un trámite disponible.'
+        )
 
     try:
         response = SFTPService.serve_requisito_pdf(
@@ -81,60 +84,6 @@ def download_requisito_pdf(
     except SFTPConnectionError:
         _log_download(request, tramite, filename, success=False)
         raise
-
-
-def _check_download_permission(user, tramite: Tramite) -> None:
-    """Check if user has permission to download a file from the given tramite.
-
-    Authorization mirrors admin queryset rules:
-    - Superuser: Full access
-    - Administrador group: Full access
-    - Coordinador group: Full access
-    - Analista group: Assigned tramites (any estatus) + unassigned tramites (estatus 200-299)
-
-    Note: Status filter is NOT applied here (documented risk acceptance).
-    The admin queryset filters by estatus 200-299, but downloads are allowed
-    for assigned tramites regardless of estatus to support workflows where
-    analysts need to review documents before marking as received.
-
-    Args:
-        user: Django User instance.
-        tramite: Tramite instance.
-
-    Raises:
-        PermissionDenied: If user lacks download permission.
-    """
-    # Superusers always have access
-    if user.is_superuser:
-        return
-
-    # Get user roles (from cached property or fallback to group queries)
-    roles = getattr(user, 'roles', frozenset())
-
-    # Administrador has full access
-    if BackOfficeRole.ADMINISTRADOR in roles:
-        return
-
-    # Coordinador has full access
-    if BackOfficeRole.COORDINADOR in roles:
-        return
-
-    # Analista: assigned tramites (any estatus) OR unassigned tramites (estatus 200-299)
-    if BackOfficeRole.ANALISTA in roles:
-        if tramite.asignado_user_id == user.id:
-            # Assigned to this analyst - allow download (any estatus)
-            return
-
-        estatus = tramite.ultima_actividad_estatus_id
-        if tramite.asignado_user_id is None and estatus is not None and 200 <= estatus < 300:
-            # Unassigned with valid estatus - allow download
-            return
-
-    # If we get here, user doesn't have permission
-    raise PermissionDenied(
-        'No tienes permiso para descargar archivos de este trámite. '
-        'Verifica que el trámite esté asignado a ti o que sea un trámite disponible.'
-    )
 
 
 def _log_download(

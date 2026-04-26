@@ -7,7 +7,8 @@ Following Django's best practices with proper separation of concerns.
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.models import Group, User
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse_lazy
@@ -62,6 +63,8 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
     if not selected_user_ids:
         messages.warning(request, 'No hay usuarios seleccionados para asignar rol.')
         return HttpResponseRedirect(reverse_lazy('admin:auth_user_changelist'))
+
+    User = get_user_model()
 
     # Get selected users
     users = User.objects.filter(id__in=selected_user_ids)

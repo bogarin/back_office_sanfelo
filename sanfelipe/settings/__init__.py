@@ -298,6 +298,9 @@ globals()['STORAGES']['sftp'] = sftp_config.get('SFTP_STORAGE_CONFIG')
 # AUTHENTICATION (Django built-in)
 # =============================================================================
 
+# Custom User model
+AUTH_USER_MODEL = 'core.User'
+
 # Use Django's default auth backend
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
