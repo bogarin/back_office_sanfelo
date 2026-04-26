@@ -134,6 +134,9 @@ Editar `.env` con los valores de producción:
 DJANGO_DEBUG=False
 DJANGO_SECRET_KEY=GENERAR_CON_EL_COMANDO_DE_ABAJO
 DJANGO_ALLOWED_HOSTS=backoffice.sanfelipe.gob.mx
+```
+
+> **`DJANGO_ALLOWED_HOSTS`**: Agregar el dominio o IP del servidor tal como se accede desde el navegador. Si usas puerto (ej. 8080), no se incluye aquí — este setting ignora el puerto. Separar múltiples valores con coma.
 
 # === BASE DE DATOS ===
 POSTGRESQL_DB_URL=postgres://backoffice_user:STRONG_PASSWORD@postgres:5432/backoffice_tramites
@@ -168,6 +171,8 @@ SFTP_CACHE_DIR=/app/.sftp_cache
 SFTP_CACHE_TTL=3600
 SFTP_CACHE_MAX_SIZE_MB=500
 ```
+
+> **`DJANGO_CSRF_TRUSTED_ORIGINS`**: Debe incluir la URL completa (con protocolo y puerto si no es 80/443) que los usuarios ven en el navegador. Sin esta variable, el login falla con error CSRF 403. Si usas HTTP sin dominio: `DJANGO_CSRF_TRUSTED_ORIGINS=http://192.168.1.50:8090`.
 
 ### 3.3 Generar SECRET_KEY
 
@@ -329,23 +334,25 @@ Cuando el contenedor inicia, el `entrypoint.sh` ejecuta:
 ### 6.1 Ejecutar migraciones
 
 ```bash
-docker compose exec backoffice python manage.py migrate --no-input
+docker compose exec backoffice .venv/bin/python manage.py migrate --no-input
 ```
 
-Esto solo afecta el schema `backoffice`. El schema `public` (datos de negocio) se gestiona externamente.
+> **Nota:** Se usa `.venv/bin/python` directamente porque el shell del contenedor no tiene el virtualenv activado (solo lo activa el entrypoint).
 
 ### 6.2 Crear el superusuario
 
 ```bash
-docker compose exec backoffice python manage.py createsuperuser
+docker compose exec -it backoffice .venv/bin/python manage.py createsuperuser
 ```
 
 Sigue las instrucciones interactivas (username, email, password).
 
+> **Nota:** Se usa `-it` (TTY interactivo) porque `createsuperuser` requiere entrada de contraseña por terminal. Sin `-it`, falla con `EOFError`.
+
 ### 6.3 Configurar roles RBAC
 
 ```bash
-docker compose exec backoffice python manage.py setup_roles
+docker compose exec backoffice .venv/bin/python manage.py setup_roles
 ```
 
 Esto crea los grupos de Django:
@@ -365,7 +372,7 @@ Desde el admin de Django (`https://DOMINIO/admin/`):
 ### 6.5 Verificar conectividad SFTP
 
 ```bash
-docker compose exec backoffice python manage.py sftp ping
+docker compose exec backoffice .venv/bin/python manage.py sftp ping
 ```
 
 Debe responder sin errores.
@@ -463,8 +470,15 @@ docker compose logs -f postgres
 ### Reiniciar servicios
 
 ```bash
+# ⚠️ Si cambiaste .env o docker-compose.yml, usa up -d (no restart)
+docker compose up -d backoffice
+
+# restart SOLO sirve si NO cambiaste .env ni docker-compose.yml
+# (ej: para reiniciar despues de un crash)
 docker compose restart backoffice
 ```
+
+> **Importante**: `docker compose restart` **no re-lee los archivos `.env`**. Solo detiene y arranca el contenedor existente con las mismas variables de entorno. Si modificaste `.env`, siempre usa `docker compose up -d` para recrear el contenedor con las nuevas variables.
 
 ### Actualizar la aplicación
 
@@ -482,7 +496,7 @@ docker compose up -d backoffice
 ### Ejecutar migraciones
 
 ```bash
-docker compose exec backoffice python manage.py migrate --no-input
+docker compose exec backoffice .venv/bin/python manage.py migrate --no-input
 ```
 
 ### Backup de base de datos
@@ -519,6 +533,12 @@ Luego reiniciar: `docker compose restart backoffice`
 | Error "No module named 'debug_toolbar'" | Verificar que `DJANGO_DEBUG=False` en producción, o que `debug_toolbar` esté instalado si `DEBUG=True` |
 | CSS del admin no carga | Verificar que nginx apunta a `/app/staticfiles/` (no `/app/static/`) |
 | Warning "INSECURE SECRET_KEY" | Generar una SECRET_KEY real sin el prefijo `django-insecure-` |
+| `DisallowedHost: Invalid HTTP_HOST` | Agregar la IP o dominio a `DJANGO_ALLOWED_HOSTS` en `.env` y recrear con `docker compose up -d` (no `restart`) |
+| `CSRF verification failed` al hacer login | Agregar la URL del servidor (con protocolo y puerto) a `DJANGO_CSRF_TRUSTED_ORIGINS` en `.env`. Ejemplo: `DJANGO_CSRF_TRUSTED_ORIGINS=http://192.168.1.50:8090`. También verificar `DJANGO_ALLOWED_HOSTS` incluye la IP/dominio. Recrear con `docker compose up -d` |
+| Cambios en `.env` no toman efecto | `docker compose restart` no re-lee `.env`. Usar `docker compose up -d` para recrear el contenedor |
+| `EOFError` al ejecutar `manage.py` con entrada interactiva | Usar `docker exec -it` para obtener TTY interactivo. Ej: `docker exec -it backoffice .venv/bin/python manage.py createsuperuser` |
+| "Environment file not found: /app/.env" | Esperado — el contenedor recibe vars via `env_file` de docker-compose, no desde un archivo interno. No es un error |
+| Inspeccionar variables de entorno | `docker exec backoffice env` para ver las vars cargadas, o `docker inspect backoffice --format '{{range .Config.Env}}{{println .}}{{end}}'` |
 
 ---
 

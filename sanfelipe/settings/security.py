@@ -81,17 +81,17 @@ def configure_security(env: Env) -> dict:
         # Script sources: Only allow scripts from same origin with nonce support
         # NONCE allows inline scripts with a valid nonce attribute
         # This is more secure than 'unsafe-inline' as it explicitly whitelists scripts
-        'script-src': [CSP.SELF, CSP.NONCE],
+        'script-src': [CSP.NONCE, CSP.SELF, 'strict-dynamic'],
         # Style sources: Allow styles from same origin and inline styles
         # Note: Django admin uses some inline styles, so UNSAFE_INLINE is needed
         # For better security, consider using NONCE for inline styles
-        'style-src': [CSP.SELF, CSP.UNSAFE_INLINE],
+        'style-src': [CSP.SELF, CSP.UNSAFE_INLINE, 'https://fonts.googleapis.com'],
         # Image sources: Allow images from same origin and data: URIs
         # data: URIs are commonly used for base64-encoded images in Django admin
         'img-src': [CSP.SELF, 'data:'],
         # Font sources: Only allow fonts from same origin
         # Django admin loads fonts from static files
-        'font-src': [CSP.SELF],
+        'font-src': [CSP.SELF, 'https://fonts.gstatic.com'],
         # Connect sources: Restrict AJAX/Fetch requests to same origin
         'connect-src': [CSP.SELF],
         # Object sources: Block all plugins (Flash, Java, etc.)
