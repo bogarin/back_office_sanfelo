@@ -17,7 +17,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     email = factory.LazyAttribute(lambda obj: f'{obj.username}@example.com')
     first_name = factory.Faker('first_name')
     last_name = factory.Faker('last_name')
-    is_staff = False
+    is_staff = True
     is_active = True
     is_superuser = False
 

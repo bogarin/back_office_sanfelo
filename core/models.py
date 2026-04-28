@@ -11,9 +11,11 @@ query otherwise.
 
 from django.contrib.auth.models import AbstractUser
 
+from core.model_config import AccessPattern, register_model
 from core.rbac.constants import BackOfficeRole
 
 
+@register_model('default', AccessPattern.FULL_ACCESS, True)
 class User(AbstractUser):
     """Backoffice user with role convenience properties.
 

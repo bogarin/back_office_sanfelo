@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.model_config import get_model_config, ModelConfig
+from core.model_config import get_model_config, get_model_config_by_label, ModelConfig
 
 if TYPE_CHECKING:
     from django.db.models import Model
@@ -136,9 +136,12 @@ class ModelBasedRouter:
         if config1 is None and config2 is None:
             return True
 
-        # One model is registered but not the other - can't guarantee same DB
+        # One model is registered but not the other.
+        # Unregistered models default to 'default' (see db_for_read/db_for_write),
+        # so allow the relation only if the registered model also uses 'default'.
         if config1 is None or config2 is None:
-            return False
+            registered = config1 or config2
+            return registered.db_alias == 'default'
 
         # Both models are registered - allow only if same database
         return config1.db_alias == config2.db_alias
@@ -203,6 +206,15 @@ class ModelBasedRouter:
                 # Only allow migrations if:
                 # 1. allow_migrations is True
                 # 2. AND the database matches the model's configured db_alias
+                return config.allow_migrations and db == config.db_alias
+
+        # Fallback: label-based lookup for migration stubs.
+        # During migrations Django creates stub classes via type() that are
+        # distinct objects from the real model classes, so identity lookup
+        # above fails.  (app_label, model_name) are stable strings though.
+        if model_name:
+            config = get_model_config_by_label(app_label, model_name)
+            if config is not None:
                 return config.allow_migrations and db == config.db_alias
 
         # Unconfigured models - allow default behavior

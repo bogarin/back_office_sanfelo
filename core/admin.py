@@ -5,17 +5,18 @@ Configures the admin interface for the backoffice with:
 - Custom User admin with role-based display
 """
 
-from django import forms
 from django.contrib import admin
+from django.contrib.admin import SimpleListFilter
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.forms import AdminUserCreationForm, UserChangeForm
-from django.contrib.auth.hashers import UNUSABLE_PASSWORD_PREFIX
 from django.contrib.auth.models import Group
 from django.http import HttpResponseRedirect
+from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from core.admin_utils import render_badge
+from core.forms import CustomUserAddForm, CustomUserChangeForm
 from core.rbac.constants import BackOfficeRole
 
 User = get_user_model()
@@ -31,130 +32,51 @@ admin.site.index_title = 'Panel de Administración'
 
 
 # =============================================================================
-# Custom Forms
+# Custom Filters
 # =============================================================================
 
 
-class CustomReadOnlyPasswordHashWidget(forms.Widget):
-    """Custom widget for readonly password hash field."""
+class EstadoFilter(SimpleListFilter):
+    """Filter users by active status with Spanish labels."""
 
-    template_name = 'core/widgets/read_only_password_hash.html'
+    title = 'Estado'
+    parameter_name = 'is_active'
 
-    def get_context(self, name, value, attrs):
-        context = super().get_context(name, value, attrs)
-
-        # Determine if password is usable
-        usable_password = value and not value.startswith(UNUSABLE_PASSWORD_PREFIX)
-
-        # Set button label
-        context['button_label'] = _('Reset password') if usable_password else _('Set password')
-
-        # Set password URL (will be overridden by admin if available)
-        context['password_url'] = '../../password/'
-
-        return context
-
-
-class CustomUserAddForm(AdminUserCreationForm):
-    """Form for adding users with role assignment in admin."""
-
-    role = forms.ChoiceField(
-        choices=[
-            ('', 'Seleccionar rol...'),
-        ],
-        label='Rol',
-        widget=forms.RadioSelect,
-        required=True,
-    )
-
-    class Meta(AdminUserCreationForm.Meta):
-        model = User
-        fields = ('username', 'last_name', 'first_name', 'email')
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Set role choices from BackOfficeRole enum
-        self.fields['role'].choices = [
-            ('', 'Seleccionar rol...'),
-        ] + [(role, role.name.capitalize()) for role in BackOfficeRole]
-        self.fields['role'].initial = BackOfficeRole.ANALISTA
-
-    def clean_email(self):
-        """Validate email is unique."""
-        email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
-            raise forms.ValidationError('Ya existe un usuario con este correo electrónico.')
-        return email
-
-    def save(self, commit=True):
-        """Save user with role assignment."""
-        user = super().save(commit=False)
-        return user
-
-
-class CustomUserChangeForm(UserChangeForm):
-    """Form for editing users with role assignment in admin."""
-
-    role = forms.ChoiceField(
-        choices=[
-            ('', 'Sin rol'),
-        ],
-        label='Rol',
-        widget=forms.Select,
-        required=False,
-    )
-
-    class Meta(UserChangeForm.Meta):
-        model = User
-        fields = (
-            'username',
-            'first_name',
-            'last_name',
-            'email',
-            'password',
+    def lookups(self, request, model_admin):
+        return (
+            ('1', 'Activo'),
+            ('0', 'Inactivo'),
         )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == '1':
+            return queryset.filter(is_active=True)
+        if value == '0':
+            return queryset.filter(is_active=False)
 
-        # Use custom widget for password field
-        if 'password' in self.fields:
-            self.fields['password'].widget = CustomReadOnlyPasswordHashWidget()
 
-        # Disable username field when editing existing user
-        if self.instance and self.instance.pk and 'username' in self.fields:
-            self.fields['username'].disabled = True
-            self.fields['username'].help_text = _(
-                'El nombre de usuario no se puede cambiar después de crearlo.'
-            )
+class RolFilter(SimpleListFilter):
+    """Filter users by role (group membership).
 
-        # Disable is_staff field as it's managed by roles
-        if 'is_staff' in self.fields:
-            self.fields['is_staff'].disabled = True
-            self.fields['is_staff'].help_text = _(
-                'Este campo se gestiona automáticamente al asignar un rol.'
-            )
+    Uses BackOfficeRole enum values for lookups, showing capitalised
+    role names in the sidebar.  Includes a \"Sin rol\" option for users
+    that do not belong to any role group.
+    """
 
-        # Set role choices from BackOfficeRole enum
-        self.fields['role'].choices = [
-            ('', 'Sin rol'),
-        ] + [(role, role.name.capitalize()) for role in BackOfficeRole]
+    title = 'Rol'
+    parameter_name = 'rol'
 
-        # Get current role from user's groups using the custom properties
-        if self.instance and self.instance.pk:
-            if self.instance.is_superuser:
-                self.fields['role'].initial = 'superuser'
-                self.fields['role'].choices = [('superusuario', 'Superusuario')] + self.fields[
-                    'role'
-                ].choices[1:]
-            elif self.instance.is_administrador:
-                self.fields['role'].initial = BackOfficeRole.ADMINISTRADOR
-            elif self.instance.is_coordinador:
-                self.fields['role'].initial = BackOfficeRole.COORDINADOR
-            elif self.instance.is_analista:
-                self.fields['role'].initial = BackOfficeRole.ANALISTA
-            else:
-                self.fields['role'].initial = ''
+    def lookups(self, request, model_admin):
+        roles = [(role, role.capitalize()) for role in BackOfficeRole]
+        return roles + [('sin_rol', 'Sin rol')]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == 'sin_rol':
+            return queryset.exclude(groups__name__in=list(BackOfficeRole))
+        if value in BackOfficeRole:
+            return queryset.filter(groups__name=value)
 
 
 # =============================================================================
@@ -175,13 +97,29 @@ class BackofficeUserAdmin(UserAdmin):
         'usuario',
         'rol',
         'is_active',
+        'acciones',
     )
 
     list_filter = (
-        'username',
-        'is_active',
-        'groups',
+        EstadoFilter,
+        RolFilter,
     )
+
+    search_fields = ('username', 'first_name', 'last_name', 'email')
+
+    def get_urls(self):
+        """Register password change URL with custom name."""
+        from django.urls import path
+
+        return [
+            path(
+                '<id>/password/',
+                self.admin_site.admin_view(self.user_change_password),
+                name='core_user_password_change',
+            ),
+            *super().get_urls(),
+        ]
+
     fieldsets = (
         (
             None,
@@ -221,6 +159,33 @@ class BackofficeUserAdmin(UserAdmin):
     # Admin actions
     actions = ('asignar_rol', 'marcar_como_activo', 'marcar_como_inactivo')
 
+    # -- Superuser protection -------------------------------------------------
+
+    def has_change_permission(self, request, obj=None):
+        """Non-superusers cannot edit superusers."""
+        if obj and obj.is_superuser and not request.user.is_superuser:
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        """Non-superusers cannot delete superusers."""
+        if obj and obj.is_superuser and not request.user.is_superuser:
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def get_readonly_fields(self, request, obj=None):
+        """Make all fields readonly when a non-superuser views a superuser."""
+        if obj and obj.is_superuser and not request.user.is_superuser:
+            return ('username', 'first_name', 'last_name', 'email', 'password', 'role')
+        return super().get_readonly_fields(request, obj)
+
+    def changelist_view(self, request, extra_context=None):
+        """Store request for use in list display methods."""
+        self._request = request
+        return super().changelist_view(request, extra_context)
+
+    # -- Form configuration ---------------------------------------------------
+
     def get_form(self, request, obj=None, change=False, **kwargs):
         """Return CustomUserAddForm for new users, CustomUserChangeForm for edits."""
         if obj is None:
@@ -228,37 +193,52 @@ class BackofficeUserAdmin(UserAdmin):
         return CustomUserChangeForm
 
     def save_model(self, request, obj, form, change):
-        """Save user and manage role assignment."""
-        super().save_model(request, obj, form, change)
+        """Save user and manage role assignment.
+
+        Sets is_staff and is_active BEFORE the actual save so they persist.
+        Groups are managed AFTER save (M2M does not require obj.save()).
+        """
+        # Defense in depth: non-superusers cannot modify superusers
+        if change and obj.is_superuser and not request.user.is_superuser:
+            return
 
         role = form.cleaned_data.get('role') if hasattr(form, 'cleaned_data') else None
 
-        # Clear existing role groups
+        # is_staff: any valid role grants admin access; no role revokes it
+        if role and role in BackOfficeRole:
+            obj.is_staff = True
+        else:
+            obj.is_staff = False
+
+        # New users are always active
+        if not change:
+            obj.is_active = True
+
+        super().save_model(request, obj, form, change)
+
+        # Manage groups AFTER save (M2M, no save needed)
         obj.groups.remove(*obj.groups.filter(name__in=list(BackOfficeRole)))
 
-        # Assign new role if provided
         if role and role in BackOfficeRole:
             group = Group.objects.filter(name=role).first()
             if group:
                 obj.groups.add(group)
-                # Only Administrador needs is_staff=True for admin access
-                obj.is_staff = role == BackOfficeRole.ADMINISTRADOR
-
-        # New users should be active by default
-        if not change:
-            obj.is_active = True
 
     def asignar_rol(self, request, queryset):
         """Admin action to assign roles to selected users."""
+        if not request.user.is_superuser:
+            queryset = queryset.exclude(is_superuser=True)
         selected_ids = list(queryset.values_list('id', flat=True))
         request.session['selected_user_ids'] = selected_ids
         request.session['user_ids_count'] = len(selected_ids)
-        return HttpResponseRedirect('/admin/auth/user/asignar-rol/')
+        return HttpResponseRedirect(reverse('asignar-rol'))
 
     asignar_rol.short_description = 'Asignar rol'
 
     def marcar_como_activo(self, request, queryset):
         """Admin action to mark selected users as active."""
+        if not request.user.is_superuser:
+            queryset = queryset.exclude(is_superuser=True)
         rows_updated = queryset.update(is_active=True)
         self.message_user(
             request,
@@ -269,6 +249,8 @@ class BackofficeUserAdmin(UserAdmin):
 
     def marcar_como_inactivo(self, request, queryset):
         """Admin action to mark selected users as inactive."""
+        if not request.user.is_superuser:
+            queryset = queryset.exclude(is_superuser=True)
         rows_updated = queryset.update(is_active=False)
         self.message_user(
             request,
@@ -322,3 +304,12 @@ class BackofficeUserAdmin(UserAdmin):
 
     rol.short_description = _('Rol')
     rol.admin_order_field = 'groups__name'
+
+    def acciones(self, obj) -> str:
+        """Quick action links for the user list."""
+        if obj.is_superuser and hasattr(self, '_request') and not self._request.user.is_superuser:
+            return '—'
+        url = reverse('admin:core_user_password_change', args=[obj.pk])
+        return format_html('<a href="{}">Cambiar password</a>', url)
+
+    acciones.short_description = _('Acciones')

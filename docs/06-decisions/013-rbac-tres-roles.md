@@ -37,6 +37,28 @@ Tres roles implementados en `core/rbac/constants.py` como `BackOfficeRole(StrEnu
 | `COORDINADOR` | "Coordinador" | `Group(name="Coordinador")` | Asignar/reasignar, ver todos los trámites |
 | `ANALISTA` | "Analista" | `Group(name="Analista")` | Solo trámites propios + disponibles |
 
+### Acceso al Admin (`is_staff`)
+
+El Django Admin es la **única interfaz** del sistema — no hay vistas públicas ni endpoints
+para usuarios no autenticados. Todos los roles requieren `is_staff=True` para poder
+iniciar sesión en el admin.
+
+| Estado del usuario | `is_staff` | `is_active` | Puede acceder? |
+|-------------------|-----------|------------|----------------|
+| Con rol activo | `True` | `True` | Sí |
+| Sin rol | `False` | `True` | No — no puede entrar al admin |
+| Desactivado (soft delete) | Sin cambios | `False` | No — bloqueado por auth |
+| Reactivado con rol | Sin cambios | `True` | Sí |
+
+**Reglas gestionadas por `BackofficeUserAdmin.save_model`:**
+
+- Asignar rol válido → `is_staff=True` + grupo asignado + `is_active=True` (nuevos)
+- Quitar rol → `is_staff=False` + grupo removido
+- Desactivar (soft delete) → solo `is_active=False`, grupo e `is_staff` sin cambios
+- Reactivar → solo `is_active=True`, grupo ya está presente
+
+**Implementación:** `core/admin.py` (`save_model`) y `core/views.py` (`asignar_rol`).
+
 ### Permisos por Rol
 
 #### Administrador

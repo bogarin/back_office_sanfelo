@@ -62,7 +62,7 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
     # If no users selected, redirect back to admin
     if not selected_user_ids:
         messages.warning(request, 'No hay usuarios seleccionados para asignar rol.')
-        return HttpResponseRedirect(reverse_lazy('admin:auth_user_changelist'))
+        return HttpResponseRedirect(reverse_lazy('admin:core_user_changelist'))
 
     User = get_user_model()
 
@@ -83,11 +83,19 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
         # Get selected role from form
         role_choice = request.POST.get('role')
 
+        if role_choice not in BackOfficeRole:
+            messages.error(request, 'Rol inválido.')
+            return HttpResponseRedirect(
+                reverse_lazy('admin:core_user_changelist')
+            )
+
         # Assign role to selected users
         count = 0
         for user in users:
-            # Remove all groups first
-            user.groups.clear()
+            # Remove only RBAC role groups (preserve non-RBAC groups)
+            user.groups.remove(
+                *user.groups.filter(name__in=list(BackOfficeRole))
+            )
             user.is_superuser = False
 
             # Assign selected role
@@ -106,7 +114,7 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
         request.session.pop('user_ids_count', None)
 
         messages.success(request, f'Se asignó el rol a {count} usuario(s).')
-        return HttpResponseRedirect(reverse_lazy('admin:auth_user_changelist'))
+        return HttpResponseRedirect(reverse_lazy('admin:core_user_changelist'))
 
     # GET request - display form
     return render(

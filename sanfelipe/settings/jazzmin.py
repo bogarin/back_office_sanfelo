@@ -53,14 +53,14 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
             # Hide 'contenttypes', 'sessions', 'admin', 'tramites' apps
             # Auth app visibility is controlled via auth.view_user permission
             # Tramites app is controlled via custom_links below
-            'hide_apps': ['contenttypes', 'sessions', 'admin', 'tramites'],
+            'hide_apps': ['contenttypes', 'sessions', 'admin', 'tramites', 'core'],
             'hide_models': ['auth.group'],
             'custom_links': {
                 # Auth group: User and group management (only Administrador)
-                'auth': [
+                'Administración': [
                     {
                         'name': 'Usuarios',
-                        'url': 'admin:auth_user_changelist',
+                        'url': 'admin:core_user_changelist',
                         'icon': 'fas fa-users',
                         # Requires auth permission to view (only Administrador has this)
                         'permissions': ['auth.view_user'],

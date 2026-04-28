@@ -96,6 +96,17 @@ root = [
     "./tests"
 ]
 
+
+[tool.pyright]
+exclude = [
+    "**/node_modules", "**/__pycache__", "**/.*", 
+    "db/", "docker/", "fixtures/",
+    "htmlcov", "logs", "media", "nginx", 
+    "static", "staticfiles", "templates"
+]
+venvPath = ".venv"
+pythonVersion = "3.14"
+
 # =============================================================================
 # Pytest Configuration
 # =============================================================================

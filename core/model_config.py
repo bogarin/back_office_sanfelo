@@ -65,6 +65,11 @@ class ModelConfig:
 # This dict is populated by the @register_model decorator
 _model_registry: dict[Any, ModelConfig] = {}
 
+# Label-based registry for migration stub lookup.
+# Key: (app_label, model_name) — these are stable strings that are identical
+# between real model classes and Django's migration stubs (created via type()).
+_model_registry_by_label: dict[tuple[str, str], ModelConfig] = {}
+
 
 def _is_model_class(model_class: Any) -> bool:
     """Check if a class is a Django Model.
@@ -136,6 +141,9 @@ def register_model(
             allow_migrations=allow_migrations,
         )
         _model_registry[model_class] = config
+        _model_registry_by_label[
+            (model_class._meta.app_label, model_class._meta.model_name)
+        ] = config
 
         # Return the original class unchanged (decorator pattern)
         return model_class
@@ -173,3 +181,29 @@ def get_model_config(model: type[Any]) -> ModelConfig | None:
         if the key exists first, which is more Pythonic.
     """
     return _model_registry.get(model)
+
+
+def get_model_config_by_label(app_label: str, model_name: str) -> ModelConfig | None:
+    """Retrieve the ModelConfig for a model by its app label and model name.
+
+    This is the migration-safe counterpart to ``get_model_config()``.
+    During migrations, Django creates stub model classes via ``type()`` that
+    are distinct objects from the real model classes registered by
+    ``@register_model``.  Identity-based lookup (``_model_registry``) fails
+    for these stubs, but their ``(app_label, model_name)`` tuples are
+    identical strings — so this label-based lookup succeeds.
+
+    Args:
+        app_label: The Django app label (e.g. ``'tramites'``, ``'core'``).
+        model_name: The model name in lowercase (e.g. ``'tramite'``, ``'user'``).
+
+    Returns:
+        The ModelConfig instance if the label was registered, None otherwise.
+
+    Example::
+
+        >>> config = get_model_config_by_label('tramites', 'tramitecatalogo')
+        >>> config.db_alias
+        'backend'
+    """
+    return _model_registry_by_label.get((app_label, model_name))
