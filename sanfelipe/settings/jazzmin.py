@@ -44,8 +44,6 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
             'welcome_sign': tenancy_settings['BACKOFFICE_WELCOME_SIGN'],
             # Copyright on the footer
             'copyright': tenancy_settings['BACKOFFICE_COPYRIGHT'],
-            # Bootstrap theme with badge styles (solar has .badge, .badge-primary, etc.)
-            'theme': 'vendor/bootswatch/solar/bootstrap.min.css',
             'custom_css': 'admin/css/backoffice.css',
             'show_sidebar': True,
             'navigation_expanded': True,
@@ -84,13 +82,28 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
                         'permissions': ['tramites.acceso_analista'],
                     },
                     {
-                        'name': 'Trámites',
+                        'name': 'Trámites en curso',
                         'url': 'admin:tramites_tramite_changelist',
-                        'icon': 'fas fa-list',
+                        'icon': 'fas fa-streams',
+                        # No es para analistas
+                        'permissions': ['tramites.acceso_coordinador'],
+                    },
+                    {
+                        'name': 'Trámites finalizados',
+                        'url': 'admin:tramites_cerrado_changelist',
+                        'icon': 'fas fa-flag-checkered',
                         # No es para analistas
                         'permissions': ['tramites.acceso_coordinador'],
                     },
                 ],
             },
+        },
+        'JAZZMIN_UI_TWEAKS': {
+            "theme": "united",
+            "default_theme_mode": "light",
+            "footer_small_text": True,
+            "brand_small_text": True,
+            "sidebar_nav_flat_style": True,
+            'brand_colour': 'green'
         }
     }

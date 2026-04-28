@@ -12,6 +12,7 @@ from datetime import datetime
 from django.contrib import admin, messages
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.utils.safestring import mark_safe
@@ -29,6 +30,7 @@ from tramites.exceptions import (
 from tramites.forms import TramiteDetailForm
 from tramites.models import (
     Buzon,
+    Cerrado,
     Disponible,
     Tramite,
     TramiteCatalogo,
@@ -118,7 +120,7 @@ class TramiteEstatusFilter(admin.SimpleListFilter):
     title = 'Estatus'
     parameter_name = 'tramite_estatus'
 
-    def lookups(self, request, model_admin):
+    def lookups(self, request: HttpRequest, model_admin: TramiteBaseAdmin):
         # Obtener estatus únicos de ultima_actividad_estatus (campo denormalizado)
         estatus = (
             Tramite.objects.exclude(ultima_actividad_estatus__isnull=True)
@@ -234,24 +236,25 @@ class TramiteBaseAdmin(admin.ModelAdmin):
         return render_badge('Normal', 'badge-success')
 
     @admin.display(description='Asignado a', ordering='asignado_username')
-    def asignado_display(self, obj):
+    def asignado_display(self, obj: Tramite):
         match (obj.asignado_user_id, obj.asignado_username, obj.asignado_nombre):
+            # Sin user id: No asignado
             case (None, _, _):
                 return '📦 Sin Asignar'
-            case (_, None, None):
+            # Un user id que no tiene username ni nombre
+            case (_, None, None) | (_, '', '') | (_, None, '')|(_, '', None):
                 return f'📦 ID: {obj.asignado_user_id}'
-            case (_, username, None):
-                return f'👤 {username}'
-            case (_, _, nombre):
-                return f'👤 {nombre}'
-        return '📦 Sin Asignar'
+            # El nombre no existe
+            case (_, _, None) | (_, _, ''):
+                return f'👤 {obj.asignado_username}'
+        return f'👤 {obj.asignado_nombre}'
 
     @admin.display(description='Creado', ordering='-creado')
-    def creado_display(self, obj):
+    def creado_display(self, obj: Tramite):
         return _display_timestamp(obj.creado)
 
     @admin.display(description='Actualizado', ordering='-actualizado')
-    def actualizado_display(self, obj):
+    def actualizado_display(self, obj: Tramite):
         return _display_timestamp(obj.actualizado)
 
     @admin.display(description='Acciones Rápidas')
@@ -454,7 +457,6 @@ class TramiteBaseAdmin(admin.ModelAdmin):
         - Documentos PDF desde SFTP (via SFTPService.fetch_requisito_files())
         - Acciones disponibles (requerir documentos, en diligencia, finalizar)
         """
-        from django.core.exceptions import PermissionDenied
 
         tramite = self.get_object(request, object_id)
 
@@ -543,6 +545,13 @@ class BuzonTramitesAdmin(TramiteBaseAdmin):
         *DEFAULT_FILTERS,
     )
 
+    def get_list_display(self, request: HttpRequest) -> list[str]:
+        """
+        Elimina la columna "asignado" ya que no tiene sentido en este admin
+        """
+        cols = super().get_list_display(request)
+        return [z for z in cols if not z.startswith("asignado")]
+
     def has_change_permission(self, request, obj=None):
         """Analistas pueden ejecutar acciones (obj=None), no editar form."""
         user = request.user
@@ -576,6 +585,13 @@ class TramitesDisponiblesAdmin(TramiteBaseAdmin):
     )
 
     actions = ('tomar_asignacion',)
+
+    def get_list_display(self, request: HttpRequest) -> list[str]:
+        """
+        Elimina la columna "asignado" ya que no tiene sentido en este admin
+        """
+        cols = super().get_list_display(request)
+        return [z for z in cols if not z.startswith("asignado")]
 
     def has_change_permission(self, request, obj=None):
         """Analistas pueden ejecutar acciones (obj=None), no editar form."""
@@ -662,3 +678,45 @@ class TramitesAdmin(TramiteBaseAdmin):
         return render_quick_action(
             'Modificar Asignación', attrs={'action': 'modificar_asignacion', 'pk': obj.pk}
         )
+
+@admin.register(Cerrado)
+class TramitesCerradosAdmin(TramiteBaseAdmin):
+    """Trámites para Coordinadores y Administradores — Solo tramites finalizados."""
+
+    def has_change_permission(self, request, obj=None):
+        """Coordinador/Admin pueden ejecutar acciones, no editar form."""
+        user = request.user
+        return obj is None and (user.is_coordinador or user.is_administrador)
+
+    def get_list_filter(self, request):
+        """
+        Conditionally include AsignadoUserFilter based on user role.
+
+        - Coordinadores y Admins ven el filtro para gestionar asignaciones
+        - Analistas no ven el filtro, solo su listado personalizado (Buzon)
+        """
+        return [AsignadoUserFilter, *super().get_list_filter(request)]
+
+    def get_queryset(self, request):
+        """
+        Solo muestra tramites con estatus_id > 300
+        """
+        return (
+            super()
+            .get_queryset(request)
+            .filter(
+                ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.POR_RECOGER.value,
+            )
+        )
+
+    @admin.display(description='Acciones Rápidas')
+    def acciones_disponibles(self, obj):
+        """
+        Render quick action button for trámites (Coordinador/Admin).
+
+        Única acción disponible: Modificar Asignación.
+        """
+        return render_quick_action(
+            'Modificar Asignación', attrs={'action': 'modificar_asignacion', 'pk': obj.pk}
+        )
+

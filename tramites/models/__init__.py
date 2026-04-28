@@ -15,14 +15,14 @@ from .relaciones import (
     TramiteCatalogoRequisito,
     TramiteCatalogoTipoRequisito,
 )
-from .tramite import Tramite, Buzon, Disponible
-
+from .tramite import Buzon, Cerrado, Disponible, Tramite
 
 __all__ = [
     # Core
     'Tramite',
     'Buzon',
     'Disponible',
+    'Cerrado',
     # Catálogos
     'TramiteCatalogo',
     'TramiteEstatus',

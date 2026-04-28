@@ -11,13 +11,15 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.http import HttpResponseRedirect
-from django.urls import reverse
+from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import PermissionDenied
 
 from core.admin_utils import render_badge
 from core.forms import CustomUserAddForm, CustomUserChangeForm
 from core.rbac.constants import BackOfficeRole
+from core.admin_utils import render_quick_action, render_activo_badge
 
 User = get_user_model()
 
@@ -54,6 +56,7 @@ class EstadoFilter(SimpleListFilter):
             return queryset.filter(is_active=True)
         if value == '0':
             return queryset.filter(is_active=False)
+        return queryset
 
 
 class RolFilter(SimpleListFilter):
@@ -69,7 +72,7 @@ class RolFilter(SimpleListFilter):
 
     def lookups(self, request, model_admin):
         roles = [(role, role.capitalize()) for role in BackOfficeRole]
-        return roles + [('sin_rol', 'Sin rol')]
+        return [*roles, ('sin_rol', 'Sin rol')]
 
     def queryset(self, request, queryset):
         value = self.value()
@@ -77,6 +80,7 @@ class RolFilter(SimpleListFilter):
             return queryset.exclude(groups__name__in=list(BackOfficeRole))
         if value in BackOfficeRole:
             return queryset.filter(groups__name=value)
+        return queryset
 
 
 # =============================================================================
@@ -96,7 +100,7 @@ class BackofficeUserAdmin(UserAdmin):
     list_display = (
         'usuario',
         'rol',
-        'is_active',
+        'usuario_estatus',
         'acciones',
     )
 
@@ -109,7 +113,6 @@ class BackofficeUserAdmin(UserAdmin):
 
     def get_urls(self):
         """Register password change URL with custom name."""
-        from django.urls import path
 
         return [
             path(
@@ -282,6 +285,9 @@ class BackofficeUserAdmin(UserAdmin):
 
     usuario.short_description = _('Usuario')
 
+    def usuario_estatus(self, obj:User) -> str:
+        return render_activo_badge(obj.is_active)
+
     def rol(self, obj) -> str:
         """Display user role as a badge.
 
@@ -305,11 +311,25 @@ class BackofficeUserAdmin(UserAdmin):
     rol.short_description = _('Rol')
     rol.admin_order_field = 'groups__name'
 
-    def acciones(self, obj) -> str:
-        """Quick action links for the user list."""
-        if obj.is_superuser and hasattr(self, '_request') and not self._request.user.is_superuser:
+    def user_change_password(self, request, id, form_url=''):
+        """Override to prevent non-superusers from changing superuser passwords."""
+
+        user = self.get_object(request, id)
+        if user and user.is_superuser and not request.user.is_superuser:
+            raise PermissionDenied
+        return super().user_change_password(request, id, form_url)
+
+    def acciones(self, obj:User) -> str:
+        """Quick action links for the user list.
+
+        Only shows password change link for superusers if current user
+        is also a superuser.
+        """
+        # Don't show password change link for superusers unless current user is also superuser
+        if obj.is_superuser and (not hasattr(self, '_request') or not self._request.user.is_superuser):
             return '—'
         url = reverse('admin:core_user_password_change', args=[obj.pk])
-        return format_html('<a href="{}">Cambiar password</a>', url)
+        return render_quick_action('🔑 Cambiar contraseña', target=url)
+        # return format_html('<a href="{}">Cambiar password</a>', url)
 
     acciones.short_description = _('Acciones')

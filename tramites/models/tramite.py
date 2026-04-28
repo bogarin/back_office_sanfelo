@@ -446,3 +446,13 @@ class Disponible(Tramite):
         verbose_name = 'Trámite disponible para autoasignación'
         verbose_name_plural = 'Trámites disponibles'
         ordering = ('-creado', '-urgente')
+
+
+class Cerrado(Tramite):
+    """Modelo proxy para implementar el admin de tramites finalizados para el Coordinador."""
+
+    class Meta:
+        proxy = True
+        verbose_name = 'Trámites finalizados'
+        verbose_name_plural = 'Trámites finalizados'
+        ordering = ('-creado', '-urgente')
