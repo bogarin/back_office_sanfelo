@@ -161,3 +161,20 @@ def invalidate_catalog_cache(request: HttpRequest) -> HttpResponse:
 
     messages.success(request, 'Caché de catálogos invalidada correctamente.')
     return HttpResponseRedirect(reverse_lazy('admin:index'))
+
+
+@staff_member_required
+def test_rendering(request: HttpRequest) -> HttpResponse:
+    """Design system rendering test page.
+
+    Displays all styled components used in the project for visual
+    verification. Only available in DEBUG mode (URL is gated by
+    settings.DEBUG in sanfelipe/urls.py).
+
+    Args:
+        request: The HTTP request object.
+
+    Returns:
+        HttpResponse: Rendered test page with all design system components.
+    """
+    return render(request, 'test_rendering.html')

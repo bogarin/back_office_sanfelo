@@ -349,75 +349,73 @@ class TramiteBaseAdmin(admin.ModelAdmin):
             analista_id = request.POST.get('analista')
             observacion = request.POST.get('observacion', '')
         else:
-            analista_id = None
-            observacion = ''
+            # Primera visita: mostrar formulario intermedio
+            analistas = User.objects.filter(groups__name='Analista')
 
-            # Acción: Liberar (ninguno seleccionado)
-            if analista_id == 'ninguno':
-                count = 0
-                errores = []
+            context = {
+                'analistas': analistas,
+                'queryset': queryset,
+                'action_checkbox_name': ACTION_CHECKBOX_NAME,
+                'opts': self.model._meta,
+                'action_name': 'modificar_asignacion',
+            }
+            return render(request, 'admin/modificar_asignacion.html', context)
 
-                for tramite in queryset:
-                    try:
-                        tramite.asignar(
-                            analista=None,
-                            asignado_por=request.user,
-                            observacion=observacion,
-                        )
-                        count += 1
-                    except Exception as e:
-                        logger.error(f'Error liberando {tramite.folio}: {e}')
-                        errores.append(f'{tramite.folio}: {e!s}')
+        # Procesar: tenemos analista_id (desde override o POST del formulario)
+        # Acción: Liberar (ninguno seleccionado)
+        if analista_id == 'ninguno':
+            count = 0
+            errores = []
 
-                if count:
-                    messages.success(request, f'✅ {count} trámites liberados')
-                if errores:
-                    messages.warning(request, f'⚠️ Errores: {"; ".join(errores[:5])}')
-
-            # Acción: Asignar o Reasignar (analista seleccionado)
-            else:
-                if not analista_id:
-                    messages.error(request, '❌ Debe seleccionar un analista o "Ninguno"')
-                    return redirect(request.get_full_path())
-
-                analista = User.objects.get(id=analista_id)
-                asignados = []
-                errores = []
-
-                for tramite in queryset:
-                    try:
-                        tramite.asignar(
-                            analista=analista,
-                            asignado_por=request.user,
-                            observacion=observacion,
-                        )
-                        asignados.append(tramite.folio)
-                    except Exception as e:
-                        logger.error(f'Error asignando {tramite.folio} a {analista.username}: {e}')
-                        errores.append(f'{tramite.folio}: {e!s}')
-
-                if asignados:
-                    nombre_analista = analista.get_full_name() or analista.username
-                    messages.success(
-                        request,
-                        f'✅ {len(asignados)} trámites asignados a {nombre_analista}',
+            for tramite in queryset:
+                try:
+                    tramite.asignar(
+                        analista=None,
+                        asignado_por=request.user,
+                        observacion=observacion,
                     )
-                if errores:
-                    messages.warning(request, f'⚠️ Errores: {"; ".join(errores[:5])}')
+                    count += 1
+                except Exception as e:
+                    logger.error(f'Error liberando {tramite.folio}: {e}')
+                    errores.append(f'{tramite.folio}: {e!s}')
 
-            return redirect(request.get_full_path())
+            if count:
+                messages.success(request, f'{count} trámites liberados')
+            if errores:
+                messages.warning(request, f'Errores: {"; ".join(errores[:5])}')
 
-        # GET: Mostrar formulario de modificación de asignación
-        analistas = User.objects.filter(groups__name='Analista')
+        # Acción: Asignar o Reasignar (analista seleccionado)
+        else:
+            if not analista_id:
+                messages.error(request, 'Debe seleccionar un analista o "Ninguno"')
+                return redirect(request.get_full_path())
 
-        context = {
-            'analistas': analistas,
-            'queryset': queryset,
-            'action_checkbox_name': ACTION_CHECKBOX_NAME,
-            'opts': self.model._meta,
-            'action_name': 'modificar_asignacion',
-        }
-        return render(request, 'admin/modificar_asignacion.html', context)
+            analista = User.objects.get(id=analista_id)
+            asignados = []
+            errores = []
+
+            for tramite in queryset:
+                try:
+                    tramite.asignar(
+                        analista=analista,
+                        asignado_por=request.user,
+                        observacion=observacion,
+                    )
+                    asignados.append(tramite.folio)
+                except Exception as e:
+                    logger.error(f'Error asignando {tramite.folio} a {analista.username}: {e}')
+                    errores.append(f'{tramite.folio}: {e!s}')
+
+            if asignados:
+                nombre_analista = analista.get_full_name() or analista.username
+                messages.success(
+                    request,
+                    f'{len(asignados)} trámites asignados a {nombre_analista}',
+                )
+            if errores:
+                messages.warning(request, f'Errores: {"; ".join(errores[:5])}')
+
+        return redirect(request.get_full_path())
 
     # ========== QUICK ACTIONS HANDLERS ==========
 
@@ -432,7 +430,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
         user = request.user
         tramite = queryset.first()
         if not tramite or not tramite.can_release(user):
-            messages.error(request, '❌ Solo los coordinadores pueden liberar trámites')
+            messages.error(request, 'Solo los coordinadores pueden liberar trámites')
             return redirect(request.get_full_path())
 
         try:
@@ -441,10 +439,10 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                 asignado_por=request.user,
                 observacion='Trámite liberado',
             )
-            messages.success(request, f'✅ Trámite {tramite.folio} liberado')
+            messages.success(request, f'Trámite {tramite.folio} liberado')
         except Exception as e:
             logger.error('Error liberando %s: %s', tramite.folio, e)
-            messages.error(request, '❌ Error inesperado al liberar el trámite')
+            messages.error(request, 'Error inesperado al liberar el trámite')
         return redirect(request.get_full_path())
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
@@ -461,7 +459,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
         tramite = self.get_object(request, object_id)
 
         if not tramite:
-            messages.error(request, '❌ Trámite no encontrado')
+            messages.error(request, 'Trámite no encontrado')
             return redirect('admin:index')
 
         # Object-level permission check (IDOR protection)
@@ -478,30 +476,30 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                 # Validate action is allowed for this user + status
                 allowed = tramite.available_actions(request.user)
                 if action not in allowed:
-                    messages.error(request, '❌ Acción no permitida')
+                    messages.error(request, 'Acción no permitida')
                 else:
                     try:
                         if action == 'requerir_documentos':
                             tramite.requerir_documentos(
                                 analista=request.user, observacion=observacion
                             )
-                            messages.success(request, '✅ Requerimiento de documentos registrado')
+                            messages.success(request, 'Requerimiento de documentos registrado')
                         elif action == 'en_diligencia':
                             tramite.en_diligencia(analista=request.user, observacion=observacion)
-                            messages.success(request, '✅ Trámite puesto en diligencia')
+                            messages.success(request, 'Trámite puesto en diligencia')
                         elif action == 'finalizar':
                             tramite.finalizar(analista=request.user, observacion=observacion)
-                            messages.success(request, '✅ Trámite finalizado')
+                            messages.success(request, 'Trámite finalizado')
 
                     except (TramiteNoAsignableError, EstadoNoPermitidoError, ValueError) as e:
-                        messages.error(request, f'❌ {e}')
+                        messages.error(request, f'{e}')
                     except Exception as e:
                         logger.error(
                             'Error procesando acción en trámite %s: %s',
                             tramite.folio,
                             e,
                         )
-                        messages.error(request, '❌ Error al procesar la acción')
+                        messages.error(request, 'Error al procesar la acción')
 
         else:
             form = TramiteDetailForm()

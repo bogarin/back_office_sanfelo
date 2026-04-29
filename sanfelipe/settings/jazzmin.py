@@ -39,7 +39,8 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
             # (defaults to current_admin_site.site_header if absent or None)
             'site_brand': tenancy_settings['BACKOFFICE_SITE_BRAND'],
             # Logo to use for your site, must be present in static files, used for brand on top left
-            'site_logo': tenancy_settings['BACKOFFICE_SITE_LOGO'] or None,
+            'site_logo': 'logo_dark.svg',
+            'login_logo': 'logo.svg',
             # Welcome text on the login screen
             'welcome_sign': tenancy_settings['BACKOFFICE_WELCOME_SIGN'],
             # Copyright on the footer

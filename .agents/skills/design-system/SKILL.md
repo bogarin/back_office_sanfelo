@@ -121,8 +121,8 @@ Estilo: fondo suave tintado (bg-subtle) + texto oscuro (text-emphasis) + border-
 
 **Regla**: Badges = solo lectura, no interactivos. Si necesita interaccion, usar `.btn-sm` o `.quick-action`.
 
-| Clase | bg (tint 80%) | color (shade 60%) |
-|-------|---------------|-------------------|
+| Clase | bg (tint 80%) | color (shade 60%) | border |
+|-------|---------------|-------------------|--------|
 | `badge-primary` | `#ebd4d7` | `#3f0f16` |
 | `badge-secondary` | `#d1d1d1` | `#0a0a0a` |
 | `badge-success` | `#cff1e6` | `#064a34` |
@@ -131,12 +131,24 @@ Estilo: fondo suave tintado (bg-subtle) + texto oscuro (text-emphasis) + border-
 | `badge-danger` | `#fcdada` | `#601b1b` |
 | `badge-light` | `#fcfcfd` | `#495057` |
 | `badge-dark` | `#d1d1d1` | `#0a0a0a` |
-| `badge-inicio` | `#d1d1d1` | `#0a0a0a` |
-| `badge-proceso` | `#d8e6fd` | `#183462` |
-| `badge-finalizado` | `#cff1e6` | `#064a34` |
-| `badge-otro` | `#d1d1d1` | `#0a0a0a` |
-| `badge-activo` | `#cff1e6` | `#064a34` |
-| `badge-inactivo` | `#d1d1d1` | `#0a0a0a` |
+| `badge-inicio` | `#d1d1d1` | `#0a0a0a` | `#080808`
+| `badge-inicio-101` | `#e4e4e4` | `#0a0a0a` | `#080808` | BORRADOR
+| `badge-inicio-102` | `#cdcdcd` | `#0a0a0a` | `#080808` | PENDIENTE_PAGO
+| `badge-inicio-103` | `#b6b6b6` | `#0a0a0a` | `#080808` | PAGO_EXPIRADO
+| `badge-proceso` | `#cff1e6` | `#064a34` | `#053827`
+| `badge-proceso-201` | `#ecf9f5` | `#064a34` | `#053827` | PRESENTADO
+| `badge-proceso-202` | `#d9f4eb` | `#064a34` | `#053827` | EN_REVISION
+| `badge-proceso-203` | `#c6eee1` | `#064a34` | `#053827` | REQUERIMIENTO
+| `badge-proceso-204` | `#b3e9d7` | `#064a34` | `#053827` | SUBSANADO
+| `badge-proceso-205` | `#9fe3cd` | `#064a34` | `#053827` | EN_DILIGENCIA
+| `badge-finalizado` | `#d8e6fd` | `#183462` | `#12274a`
+| `badge-finalizado-301` | `#e7f0fe` | `#183462` | `#12274a` | POR_RECOGER
+| `badge-finalizado-302` | `#d8e6fd` | `#183462` | `#12274a` | RECHAZADO
+| `badge-finalizado-303` | `#c8dcfc` | `#183462` | `#12274a` | FINALIZADO
+| `badge-finalizado-304` | `#b8d2fc` | `#183462` | `#12274a` | CANCELADO
+| `badge-otro` | `#d1d1d1` | `#0a0a0a` | `#080808`
+| `badge-activo` | `#cff1e6` | `#064a34` | `#053827`
+| `badge-inactivo` | `#d1d1d1` | `#0a0a0a` | `#080808` |
 
 ### Configuracion de Tema en Jazzmin
 
@@ -161,11 +173,19 @@ Jazzmin fuerza `data-bs-theme="dark"` y clase `sidebar-dark-primary` en `#jazzy-
 
 Clases Bootstrap: `badge-primary`, `badge-success`, `badge-danger`, `badge-warning`, `badge-info`, `badge-secondary`, `badge-light`, `badge-dark`
 
-Clases custom de estatus: `badge-inicio`, `badge-proceso`, `badge-finalizado`, `badge-otro`
+Clases custom de estatus (grupo): `badge-inicio`, `badge-proceso`, `badge-finalizado`, `badge-otro`
+
+Clases custom de estatus (específico, gradiente por intensidad):
+- Inicio: `badge-inicio-101`..`badge-inicio-103` (gris, tint 88%→68%)
+- Proceso: `badge-proceso-201`..`badge-proceso-205` (verde, tint 92%→60%)
+- Finalizado: `badge-finalizado-301`..`badge-finalizado-304` (azul, tint 88%→64%)
+
+Todos los badges custom incluyen `border: 1px solid shade(base, 70%)` para mejorar contorno visual.
 
 Clases custom de estado: `badge-activo`, `badge-inactivo`
 
-Template tag asociado: `status_badge_class` (mapea estatus ID a clase de badge)
+Template tag asociado: `status_badge_class` → retorna `inicio-{id}` / `proceso-{id}` / `finalizado-{id}` / `otro`
+Función admin: `render_status_badge()` → usa `badge-{status_badge_class(estatus_id)}`
 
 Colores y reglas WCAG AA documentados en la tabla de Badges arriba.
 

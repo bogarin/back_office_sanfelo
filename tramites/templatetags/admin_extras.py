@@ -21,10 +21,10 @@ def status_badge_class(estatus_id: int) -> str:
     if estatus_id is None:
         return 'otro'
     elif 100 <= estatus_id < 200:
-        return 'inicio'
+        return f'inicio-{estatus_id}'
     elif 200 <= estatus_id < 300:
-        return 'proceso'
+        return f'proceso-{estatus_id}'
     elif 300 <= estatus_id < 400:
-        return 'finalizado'
+        return f'finalizado-{estatus_id}'
     else:
         return 'otro'

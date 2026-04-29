@@ -39,7 +39,7 @@ def configure_tenancy(env: Env) -> dict:
         # (defaults to current_admin_site.site_header if absent or None)
         'BACKOFFICE_SITE_BRAND': env('BACKOFFICE_SITE_BRAND', default='Ventanilla Urbana Digital'),
         # Logo to use for your site, must be present in static files
-        'BACKOFFICE_SITE_LOGO': env('BACKOFFICE_SITE_LOGO', default=''),
+        'BACKOFFICE_SITE_LOGO': env('BACKOFFICE_SITE_LOGO', default='/static/logo.svg'),
         # =============================================================================
         # SITE CONTENT
         # =============================================================================

@@ -12,7 +12,7 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 import tramites.urls
-from core.views import asignar_rol, health_check, invalidate_catalog_cache
+from core.views import asignar_rol, health_check, invalidate_catalog_cache, test_rendering
 
 urlpatterns = [
     # Health check
@@ -43,6 +43,9 @@ if settings.DEBUG:
         import debug_toolbar
 
         urlpatterns = [path('__debug__/', include(debug_toolbar.urls)), *urlpatterns]
+
+    from core.views import test_rendering
+    urlpatterns += [path('test_rendering/', test_rendering, name='test-rendering')]
 
     # Static files serving in development
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

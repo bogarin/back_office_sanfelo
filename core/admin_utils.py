@@ -18,11 +18,15 @@ def render_badge(text, badge_class):
     Returns:
         Safe HTML string for the badge
     """
-    return format_html('<span class="badge {}">{}</span>', badge_class, text)
+    return format_html('<span class="badge {}">{}</span>', badge_class, text.replace('_', ' ').upper())
 
 
 def render_status_badge(estatus_id, estatus_text):
     """Render status badge based on estatus ID.
+
+    Uses specific badge classes (e.g. badge-proceso-202) when a matching
+    CSS class exists, falling back to group classes (badge-inicio,
+    badge-proceso, badge-finalizado) for unknown IDs within a known range.
 
     Args:
         estatus_id: The status ID (100-399 for known statuses)
@@ -34,11 +38,11 @@ def render_status_badge(estatus_id, estatus_text):
     if estatus_id is None:
         badge_class = 'badge-otro'
     elif 100 <= estatus_id < 200:
-        badge_class = 'badge-inicio'
+        badge_class = f'badge-inicio-{estatus_id}'
     elif 200 <= estatus_id < 300:
-        badge_class = 'badge-proceso'
+        badge_class = f'badge-proceso-{estatus_id}'
     elif 300 <= estatus_id < 400:
-        badge_class = 'badge-finalizado'
+        badge_class = f'badge-finalizado-{estatus_id}'
     else:
         badge_class = 'badge-otro'
 
