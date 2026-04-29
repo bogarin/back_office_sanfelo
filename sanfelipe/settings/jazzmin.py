@@ -61,7 +61,7 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
                         'url': 'admin:core_user_changelist',
                         'icon': 'fas fa-users',
                         # Requires auth permission to view (only Administrador has this)
-                        'permissions': ['auth.view_user'],
+                        'permissions': ['core.view_user'],
                     },
                 ],
                 # Trámites group: Role-based visibility via custom permissions

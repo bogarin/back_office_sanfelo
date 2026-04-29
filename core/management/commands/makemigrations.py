@@ -8,13 +8,12 @@ access pattern constraints defined in ModelConfig.
 
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 from django.core.management.commands.makemigrations import Command as BaseCommand
 
 if TYPE_CHECKING:
-    from django.db import models
+    pass
 
 from core.model_config import AccessPattern, get_model_config
 

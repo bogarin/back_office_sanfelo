@@ -59,23 +59,28 @@ iniciar sesión en el admin.
 
 **Implementación:** `core/admin.py` (`save_model`) y `core/views.py` (`asignar_rol`).
 
+> **Invariante de consistencia:** Ambas rutas (`save_model` y `asignar_rol`) deben setear
+> `is_staff=True` basándose en la validez del rol (`role in BackOfficeRole`), NO en la
+> existencia del grupo en la BD. El comando `setup_roles` incluye un paso de auto-reparación
+> que corrige inconsistencias de `is_staff` en usuarios existentes.
+
 ### Permisos por Rol
 
 #### Administrador
 
-**Apps con acceso completo** (`ADMINISTRADOR_APPS`): `auth`, `tramites`
+**Apps con acceso completo** (`ADMINISTRADOR_APPS`): `auth`, `core`, `tramites`
 - Recibe TODOS los permisos (add, change, delete, view) para todas las modelos de estas apps
-- Permisos custom: `view_mis_tramites`, `view_todos`, `view_disponibles`, `view_asignados`, `view_finalizados`
+- Permisos custom: `acceso_analista`, `acceso_coordinador`
 
 #### Coordinador
 
-- Permisos custom únicamente: `view_todos`, `view_disponibles`, `view_asignados`, `view_finalizados`
+- Permisos custom únicamente: `acceso_coordinador`
 - Sin permisos estándar de Django (no puede agregar/modificar/eliminar modelos directamente)
 - Control de visibilidad via sidebar de Jazzmin
 
 #### Analista
 
-- Permisos custom únicamente: `view_mis_tramites`, `view_disponibles`
+- Permisos custom únicamente: `acceso_analista`
 - Sin permisos estándar de Django
 - Ve solo trámites asignados a sí mismo y trámites disponibles
 
@@ -83,13 +88,13 @@ iniciar sesión en el admin.
 
 Los permisos custom controlan la visibilidad de links en el sidebar de Jazzmin:
 
-| Permiso | Link en Sidebar | Roles |
+| Permiso | Links en Sidebar | Roles |
 |---------|----------------|-------|
-| `view_mis_tramites` | Tramites / Mis Tramites | Analista, Administrador |
-| `view_todos` | Tramites / Todos | Administrador, Coordinador |
-| `view_disponibles` | Tramites / Disponibles / Sin asignar | Todos los roles |
-| `view_asignados` | Tramites / Asignados | Administrador, Coordinador |
-| `view_finalizados` | Tramites / Finalizados | Administrador, Coordinador |
+| `acceso_analista` | Mis trámites, Disponibles | Analista, Administrador |
+| `acceso_coordinador` | Trámites en curso, Finalizados | Coordinador, Administrador |
+
+Adicionalmente, el link "Usuarios" en el sidebar requiere `core.view_user`
+(solo Administrador, vía `ADMINISTRADOR_APPS` que incluye `core`).
 
 ### Implementación
 

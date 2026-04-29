@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.model_config import get_model_config, get_model_config_by_label, ModelConfig
+from core.model_config import get_model_config, get_model_config_by_label
 
 if TYPE_CHECKING:
     from django.db.models import Model

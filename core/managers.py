@@ -10,7 +10,8 @@ Classes:
     CreateOnlyManager: Allows creation but prevents updates and deletes.
 """
 
-from typing import TYPE_CHECKING, Any, Generic, Iterable, TypeVar
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from django.core.cache import cache
 from django.db import models
@@ -44,7 +45,7 @@ class ReadOnlyQuerySet(models.QuerySet):
         >>> ImmutableModel.objects.all()  # Works (read-only)
     """
 
-    def create(self, **kwargs: Any) -> 'Model':
+    def create(self, **kwargs: Any) -> Model:
         """
         Create and save a new object with the given kwargs.
 
@@ -130,7 +131,7 @@ class ReadOnlyQuerySet(models.QuerySet):
         self,
         defaults: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> tuple['Model', bool]:
+    ) -> tuple[Model, bool]:
         """
         Look up an object with the given kwargs, creating one if necessary.
 
@@ -149,7 +150,7 @@ class ReadOnlyQuerySet(models.QuerySet):
             'This model is configured as read-only and does not allow modifications.'
         )
 
-    def _clone(self) -> 'ReadOnlyQuerySet':
+    def _clone(self) -> ReadOnlyQuerySet:
         """
         Return a copy of the current QuerySet.
 
@@ -159,7 +160,7 @@ class ReadOnlyQuerySet(models.QuerySet):
         clone = super()._clone()
         return clone
 
-    def all(self) -> 'ReadOnlyQuerySet':
+    def all(self) -> ReadOnlyQuerySet:
         """
         Return a new QuerySet containing all objects.
 
@@ -172,7 +173,7 @@ class ReadOnlyQuerySet(models.QuerySet):
         """
         return super().all()  # type: ignore[return-value]
 
-    def filter(self, *args: Any, **kwargs: Any) -> 'ReadOnlyQuerySet':
+    def filter(self, *args: Any, **kwargs: Any) -> ReadOnlyQuerySet:
         """
         Return a new QuerySet with objects matching the given parameters.
 
@@ -189,7 +190,7 @@ class ReadOnlyQuerySet(models.QuerySet):
         """
         return super().filter(*args, **kwargs)  # type: ignore[return-value]
 
-    def exclude(self, *args: Any, **kwargs: Any) -> 'ReadOnlyQuerySet':
+    def exclude(self, *args: Any, **kwargs: Any) -> ReadOnlyQuerySet:
         """
         Return a new QuerySet with objects not matching the given parameters.
 
@@ -206,7 +207,7 @@ class ReadOnlyQuerySet(models.QuerySet):
         """
         return super().exclude(*args, **kwargs)  # type: ignore[return-value]
 
-    def get(self, *args: Any, **kwargs: Any) -> 'Model':
+    def get(self, *args: Any, **kwargs: Any) -> Model:
         """
         Return the object matching the given lookup parameters.
 
@@ -263,7 +264,7 @@ class ReadOnlyManager(models.Manager.from_queryset(ReadOnlyQuerySet)):  # type: 
         model_name = self.model._meta.model_name
         return f'catalog:{model_name}:all'
 
-    def all_cached(self) -> list['Model']:
+    def all_cached(self) -> list[Model]:
         """
         Return all objects from cache or database.
 
@@ -291,7 +292,7 @@ class ReadOnlyManager(models.Manager.from_queryset(ReadOnlyQuerySet)):  # type: 
         cache.set(cache_key, objects_list, self.CACHE_TIMEOUT)
         return objects_list
 
-    def get_cached(self, pk: int | str) -> 'Model | None':
+    def get_cached(self, pk: int | str) -> Model | None:
         """
         Retrieve single object by primary key from cache or database.
 
@@ -392,7 +393,7 @@ class CreateOnlyQuerySet(models.QuerySet):
         self,
         defaults: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> tuple['Model', bool]:
+    ) -> tuple[Model, bool]:
         """
         Look up an object with the given kwargs, creating one if necessary.
 
@@ -412,7 +413,7 @@ class CreateOnlyQuerySet(models.QuerySet):
             'after initial creation.'
         )
 
-    def _clone(self) -> 'CreateOnlyQuerySet':
+    def _clone(self) -> CreateOnlyQuerySet:
         """
         Return a copy of the current QuerySet.
 
@@ -479,7 +480,7 @@ class CreateOnlyQuerySet(models.QuerySet):
         for i, instance in enumerate(self._result_cache):
             self._result_cache[i] = self._wrap_instance_for_read_only(instance)
 
-    def all(self) -> 'CreateOnlyQuerySet':
+    def all(self) -> CreateOnlyQuerySet:
         """
         Return a new QuerySet containing all objects.
 
@@ -492,7 +493,7 @@ class CreateOnlyQuerySet(models.QuerySet):
         """
         return super().all()  # type: ignore[return-value]
 
-    def filter(self, *args: Any, **kwargs: Any) -> 'CreateOnlyQuerySet':
+    def filter(self, *args: Any, **kwargs: Any) -> CreateOnlyQuerySet:
         """
         Return a new QuerySet with objects matching the given parameters.
 
@@ -509,7 +510,7 @@ class CreateOnlyQuerySet(models.QuerySet):
         """
         return super().filter(*args, **kwargs)  # type: ignore[return-value]
 
-    def exclude(self, *args: Any, **kwargs: Any) -> 'CreateOnlyQuerySet':
+    def exclude(self, *args: Any, **kwargs: Any) -> CreateOnlyQuerySet:
         """
         Return a new QuerySet with objects not matching the given parameters.
 
@@ -526,7 +527,7 @@ class CreateOnlyQuerySet(models.QuerySet):
         """
         return super().exclude(*args, **kwargs)  # type: ignore[return-value]
 
-    def get(self, *args: Any, **kwargs: Any) -> 'Model':
+    def get(self, *args: Any, **kwargs: Any) -> Model:
         """
         Return the object matching the given lookup parameters.
 
@@ -570,4 +571,3 @@ class CreateOnlyManager(models.Manager.from_queryset(CreateOnlyQuerySet)):  # ty
         RuntimeError: Cannot perform update operation...
     """
 
-    pass

@@ -10,16 +10,14 @@ from django.contrib.admin import SimpleListFilter
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 from django.urls import path, reverse
-from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import PermissionDenied
 
-from core.admin_utils import render_badge
+from core.admin_utils import render_activo_badge, render_badge, render_quick_action
 from core.forms import CustomUserAddForm, CustomUserChangeForm
 from core.rbac.constants import BackOfficeRole
-from core.admin_utils import render_quick_action, render_activo_badge
 
 User = get_user_model()
 

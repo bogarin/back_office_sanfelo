@@ -93,6 +93,10 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
 |---------|--------|
 | `core/models.py` | CREADO — Custom User model |
 | `core/admin.py` | CREADO — BackofficeUserAdmin (reemplaza core/admin/ directory) |
+| `core/views.py` | MODIFICADO — `asignar_rol` con is_staff consistente con save_model |
+| `core/rbac/constants.py` | MODIFICADO — Permisos `acceso_analista`, `acceso_coordinador` + `core` en ADMINISTRADOR_APPS |
+| `core/management/commands/setup_roles.py` | MODIFICADO — Auto-reparación de is_staff inconsistencies |
+| `sanfelipe/settings/jazzmin.py` | MODIFICADO — `core.view_user` en vez de `auth.view_user` |
 | `core/migrations/0001_custom_user_model.py` | CREADO — migración inicial |
 | `tramites/models/tramite.py` | TRANSITIONS dict + _validate_transition + permission methods |
 | `tramites/admin.py` | IDOR protection + acción validation + elimina BackOfficeRole import |

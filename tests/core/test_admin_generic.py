@@ -20,8 +20,8 @@ class TestAdminRegistration:
     )
     def test_model_registered_in_admin(self, app_label, model_name):
         """Test that a model is registered in admin site."""
-        from django.contrib import admin
         from django.apps import apps
+        from django.contrib import admin
 
         Model = apps.get_model(app_label, model_name)
 

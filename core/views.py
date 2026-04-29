@@ -98,13 +98,11 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
             )
             user.is_superuser = False
 
-            # Assign selected role
+            # Any valid role grants admin access (consistent with save_model)
+            user.is_staff = True
             group = Group.objects.filter(name=role_choice).first()
             if group:
                 user.groups.add(group)
-                user.is_staff = True
-            else:
-                user.is_staff = False
 
             user.save()
             count += 1

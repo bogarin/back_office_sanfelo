@@ -19,7 +19,6 @@ Apps:
 
 from enum import StrEnum
 
-
 # =============================================================================
 # ROLE DEFINITIONS
 # =============================================================================
@@ -51,7 +50,8 @@ class BackOfficeRole(StrEnum):
 
 # Apps where Administrador has full access (all permissions: add, change, delete, view)
 ADMINISTRADOR_APPS = [
-    'auth',  # User/group management
+    'auth',  # Group/Permission management
+    'core',  # Custom User model (AUTH_USER_MODEL = 'core.User')
     'tramites',  # Procedures and catalog models
 ]
 
@@ -90,33 +90,24 @@ VIEW_ONLY_PERMISSION_TYPES = [PermissionType.VIEW]
 class TramitePermission:
     """Custom permissions for tramites-specific functionality in Jazzmin sidebar.
 
-    These permissions control visibility of custom links in the admin sidebar,
-    allowing role-based filtering of tramite views.
+    These permissions control visibility of custom links in the admin sidebar.
+    Each permission grants access to a group of sidebar links tied to a role:
+
+    - ACCESO_ANALISTA: Mis trámites + Disponibles (Analista + Administrador)
+    - ACCESO_COORDINADOR: Trámites en curso + Finalizados (Coordinador + Administrador)
     """
 
-    # Link: Tramites/Mis Tramites (Analista only)
-    VIEW_MIS_TRAMITES = 'view_mis_tramites'
+    # Sidebar: Mis trámites, Disponibles (Analista + Administrador)
+    ACCESO_ANALISTA = 'acceso_analista'
 
-    # Link: Tramites/Todos (Administrador, Coordinador)
-    VIEW_TODOS = 'view_todos'
-
-    # Link: Tramites/Disponibles/Sin asignar (All roles)
-    VIEW_DISPONIBLES = 'view_disponibles'
-
-    # Link: Tramites/Asignados (Administrador, Coordinador)
-    VIEW_ASIGNADOS = 'view_asignados'
-
-    # Link: Tramites/Finalizados (Administrador, Coordinador)
-    VIEW_FINALIZADOS = 'view_finalizados'
+    # Sidebar: Trámites en curso, Finalizados (Coordinador + Administrador)
+    ACCESO_COORDINADOR = 'acceso_coordinador'
 
 
 # Full list of custom tramites permissions (for creating them in DB)
 TRAMITES_CUSTOM_PERMISSIONS = [
-    TramitePermission.VIEW_MIS_TRAMITES,
-    TramitePermission.VIEW_TODOS,
-    TramitePermission.VIEW_DISPONIBLES,
-    TramitePermission.VIEW_ASIGNADOS,
-    TramitePermission.VIEW_FINALIZADOS,
+    TramitePermission.ACCESO_ANALISTA,
+    TramitePermission.ACCESO_COORDINADOR,
 ]
 
 
@@ -128,20 +119,13 @@ TRAMITES_CUSTOM_PERMISSIONS = [
 # Custom permissions for each role
 ROLE_CUSTOM_PERMISSIONS = {
     BackOfficeRole.ADMINISTRADOR: [
-        TramitePermission.VIEW_MIS_TRAMITES,
-        TramitePermission.VIEW_TODOS,
-        TramitePermission.VIEW_DISPONIBLES,
-        TramitePermission.VIEW_ASIGNADOS,
-        TramitePermission.VIEW_FINALIZADOS,
+        TramitePermission.ACCESO_ANALISTA,
+        TramitePermission.ACCESO_COORDINADOR,
     ],
     BackOfficeRole.COORDINADOR: [
-        TramitePermission.VIEW_TODOS,
-        TramitePermission.VIEW_DISPONIBLES,
-        TramitePermission.VIEW_ASIGNADOS,
-        TramitePermission.VIEW_FINALIZADOS,
+        TramitePermission.ACCESO_COORDINADOR,
     ],
     BackOfficeRole.ANALISTA: [
-        TramitePermission.VIEW_MIS_TRAMITES,
-        TramitePermission.VIEW_DISPONIBLES,
+        TramitePermission.ACCESO_ANALISTA,
     ],
 }

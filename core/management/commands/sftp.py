@@ -372,7 +372,7 @@ class Command(BaseCommand):
                     pass
 
         self.stdout.write('')
-        self.stdout.write(f'✓ Limpieza completada')
+        self.stdout.write('✓ Limpieza completada')
         self.stdout.write(f'  Archivos eliminados: {removed_count}')
         self.stdout.write(f'  Espacio liberado: {removed_size / (1024 * 1024):.2f} MB')
         self.stdout.write(
@@ -429,7 +429,7 @@ class Command(BaseCommand):
             file_size_mb = file_size / (1024 * 1024)
 
             self.stdout.write('')
-            self.stdout.write(self.style.SUCCESS(f'✓ Archivo descargado exitosamente'))
+            self.stdout.write(self.style.SUCCESS('✓ Archivo descargado exitosamente'))
             self.stdout.write(f'  Ruta: {local_path}')
             self.stdout.write(f'  Tamaño: {file_size_mb:.2f} MB')
 

@@ -21,10 +21,10 @@ from django.contrib.contenttypes.models import ContentType
 
 from .constants import (
     ADMINISTRADOR_APPS,
-    BackOfficeRole,
-    PermissionType,
     ROLE_CUSTOM_PERMISSIONS,
     TRAMITES_CUSTOM_PERMISSIONS,
+    BackOfficeRole,
+    PermissionType,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ def get_or_create_group(group_name: str) -> tuple[Group, bool]:
     return Group.objects.get_or_create(name=group_name)
 
 
-def get_content_types_for_apps(app_labels: List[str]) -> List[ContentType]:
+def get_content_types_for_apps(app_labels: list[str]) -> list[ContentType]:
     """
     Get all ContentType objects for given app labels.
 
@@ -57,8 +57,8 @@ def get_content_types_for_apps(app_labels: List[str]) -> List[ContentType]:
 
 
 def get_permissions_for_apps(
-    app_labels: List[str], permission_types: Optional[List[str]] = None
-) -> List[Permission]:
+    app_labels: list[str], permission_types: list[str] | None = None
+) -> list[Permission]:
     """
     Get all permissions for the given apps and permission types.
 
@@ -81,7 +81,7 @@ def get_permissions_for_apps(
     return list(Permission.objects.filter(codename__in=codenames))
 
 
-def get_view_permissions_for_apps(app_labels: List[str]) -> List[Permission]:
+def get_view_permissions_for_apps(app_labels: list[str]) -> list[Permission]:
     """
     Get only view permissions for the given apps.
 
@@ -102,7 +102,7 @@ def get_or_create_custom_permission(codename: str, app_label: str = 'tramites') 
     in Jazzmin sidebar, allowing role-based filtering of tramite views.
 
     Args:
-        codename: Permission codename (e.g., 'view_mis_tramites')
+        codename: Permission codename (e.g., 'acceso_analista')
         app_label: Django app label (default: 'tramites')
 
     Returns:
@@ -213,11 +213,8 @@ def setup_coordinador() -> Group:
     Setup Coordinador group.
 
     The Coordinador group receives:
-    - Custom permissions for Jazzmin sidebar visibility:
-      - view_todos (Tramites/Todos)
-      - view_disponibles (Tramites/Disponibles)
-      - view_asignados (Tramites/Asignados)
-      - view_finalizados (Tramites/Finalizados)
+    - Custom permission for Jazzmin sidebar visibility:
+      - acceso_coordinador (Trámites en curso + Finalizados)
 
     Returns:
         The configured Coordinador group
@@ -248,9 +245,8 @@ def setup_analista() -> Group:
     Setup Analista group.
 
     The Analista group receives:
-    - Custom permissions for Jazzmin sidebar visibility:
-      - view_mis_tramites (Tramites/Mis Tramites)
-      - view_disponibles (Tramites/Disponibles)
+    - Custom permission for Jazzmin sidebar visibility:
+      - acceso_analista (Mis trámites + Disponibles)
 
     Returns:
         The configured Analista group
