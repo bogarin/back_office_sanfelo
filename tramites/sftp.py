@@ -872,12 +872,16 @@ class SFTPService:
             response['X-Content-Type-Options'] = 'nosniff'
             response['X-Frame-Options'] = 'DENY'
         else:
-            # Production: delegate to nginx via X-Accel-Redirect
-            response = HttpResponse()
-            response['X-Accel-Redirect'] = f'/sftp-cache/{cache_path_for_nginx}'
+            # Production: delegate to nginx via X-Accel-Redirect.
+            # Build the full response as if Django were serving the file,
+            # then add X-Accel-Redirect so nginx takes over file serving.
+            # Nginx strips X-Accel-Redirect and passes all other headers
+            # to the client unchanged.
+            response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             response['X-Content-Type-Options'] = 'nosniff'
             response['X-Frame-Options'] = 'DENY'
+            response['X-Accel-Redirect'] = f'/sftp-cache/{cache_path_for_nginx}'
 
         return response
 
