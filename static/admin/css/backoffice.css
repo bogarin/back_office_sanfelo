@@ -171,122 +171,115 @@
     --bs-tertiary-color-rgb: 222,226,230;
     --bs-tertiary-bg: #2a2c2e;
     --bs-tertiary-bg-rgb: 42,44,46;
-    --bs-primary-text-emphasis: #f29879;
-    --bs-secondary-text-emphasis: #cecac5;
-    --bs-success-text-emphasis: #88d292;
-    --bs-info-text-emphasis: #74c7d4;
-    --bs-warning-text-emphasis: #f5d48b;
-    --bs-danger-text-emphasis: #ec8880;
-    --bs-light-text-emphasis: #f8f9fa;
-    --bs-dark-text-emphasis: #dee2e6;
-    --bs-primary-bg-subtle: #2f1106;
-    --bs-secondary-bg-subtle: #232120;
-    --bs-success-bg-subtle: #0b240f;
-    --bs-info-bg-subtle: #052025;
-    --bs-warning-bg-subtle: #30250c;
-    --bs-danger-bg-subtle: #2d0b09;
-    --bs-light-bg-subtle: #333;
-    --bs-dark-bg-subtle: #1a1a1a;
-    --bs-primary-border-subtle: #8c3213;
-    --bs-secondary-border-subtle: #68645f;
-    --bs-success-border-subtle: #226c2c;
-    --bs-info-border-subtle: #0e616e;
-    --bs-warning-border-subtle: #8f6e25;
-    --bs-danger-border-subtle: #86221a;
-    --bs-light-border-subtle: #495057;
-    --bs-dark-border-subtle: #333;
+    --bs-primary-text-emphasis: #c47d88;
+    --bs-secondary-text-emphasis: #767676;
+    --bs-success-text-emphasis: #70d5b3;
+    --bs-info-text-emphasis: #89b4fa;
+    --bs-warning-text-emphasis: #f9c56d;
+    --bs-danger-text-emphasis: #f58f8f;
+    --bs-light-text-emphasis: #f2f4f5;
+    --bs-dark-text-emphasis: #767676;
+    --bs-primary-bg-subtle: #1f080b;
+    --bs-secondary-bg-subtle: #050505;
+    --bs-success-bg-subtle: #03251a;
+    --bs-info-bg-subtle: #0c1a31;
+    --bs-warning-bg-subtle: #312002;
+    --bs-danger-bg-subtle: #300e0e;
+    --bs-light-bg-subtle: #2f2f30;
+    --bs-dark-bg-subtle: #050505;
+    --bs-primary-border-subtle: #3f0f16;
+    --bs-secondary-border-subtle: #0a0a0a;
+    --bs-success-border-subtle: #064a34;
+    --bs-info-border-subtle: #183462;
+    --bs-warning-border-subtle: #623f04;
+    --bs-danger-border-subtle: #601b1b;
+    --bs-light-border-subtle: #5d5e60;
+    --bs-dark-border-subtle: #0a0a0a;
     --bs-heading-color: inherit;
-    --bs-link-color: #f29879;
-    --bs-link-hover-color: #f5ad94;
-    --bs-link-color-rgb: 242,152,121;
-    --bs-link-hover-color-rgb: 245,173,148;
+    --bs-link-color: #c47d88;
+    --bs-link-hover-color: #ba6774;
+    --bs-link-color-rgb: 196,125,136;
+    --bs-link-hover-color-rgb: 186,103,116;
     --bs-code-color: #f18bba;
     --bs-highlight-color: #dee2e6;
-    --bs-highlight-bg: #604919;
+    --bs-highlight-bg: #312002;
     --bs-border-color: #495057;
     --bs-border-color-translucent: rgba(255, 255, 255, 0.15);
-    --bs-form-valid-color: #88d292;
-    --bs-form-valid-border-color: #88d292;
-    --bs-form-invalid-color: #ec8880;
-    --bs-form-invalid-border-color: #ec8880;
+    --bs-form-valid-color: #70d5b3;
+    --bs-form-valid-border-color: #70d5b3;
+    --bs-form-invalid-color: #f58f8f;
+    --bs-form-invalid-border-color: #f58f8f;
 }
 
 /* =============================================================================
  * Badge styles para Django Admin
  *
- * Añade estilos de Bootstrap para badges que no están
- * incluidos en el tema Bootswatch "solar" de Jazzmin.
- *
+ * Estilo Pastel + Pill: fondo suave tintado (bg-subtle) + texto oscuro
+ * (text-emphasis) + border-radius pill. Diferenciado visualmente de botones.
  * Debe cargarse DESPUÉS de bootstrap.min.css para sobrescribir
  * las clases de badge que faltan.
  * ============================================================================= */
 
 /* =============================================================================
- * Badge Base (solar theme ya tiene esto, pero por seguridad lo redefinimos)
+ * Badge Base
  * ============================================================================= */
 
 .badge {
     display: inline-block;
     padding: 0.25em 0.6em;
     font-size: 75%;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1;
     text-align: center;
     white-space: nowrap;
     vertical-align: baseline;
-    border-radius: 0.25rem;
+    border-radius: 50rem;
 }
 
 /* =============================================================================
- * Badge Color Variants (Bootstrap estándar)
+ * Badge Color Variants (Design System - Pastel + Pill)
+ *
+ * Colores: bg-subtle (tint 80%) + text-emphasis (shade 60%).
  * ============================================================================= */
 
-/* Secondary - Gris */
 .badge-secondary {
-    color: #fff;
-    background-color: #6c757d;
+    color: #0a0a0a;
+    background-color: #d1d1d1;
 }
 
-/* Primary - Azul */
 .badge-primary {
-    color: #fff;
-    background-color: #0d6efd;
+    color: #3f0f16;
+    background-color: #ebd4d7;
 }
 
-/* Success - Verde */
 .badge-success {
-    color: #fff;
-    background-color: #198754;
+    color: #064a34;
+    background-color: #cff1e6;
 }
 
-/* Info - Cyan */
 .badge-info {
-    color: #fff;
-    background-color: #0dcaf0;
+    color: #183462;
+    background-color: #d8e6fd;
 }
 
-/* Warning - Amarillo (texto negro para contraste) */
 .badge-warning {
-    color: #000;
-    background-color: #ffc107;
+    color: #623f04;
+    background-color: #fdecce;
 }
 
-/* Danger - Rojo */
 .badge-danger {
-    color: #fff;
-    background-color: #dc3545;
+    color: #601b1b;
+    background-color: #fcdada;
 }
 
-/* Light - Gris claro */
 .badge-light {
-    color: #212529;
-    background-color: #f8f9fa;
+    color: #495057;
+    background-color: #fcfcfd;
 }
 
-/* Dark - Gris oscuro */
 .badge-dark {
-    color: #fff;
-    background-color: #343a40;
+    color: #0a0a0a;
+    background-color: #d1d1d1;
 }
 
 /* =============================================================================
@@ -294,23 +287,23 @@
  * ============================================================================= */
 
 .badge-inicio {
-    color: #fff;
-    background-color: #6c757d;
+    color: #0a0a0a;
+    background-color: #d1d1d1;
 }
 
 .badge-proceso {
-    color: #fff;
-    background-color: #0dcaf0;
+    color: #183462;
+    background-color: #d8e6fd;
 }
 
 .badge-finalizado {
-    color: #fff;
-    background-color: #198754;
+    color: #064a34;
+    background-color: #cff1e6;
 }
 
 .badge-otro {
-    color: #fff;
-    background-color: #343a40;
+    color: #0a0a0a;
+    background-color: #d1d1d1;
 }
 
 /* =============================================================================
@@ -318,13 +311,13 @@
  * ============================================================================= */
 
 .badge-activo {
-    color: #fff;
-    background-color: #198754;
+    color: #064a34;
+    background-color: #cff1e6;
 }
 
 .badge-inactivo {
-    color: #fff;
-    background-color: #6c757d;
+    color: #0a0a0a;
+    background-color: #d1d1d1;
 }
 
 /* =============================================================================
@@ -332,10 +325,30 @@
  * ============================================================================= */
 
 .quick-action {
-    padding: 2px 10px;
-    font-size: 11px;
-    white-space: nowrap;
     margin-right: 4px;
+}
+
+/* =============================================================================
+ * Sidebar Override (Design System)
+ *
+ * Jazzmin/AdminLTE fuerza sidebar-dark-primary + data-bs-theme="dark" en el
+ * sidebar. Sobrescribimos el background para usar el primary oscuro del
+ * design system. Solo aplica en tema light.
+ * ============================================================================= */
+
+[data-bs-theme="light"] #jazzy-sidebar,
+#jazzy-sidebar.sidebar-dark-primary {
+    background-color: #3f0f16 !important;
+}
+
+#jazzy-sidebar .user-panel {
+    color: #fff;
+}
+
+#jazzy-sidebar .user-panel .info,
+#jazzy-sidebar .user-panel .info a,
+#jazzy-sidebar .user-panel .info span {
+    color: #fff !important;
 }
 
 /* =============================================================================

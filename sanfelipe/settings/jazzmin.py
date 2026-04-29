@@ -84,7 +84,7 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
                     {
                         'name': 'Trámites en curso',
                         'url': 'admin:tramites_tramite_changelist',
-                        'icon': 'fas fa-streams',
+                        'icon': 'fas fa-inbox',
                         # No es para analistas
                         'permissions': ['tramites.acceso_coordinador'],
                     },

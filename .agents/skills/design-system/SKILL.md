@@ -103,12 +103,40 @@ Definidas en `backoffice.css` como custom properties. Los colores de texto cumpl
 
 ### Tema Obscuro (`[data-bs-theme="dark"]`)
 
-| Variable | Valor |
-|----------|-------|
-| `--bs-body-bg` | `#212529` |
-| `--bs-body-color` | `#dee2e6` |
-| `--bs-link-color` | `#f29879` |
-| `--bs-border-color` | `#495057` |
+Jazzmin fuerza `data-bs-theme="dark"` en el sidebar. Valores derivados con `tint(base, 40%)` / `shade(base, 80%)` / `shade(base, 60%)`.
+
+| Variable | Valor | Formula |
+|----------|-------|---------|
+| `--bs-body-bg` | `#212529` | Bootstrap default |
+| `--bs-body-color` | `#dee2e6` | Bootstrap default |
+| `--bs-link-color` | `#c47d88` | tint(primary, 40%) |
+| `--bs-link-hover-color` | `#ba6774` | tint(primary, 30%) |
+| `--bs-border-color` | `#495057` | Bootstrap default |
+| `--bs-form-valid-color` | `#70d5b3` | tint(success, 40%) |
+| `--bs-form-invalid-color` | `#f58f8f` | tint(danger, 40%) |
+
+### Badges (Design System - Pastel + Pill)
+
+Estilo: fondo suave tintado (bg-subtle) + texto oscuro (text-emphasis) + border-radius pill (`50rem`). Visualmente diferenciados de botones.
+
+**Regla**: Badges = solo lectura, no interactivos. Si necesita interaccion, usar `.btn-sm` o `.quick-action`.
+
+| Clase | bg (tint 80%) | color (shade 60%) |
+|-------|---------------|-------------------|
+| `badge-primary` | `#ebd4d7` | `#3f0f16` |
+| `badge-secondary` | `#d1d1d1` | `#0a0a0a` |
+| `badge-success` | `#cff1e6` | `#064a34` |
+| `badge-info` | `#d8e6fd` | `#183462` |
+| `badge-warning` | `#fdecce` | `#623f04` |
+| `badge-danger` | `#fcdada` | `#601b1b` |
+| `badge-light` | `#fcfcfd` | `#495057` |
+| `badge-dark` | `#d1d1d1` | `#0a0a0a` |
+| `badge-inicio` | `#d1d1d1` | `#0a0a0a` |
+| `badge-proceso` | `#d8e6fd` | `#183462` |
+| `badge-finalizado` | `#cff1e6` | `#064a34` |
+| `badge-otro` | `#d1d1d1` | `#0a0a0a` |
+| `badge-activo` | `#cff1e6` | `#064a34` |
+| `badge-inactivo` | `#d1d1d1` | `#0a0a0a` |
 
 ### Configuracion de Tema en Jazzmin
 
@@ -117,19 +145,29 @@ En `sanfelipe/settings/jazzmin.py`, `JAZZMIN_UI_TWEAKS`:
 - `"default_theme_mode"`: `"light"` o `"dark"`
 - Jazzmin persiste la preferencia en `localStorage` (`jazzmin-theme-mode`)
 
+### Sidebar (Tema Light)
+
+Jazzmin fuerza `data-bs-theme="dark"` y clase `sidebar-dark-primary` en `#jazzy-sidebar`. Sobrescrito en `backoffice.css`:
+- **Background**: `#3f0f16` (shade(primary, 60%))
+- **Links inactivos**: `rgb(194, 199, 208)` (dark theme default)
+- **Link activo**: texto blanco con highlight sutil
+- **Brand link**: usa `--bs-link-color` del dark theme (`#c47d88`)
+
 **Regla**: Siempre usar `var(--bs-*)` en CSS custom. Nunca hardcodear valores que ya existen como variables Bootstrap.
 
 ## Clases CSS Disponibles
 
-### Badges (Bootstrap + custom)
+### Badges
 
 Clases Bootstrap: `badge-primary`, `badge-success`, `badge-danger`, `badge-warning`, `badge-info`, `badge-secondary`, `badge-light`, `badge-dark`
 
-Clases custom de estatus (definidas en `backoffice.css`): `badge-inicio`, `badge-proceso`, `badge-finalizado`, `badge-otro`
+Clases custom de estatus: `badge-inicio`, `badge-proceso`, `badge-finalizado`, `badge-otro`
 
 Clases custom de estado: `badge-activo`, `badge-inactivo`
 
 Template tag asociado: `status_badge_class` (mapea estatus ID a clase de badge)
+
+Colores y reglas WCAG AA documentados en la tabla de Badges arriba.
 
 ### Quick Actions
 
