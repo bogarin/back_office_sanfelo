@@ -46,6 +46,9 @@ User = get_user_model()
 def _display_timestamp(dt: datetime | None) -> str:
     """Format datetime for display in admin.
 
+    Converts naive datetimes (from timestamp columns without timezone)
+    to aware datetimes assuming the current timezone before formatting.
+
     Args:
         dt: DateTime object or None
 
@@ -54,7 +57,11 @@ def _display_timestamp(dt: datetime | None) -> str:
     """
     if dt is None:
         return '—'
-    return dt.strftime('%Y-%m-%d %H:%M:%S')
+    from django.utils import timezone as _tz
+
+    if _tz.is_naive(dt):
+        dt = _tz.make_aware(dt)
+    return _tz.localtime(dt).strftime('%Y-%m-%d %H:%M:%S')
 
 
 # =============================================================================

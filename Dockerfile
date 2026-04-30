@@ -24,12 +24,14 @@ FROM python:3.14-slim-trixie
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
+    TZ=America/Tijuana \
     HTTP_PORT=8080 \
     DJANGO_SETTINGS_MODULE=sanfelipe.settings \
     GUNICORN_PORT=8081 \
     GUNICORN_WORKERS=4 \
     GUNICORN_TIMEOUT=60 \
     DJANGO_DEBUG=False \
+    DJANGO_TIME_ZONE=America/Tijuana \
     DJANGO_SECRET_KEY=abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ \
     DJANGO_ALLOWED_HOSTS=localhost \
     POSTGRESQL_DB_URL=postgresql://user:pass@localhost/db \
@@ -40,7 +42,7 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 nginx && \
+    libpq5 nginx tzdata && \
     rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 appuser && \

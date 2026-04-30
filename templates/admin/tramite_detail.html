@@ -118,11 +118,11 @@
                             </tr>
                             <tr>
                                 <td>Creado</td>
-                                <td>{{ tramite.creado|date:"Y-m-d H:i" }}</td>
+                                <td>{{ tramite.creado|date:"Y-m-d H:i:s" }}</td>
                             </tr>
                             <tr>
                                 <td>Última Actualización</td>
-                                <td>{{ tramite.actualizado|date:"Y-m-d H:i"|default:"—" }}</td>
+                                <td>{{ tramite.actualizado|date:"Y-m-d H:i:s"|default:"—" }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -202,7 +202,7 @@
                         <tbody>
                             {% for actividad in tramite.historial_actividades %}
                             <tr>
-                                <td>{{ actividad.timestamp|date:"Y-m-d H:i" }}</td>
+                                <td>{{ actividad.timestamp|date:"Y-m-d H:i:s" }}</td>
                                 <td>
                                     <span class="badge badge-{{ actividad.estatus_id|status_badge_class }}">
                                         {{ actividad.estatus.estatus }}

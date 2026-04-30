@@ -163,10 +163,17 @@ ASGI_APPLICATION = 'sanfelipe.asgi.application'
 db = env.db('POSTGRESQL_DB_URL')
 backoffice_schema = env('BACKOFFICE_DB_SCHEMA', default='backoffice')
 backend_schema = env('BACKEND_DB_SCHEMA', default='public')
+tz = env('DJANGO_TIME_ZONE', default='America/Tijuana')
 
 DATABASES = {
-    'default': {**db, 'OPTIONS': {'options': f'-c search_path={backoffice_schema}'}},
-    'backend': {**db, 'OPTIONS': {'options': f'-c search_path={backend_schema}'}},
+    'default': {
+        **db,
+        'OPTIONS': {'options': f'-c search_path={backoffice_schema} -c timezone={tz}'},
+    },
+    'backend': {
+        **db,
+        'OPTIONS': {'options': f'-c search_path={backend_schema} -c timezone={tz}'},
+    },
 }
 
 # Route backend apps to PostgreSQL
@@ -227,7 +234,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # =============================================================================
 
 LANGUAGE_CODE = 'es-mx'
-TIME_ZONE = 'America/Tijuana'
+TIME_ZONE = tz
 
 USE_I18N = True
 USE_L10N = True
