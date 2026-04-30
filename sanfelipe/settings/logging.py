@@ -9,6 +9,7 @@ This module contains all logging-related configuration including:
 """
 
 from pathlib import Path
+
 from environ import Env
 
 

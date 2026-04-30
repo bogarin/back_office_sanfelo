@@ -15,6 +15,11 @@ urlpatterns = [
         name='sin-asignar',
     ),
     path(
+        'tramite/<int:pk>/cerrar/',
+        views.cerrar_tramite_view,
+        name='cerrar-tramite',
+    ),
+    path(
         'tramite/<int:pk>/download/<str:filename>/',
         views.download_requisito_pdf,
         name='download-requisito-pdf',

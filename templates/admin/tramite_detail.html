@@ -1,6 +1,5 @@
 {% extends "admin/base_site.html" %}
 {% load i18n admin_urls static admin_extras %}
-
 {% block extrastyle %}
 {{ block.super }}
 <style>
@@ -304,14 +303,13 @@
                             </button>
                             {% endif %}
 
-                            {% if 'finalizar' in available_actions %}
-                            <button
-                                type="submit"
-                                class="btn btn-success"
-                                onclick="document.getElementById('action-input').value='finalizar'"
+                            {% if 'cerrar' in available_actions %}
+                            <a
+                                href="{% url 'tramites:cerrar-tramite' pk=tramite.pk %}?next={{ request.path }}"
+                                class="btn btn-danger"
                             >
-                                <i class="fas fa-check-circle px-2"></i>Finalizar Trámite
-                            </button>
+                                <i class="fas fa-times-circle px-2"></i>Cerrar Trámite
+                            </a>
                             {% endif %}
 
                             {% if not available_actions %}

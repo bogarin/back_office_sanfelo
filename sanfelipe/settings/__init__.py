@@ -7,16 +7,16 @@ Uses PostgreSQL with schema separation:
 - public schema: tramites, core (business data managed externally)
 """
 
+import importlib.util
 from pathlib import Path
 
 import environ
-import importlib.util
 
-from .security import configure_security, validate_secret_key
-from .tenancy import configure_tenancy
 from .jazzmin import configure_jazzmin
 from .logging import configure_logging
+from .security import configure_security, validate_secret_key
 from .sftp import configure_sftp
+from .tenancy import configure_tenancy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # settings/ is now a package, so we need to go up 3 levels instead of 2
@@ -226,8 +226,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # INTERNATIONALIZATION
 # =============================================================================
 
-LANGUAGE_CODE = 'es-ar'  # Spanish - Argentina (San Felipe)
-TIME_ZONE = 'America/Argentina/San_Luis'  # San Felipe timezone
+LANGUAGE_CODE = 'es-mx'
+TIME_ZONE = 'America/Tijuana'
 
 USE_I18N = True
 USE_L10N = True

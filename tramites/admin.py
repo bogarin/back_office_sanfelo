@@ -453,7 +453,11 @@ class TramiteBaseAdmin(admin.ModelAdmin):
         - Información completa del trámite (readonly)
         - Historial de actividades (via tramite.historial_actividades)
         - Documentos PDF desde SFTP (via SFTPService.fetch_requisito_files())
-        - Acciones disponibles (requerir documentos, en diligencia, finalizar)
+        - Acciones disponibles (requerir documentos, en diligencia)
+
+        NOTE: La acción "cerrar trámite" se maneja en una vista intermedia
+        separada (``tramites:cerrar-tramite``) para evitar cierre accidental
+        con un solo clic.
         """
 
         tramite = self.get_object(request, object_id)
@@ -466,7 +470,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
         if not tramite.can_view(request.user):
             raise PermissionDenied
 
-        # Procesar acciones POST (requerir, diligencia, finalizar)
+        # Procesar acciones POST (requerir, diligencia)
         if request.method == 'POST':
             form = TramiteDetailForm(request.POST)
             if form.is_valid():
@@ -487,9 +491,6 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                         elif action == 'en_diligencia':
                             tramite.en_diligencia(analista=request.user, observacion=observacion)
                             messages.success(request, 'Trámite puesto en diligencia')
-                        elif action == 'finalizar':
-                            tramite.finalizar(analista=request.user, observacion=observacion)
-                            messages.success(request, 'Trámite finalizado')
 
                     except (TramiteNoAsignableError, EstadoNoPermitidoError, ValueError) as e:
                         messages.error(request, f'{e}')
@@ -500,6 +501,10 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                             e,
                         )
                         messages.error(request, 'Error al procesar la acción')
+
+            # Refresh tramite from DB view to reflect updated status
+            # after action execution (fixes stale data bug).
+            tramite = self.get_object(request, object_id)
 
         else:
             form = TramiteDetailForm()

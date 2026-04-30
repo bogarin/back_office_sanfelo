@@ -9,8 +9,8 @@ read-only access.
 
 from django.db import models
 
-from core.model_config import register_model, AccessPattern
 from core.managers import ReadOnlyManager
+from core.model_config import AccessPattern, register_model
 
 
 @register_model('backend', AccessPattern.READ_ONLY, False)

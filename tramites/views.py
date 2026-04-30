@@ -15,12 +15,18 @@ they can be added here.
 
 import logging
 
+from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 
-from tramites.exceptions import SFTPConnectionError
+from tramites.exceptions import (
+    EstadoNoPermitidoError,
+    SFTPConnectionError,
+    TramiteNoAsignableError,
+)
+from tramites.forms import ESTATUS_CIERRE_CHOICES, CerrarTramiteForm
 from tramites.models import Tramite
 from tramites.sftp import SFTPService, validate_filename
 
@@ -84,6 +90,82 @@ def download_requisito_pdf(
     except SFTPConnectionError:
         _log_download(request, tramite, filename, success=False)
         raise
+
+
+# =============================================================================
+# Cerrar Trámite (intermediate form view)
+# =============================================================================
+
+
+@staff_member_required
+def cerrar_tramite_view(request: HttpRequest, pk: int) -> HttpResponse:
+    """Vista intermedia para cerrar un trámite.
+
+    Muestra un formulario con:
+    - Dropdown con estatus de cierre (Por Recoger, Rechazado, Cancelado)
+    - Campo de observación obligatorio
+
+    GET: Renderiza el formulario intermedio.
+    POST: Valida y ejecuta ``tramite.cerrar()``, redirige al detalle.
+
+    Args:
+        request: The HTTP request.
+        pk: Primary key of the Tramite.
+
+    Returns:
+        HttpResponse with the form page (GET) or redirect (POST).
+    """
+    tramite = get_object_or_404(Tramite, pk=pk)
+
+    if not tramite.can_view(request.user):
+        raise PermissionDenied
+
+    # Redirect back to the originating admin change page after action.
+    return_url = request.GET.get(
+        'next',
+        f'/admin/tramites/tramite/{pk}/change/',
+    )
+
+    if 'cerrar' not in tramite.available_actions(request.user):
+        messages.error(request, 'No es posible cerrar este trámite en su estatus actual.')
+        return redirect(return_url)
+
+    if request.method == 'POST':
+        form = CerrarTramiteForm(request.POST)
+        if form.is_valid():
+            estatus_cierre = int(form.cleaned_data['estatus_cierre'])
+            observacion = form.cleaned_data['observacion']
+
+            try:
+                tramite.cerrar(
+                    analista=request.user,
+                    estatus_cierre=estatus_cierre,
+                    observacion=observacion,
+                )
+                messages.success(request, f'Trámite {tramite.folio} cerrado exitosamente.')
+                return redirect(return_url)
+
+            except (TramiteNoAsignableError, EstadoNoPermitidoError, ValueError) as e:
+                messages.error(request, str(e))
+            except Exception as e:
+                logger.error('Error cerrando trámite %s: %s', tramite.folio, e)
+                messages.error(request, 'Error inesperado al cerrar el trámite.')
+    else:
+        form = CerrarTramiteForm()
+
+    context = {
+        'tramite': tramite,
+        'form': form,
+        'estatus_cierre_choices': ESTATUS_CIERRE_CHOICES,
+        'opts': Tramite._meta,
+        'return_url': return_url,
+    }
+    return render(request, 'admin/tramite_cerrar.html', context)
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
 
 
 def _log_download(

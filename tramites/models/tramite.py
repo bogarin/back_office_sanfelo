@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 # Maps (from_status, to_status) → True for all valid state transitions.
-# Every business action (asignar, requerir, diligencia, finalizar) must
+# Every business action (asignar, requerir, diligencia, cerrar) must
 # go through _validate_transition() which checks this dict.
 TRANSITIONS: dict[tuple[int, int], bool] = {
     # Assign: presentado → en revisión
@@ -36,10 +36,16 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
     (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.REQUERIMIENTO): True,
     # En diligencia: en revisión → en diligencia
     (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.EN_DILIGENCIA): True,
-    # Finalize from any active "in-process" state
-    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.FINALIZADO): True,
-    (TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.FINALIZADO): True,
-    (TramiteEstatus.Estatus.EN_DILIGENCIA, TramiteEstatus.Estatus.FINALIZADO): True,
+    # Close from any active "in-process" state
+    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.POR_RECOGER): True,
+    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.RECHAZADO): True,
+    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.CANCELADO): True,
+    (TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.POR_RECOGER): True,
+    (TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.RECHAZADO): True,
+    (TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.CANCELADO): True,
+    (TramiteEstatus.Estatus.EN_DILIGENCIA, TramiteEstatus.Estatus.POR_RECOGER): True,
+    (TramiteEstatus.Estatus.EN_DILIGENCIA, TramiteEstatus.Estatus.RECHAZADO): True,
+    (TramiteEstatus.Estatus.EN_DILIGENCIA, TramiteEstatus.Estatus.CANCELADO): True,
 }
 
 
@@ -195,7 +201,7 @@ class Tramite(models.Model):
     def can_execute_action(self, user: User) -> bool:
         """Whether *user* may execute workflow actions on this trámite.
 
-        Workflow actions: requerir_documentos, en_diligencia, finalizar.
+        Workflow actions: requerir_documentos, en_diligencia, cerrar.
         Only the assigned analyst (or a Coordinator/Admin) may execute them.
         """
         if user.is_superuser or user.is_administrador or user.is_coordinador:
@@ -210,7 +216,7 @@ class Tramite(models.Model):
 
         Returns:
             List of action strings: ``'requerir_documentos'``,
-            ``'en_diligencia'``, ``'finalizar'``.
+            ``'en_diligencia'``, ``'cerrar'``.
         """
         if not self.can_execute_action(user):
             return []
@@ -219,12 +225,12 @@ class Tramite(models.Model):
         actions: list[str] = []
 
         if status == TramiteEstatus.Estatus.EN_REVISION:
-            actions.extend(['requerir_documentos', 'en_diligencia', 'finalizar'])
+            actions.extend(['requerir_documentos', 'en_diligencia', 'cerrar'])
         elif status in (
             TramiteEstatus.Estatus.REQUERIMIENTO,
             TramiteEstatus.Estatus.EN_DILIGENCIA,
         ):
-            actions.append('finalizar')
+            actions.append('cerrar')
 
         return actions
 
@@ -350,26 +356,40 @@ class Tramite(models.Model):
             observacion=observacion,
         )
 
-    def finalizar(self, analista: User, observacion: str) -> None:
-        """Finaliza el trámite (202/203/205 → 303).
+    def cerrar(self, analista: User, estatus_cierre: int, observacion: str) -> None:
+        """Cierra el trámite con un estatus terminal (202/203/205 → 301/302/304).
 
         Args:
             analista: User que ejecuta la acción
+            estatus_cierre: Estatus terminal seleccionado
+                (POR_RECOGER, RECHAZADO o CANCELADO)
             observacion: **Required** — debe ser texto no vacío
 
         Raises:
-            ValueError: Si la observación está vacía
+            ValueError: Si la observación está vacía o el estatus de cierre
+                no es un estatus terminal válido
             EstadoNoPermitidoError: Transición no válida
         """
         observacion = observacion.strip()
         if not observacion:
-            raise ValueError('La observación es requerida para finalizar un trámite.')
+            raise ValueError('La observación es requerida para cerrar un trámite.')
+
+        estatus_validos = (
+            TramiteEstatus.Estatus.POR_RECOGER,
+            TramiteEstatus.Estatus.RECHAZADO,
+            TramiteEstatus.Estatus.CANCELADO,
+        )
+        if estatus_cierre not in estatus_validos:
+            raise ValueError(
+                f'Estaus de cierre inválido: {estatus_cierre}. '
+                f'Debe ser uno de: {estatus_validos}'
+            )
 
         self._assert_activo()
-        self._validate_transition(TramiteEstatus.Estatus.FINALIZADO)
+        self._validate_transition(estatus_cierre)
         self._assert_asignado_a(analista)
         self.registrar_actividad(
-            TramiteEstatus.Estatus.FINALIZADO,
+            estatus_cierre,
             analista_id=analista.id,
             observacion=observacion,
         )

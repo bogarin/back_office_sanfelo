@@ -16,7 +16,7 @@ Exit codes:
 """
 
 import sys
-from http.client import HTTPConnection, HTTPException
+from http.client import HTTPException
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -87,9 +87,8 @@ def main() -> int:
     if nginx_healthy and django_healthy:
         print('✅ All health checks passed', file=sys.stderr)
         return 0
-    else:
-        print('❌ Health checks failed', file=sys.stderr)
-        return 1
+    print('❌ Health checks failed', file=sys.stderr)
+    return 1
 
 
 if __name__ == '__main__':

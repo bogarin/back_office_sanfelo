@@ -1,0 +1,106 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_extras %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+
+            <!-- Header: Información del trámite -->
+            <div class="card shadow-sm mb-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle px-2"></i>Cerrar Trámite
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1">
+                        <strong>Folio:</strong> {{ tramite.folio }}
+                    </p>
+                    <p class="mb-1">
+                        <strong>Tipo:</strong> {{ tramite.tramite_nombre }}
+                    </p>
+                    <p class="mb-1">
+                        <strong>Solicitante:</strong> {{ tramite.solicitante_nombre|default:"—" }}
+                    </p>
+                    <p class="mb-0">
+                        <strong>Estatus actual:</strong>
+                        <span class="badge badge-{{ tramite.ultima_actividad_estatus_id|status_badge_class }}">
+                            {{ tramite.ultima_actividad_estatus }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Warning -->
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <strong>Atención:</strong> Esta acción es irreversible. Una vez cerrado el trámite,
+                no será posible realizar más acciones sobre él.
+            </div>
+
+            <!-- Formulario de cierre -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-check px-2"></i>Selecciona el motivo de cierre
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- Estatus de cierre -->
+                        <div class="form-group mb-4">
+                            <label for="id_estatus_cierre" class="font-weight-bold">
+                                <i class="fas fa-flag mr-1"></i>Estatus de cierre:
+                            </label>
+                            {{ form.estatus_cierre }}
+                            <small class="form-text text-muted">
+                                {{ form.estatus_cierre.help_text }}
+                            </small>
+                            {% if form.estatus_cierre.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.estatus_cierre.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Observación obligatoria -->
+                        <div class="form-group mb-4">
+                            <label for="id_observacion" class="font-weight-bold">
+                                <i class="fas fa-comment mr-1"></i>Motivo de cierre:
+                            </label>
+                            {{ form.observacion }}
+                            <small class="form-text text-muted">
+                                {{ form.observacion.help_text }}
+                            </small>
+                            {% if form.observacion.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.observacion.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ return_url }}"
+                               class="btn btn-secondary">
+                                <i class="fas fa-arrow-left mr-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-times-circle mr-1"></i>Confirmar Cierre
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

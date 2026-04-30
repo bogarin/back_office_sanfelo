@@ -8,4 +8,3 @@ class TramitesConfig(AppConfig):
         """
         Called when Django starts.
         """
-        pass
