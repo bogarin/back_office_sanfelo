@@ -1,0 +1,23 @@
+{% extends "errors/base_error.html" %}
+{% load i18n %}
+
+{% block title %}403 — Verificación de seguridad fallida{% endblock %}
+
+{% block content %}
+<div class="error-page error-csrf">
+    <div class="error-code">403</div>
+    <div class="error-icon">
+        <i class="fas fa-shield-alt"></i>
+    </div>
+    <div class="error-title">Verificación de seguridad fallida</div>
+    <div class="error-message">
+        Tu sesión expiró o el token de seguridad es inválido.
+        Recarga la página e intenta de nuevo.
+    </div>
+    <div class="error-action">
+        <a href="#" class="btn btn-primary" onclick="history.back(); return false;">
+            <i class="fas fa-redo me-1"></i>Reintentar
+        </a>
+    </div>
+</div>
+{% endblock %}

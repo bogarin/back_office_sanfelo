@@ -12,7 +12,13 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 import tramites.urls
-from core.views import asignar_rol, health_check, invalidate_catalog_cache, test_rendering
+from core.views import (
+    asignar_rol,
+    health_check,
+    invalidate_catalog_cache,
+    test_errors,
+    test_rendering,
+)
 
 urlpatterns = [
     # Health check
@@ -35,6 +41,11 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/admin/', permanent=True), name='admin-home'),
 ]
 
+# Custom error handlers
+handler403 = 'core.views.custom_permission_denied'
+handler404 = 'core.views.custom_page_not_found'
+handler500 = 'core.views.custom_server_error'
+
 # Debug configuration - only in development
 if settings.DEBUG:
     import importlib.util
@@ -44,8 +55,8 @@ if settings.DEBUG:
 
         urlpatterns = [path('__debug__/', include(debug_toolbar.urls)), *urlpatterns]
 
-    from core.views import test_rendering
     urlpatterns += [path('test_rendering/', test_rendering, name='test-rendering')]
+    urlpatterns += [path('test_errors/', test_errors, name='test-errors')]
 
     # Static files serving in development
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

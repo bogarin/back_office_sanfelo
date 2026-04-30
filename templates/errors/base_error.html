@@ -1,0 +1,20 @@
+{% extends "registration/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ error_code }} — {{ error_title }}{% endblock %}
+
+{% block content %}
+<div class="error-page {{ error_css_class }}">
+    <div class="error-code">{{ error_code }}</div>
+    <div class="error-icon">
+        <i class="fas {{ error_icon }}"></i>
+    </div>
+    <div class="error-title">{{ error_title }}</div>
+    <div class="error-message">{{ error_message }}</div>
+    <div class="error-action">
+        <a href="{{ error_action_url }}" class="btn {{ error_action_btn_class }}">
+            <i class="fas {{ error_action_icon }} me-1"></i>{{ error_action_label }}
+        </a>
+    </div>
+</div>
+{% endblock %}

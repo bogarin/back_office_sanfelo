@@ -178,3 +178,107 @@ def test_rendering(request: HttpRequest) -> HttpResponse:
         HttpResponse: Rendered test page with all design system components.
     """
     return render(request, 'test_rendering.html')
+
+
+# =============================================================================
+# Custom HTTP Error Handlers
+# =============================================================================
+
+ERROR_TEMPLATE_MAP = {
+    403: '403.html',
+    404: '404.html',
+    500: '500.html',
+}
+
+
+def custom_permission_denied(request: HttpRequest, exception: Exception | None = None) -> HttpResponse:
+    """Custom 403 Permission Denied handler.
+
+    Renders a styled error page instead of Django's default.
+
+    Args:
+        request: The HTTP request object.
+        exception: The PermissionDenied exception, if available.
+
+    Returns:
+        HttpResponse with status 403.
+    """
+    return render(request, '403.html', status=403)
+
+
+def custom_csrf_failure(request: HttpRequest, reason: str = '') -> HttpResponse:
+    """Custom CSRF failure handler.
+
+    Renders a styled CSRF error page instead of Django's default
+    plain HTML page.
+
+    Args:
+        request: The HTTP request object.
+        reason: Short reason string for the CSRF failure.
+
+    Returns:
+        HttpResponse with status 403.
+    """
+    return render(request, '403_csrf.html', status=403)
+
+
+def custom_page_not_found(request: HttpRequest, exception: Exception | None = None) -> HttpResponse:
+    """Custom 404 Page Not Found handler.
+
+    Renders a styled error page instead of Django's default.
+
+    Args:
+        request: The HTTP request object.
+        exception: The Http404 exception, if available.
+
+    Returns:
+        HttpResponse with status 404.
+    """
+    return render(request, '404.html', status=404)
+
+
+def custom_server_error(request: HttpRequest) -> HttpResponse:
+    """Custom 500 Server Error handler.
+
+    Uses RequestContext to ensure template context processors work
+    (Django's default server_error view does not use RequestContext).
+
+    Args:
+        request: The HTTP request object.
+
+    Returns:
+        HttpResponse with status 500.
+    """
+    return render(request, '500.html', status=500)
+
+
+# =============================================================================
+# Test Page for Error Templates (DEBUG only)
+# =============================================================================
+
+_VALID_ERROR_TYPES = ('403', '403_csrf', '404', '500')
+
+
+@staff_member_required
+def test_errors(request: HttpRequest) -> HttpResponse:
+    """Preview page for error templates.
+
+    Displays a menu with links to preview each error page.
+    Accepts ``?error=403``, ``?error=403_csrf``, ``?error=404``, ``?error=500``
+    to render the corresponding error template directly.
+
+    Only available in DEBUG mode (URL gated in sanfelipe/urls.py).
+
+    Args:
+        request: The HTTP request object.
+
+    Returns:
+        HttpResponse: Error template preview or menu page.
+    """
+    error_type = request.GET.get('error')
+
+    if error_type in _VALID_ERROR_TYPES:
+        template_name = f'{error_type}.html'
+        return render(request, template_name)
+
+    return render(request, 'test_errors.html')

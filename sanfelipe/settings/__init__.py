@@ -168,11 +168,13 @@ tz = env('DJANGO_TIME_ZONE', default='America/Tijuana')
 DATABASES = {
     'default': {
         **db,
-        'OPTIONS': {'options': f'-c search_path={backoffice_schema} -c timezone={tz}'},
+        'OPTIONS': {'options': f'-c search_path={backoffice_schema}'},
+        'TIME_ZONE': tz,
     },
     'backend': {
         **db,
-        'OPTIONS': {'options': f'-c search_path={backend_schema} -c timezone={tz}'},
+        'OPTIONS': {'options': f'-c search_path={backend_schema}'},
+        'TIME_ZONE': tz,
     },
 }
 
@@ -327,6 +329,9 @@ LOGOUT_REDIRECT_URL = 'admin:login'
 
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = env.list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
+
+# Custom CSRF failure view — renders styled error page
+CSRF_FAILURE_VIEW = 'core.views.custom_csrf_failure'
 
 # =============================================================================
 # SESSION SETTINGS
