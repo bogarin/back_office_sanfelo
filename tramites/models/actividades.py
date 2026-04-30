@@ -14,7 +14,7 @@ Schema matches PostgreSQL actividades table:
 
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
+from django.db.models.functions import Now
 
 from core.managers import CreateOnlyManager
 from core.model_config import AccessPattern, register_model
@@ -71,12 +71,12 @@ class Actividades(models.Model):
     )
 
     # Matches PostgreSQL: timestamp DEFAULT CURRENT_TIMESTAMP
-    # Uses timezone.localtime() to store local time (America/Tijuana),
-    # consistent with Java apps that share this table.
-    # PostgreSQL's DEFAULT CURRENT_TIMESTAMP is not used because Django's ORM
-    # always sends an explicit value in the INSERT.
+    # Uses db_default (Django 5.1+) so the ORM omits this field from INSERTs,
+    # letting PostgreSQL evaluate DEFAULT CURRENT_TIMESTAMP at insert time.
+    # The PostgreSQL session timezone is set to America/Tijuana, so
+    # CURRENT_TIMESTAMP returns local time — consistent with Java apps.
     timestamp = models.DateTimeField(
-        default=timezone.localtime,
+        db_default=Now(),
         verbose_name='Fecha/Hora',
         editable=False,
     )

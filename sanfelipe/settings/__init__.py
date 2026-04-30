@@ -44,6 +44,17 @@ else:
     )
 
 # =============================================================================
+# INTERNATIONALIZATION
+# =============================================================================
+
+LANGUAGE_CODE = 'es-mx'
+TIME_ZONE =  env('DJANGO_TIME_ZONE', default='America/Tijuana')
+
+USE_I18N = True
+USE_L10N = True
+USE_TZ = True
+
+# =============================================================================
 # SECURITY SETTINGS
 # =============================================================================
 
@@ -163,18 +174,17 @@ ASGI_APPLICATION = 'sanfelipe.asgi.application'
 db = env.db('POSTGRESQL_DB_URL')
 backoffice_schema = env('BACKOFFICE_DB_SCHEMA', default='backoffice')
 backend_schema = env('BACKEND_DB_SCHEMA', default='public')
-tz = env('DJANGO_TIME_ZONE', default='America/Tijuana')
 
 DATABASES = {
     'default': {
         **db,
         'OPTIONS': {'options': f'-c search_path={backoffice_schema}'},
-        'TIME_ZONE': tz,
+        'TIME_ZONE': TIME_ZONE,
     },
     'backend': {
         **db,
         'OPTIONS': {'options': f'-c search_path={backend_schema}'},
-        'TIME_ZONE': tz,
+        'TIME_ZONE': TIME_ZONE,
     },
 }
 
@@ -231,16 +241,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# =============================================================================
-# INTERNATIONALIZATION
-# =============================================================================
 
-LANGUAGE_CODE = 'es-mx'
-TIME_ZONE = tz
-
-USE_I18N = True
-USE_L10N = True
-USE_TZ = True
 
 # =============================================================================
 # STATIC FILES
