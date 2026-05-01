@@ -15,7 +15,7 @@ scope, and usage patterns.
 
 import json
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -197,11 +197,10 @@ def catalog_fixtures(django_db_setup, django_db_blocker):
     # Read and parse the fixture data to return as a dictionary
     fixture_path = Path(fixture_file)
     if fixture_path.exists():
-        with open(fixture_path, 'r', encoding='utf-8') as f:
-            fixture_data: Dict[str, Any] = json.load(f)
+        with open(fixture_path, encoding='utf-8') as f:
+            fixture_data: dict[str, Any] = json.load(f)
         return fixture_data
-    else:
-        raise FileNotFoundError(
-            f'Fixture file not found: {fixture_path.absolute()}. '
-            'Ensure the fixtures/backend.json file exists in the project root.'
-        )
+    raise FileNotFoundError(
+        f'Fixture file not found: {fixture_path.absolute()}. '
+        'Ensure the fixtures/backend.json file exists in the project root.'
+    )

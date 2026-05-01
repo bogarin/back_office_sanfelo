@@ -785,3 +785,82 @@ th.field-folio a:focus::after {
 .sidebar-brand {
   font-size: 1.0rem;
 }
+
+/* =============================================================================
+ * Timeline — Historial del Trámite
+ *
+ * Vertical line + dots. Uses only var(--bs-*) for light/dark theme compat.
+ * Dots colored by status group (inicio=gray, proceso=green, finalizado=blue).
+ * ============================================================================= */
+
+.timeline-item {
+    position: relative;
+    padding-left: 2.25rem;
+    padding-bottom: 1.5rem;
+    border-left: 3px solid var(--bs-border-color);
+    margin-left: 0.5rem;
+    transition: border-left-color 0.15s ease;
+}
+
+.timeline-item:last-child {
+    border-left-color: transparent;
+    padding-bottom: 0;
+}
+
+.timeline-item:hover {
+    border-left-color: var(--bs-primary);
+}
+
+/* Dot: outer ring + inner fill */
+.timeline-item::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 3px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--bs-body-bg);
+    border: 2.5px solid var(--bs-secondary);
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.timeline-item:hover::before {
+    border-color: var(--bs-primary);
+    transform: scale(1.25);
+}
+
+/* Status group dot colors */
+.timeline-item[data-status="inicio"]::before { border-color: var(--bs-gray-500); }
+.timeline-item[data-status="proceso"]::before { border-color: var(--bs-success); }
+.timeline-item[data-status="finalizado"]::before { border-color: var(--bs-info); }
+
+/* First item dot: filled solid (origin event) */
+.timeline-item:first-child::before {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+/* File attachments area */
+.timeline-files {
+    margin-top: 0.6rem;
+    padding: 0.6rem 0.85rem;
+    background-color: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+
+.file-item {
+    padding: 0.3rem 0;
+}
+
+.file-item a {
+    text-decoration: none;
+    color: var(--bs-link-color);
+    transition: color 0.15s ease;
+}
+
+.file-item a:hover {
+    color: var(--bs-link-hover-color);
+    text-decoration: underline;
+}

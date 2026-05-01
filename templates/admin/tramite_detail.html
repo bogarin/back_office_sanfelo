@@ -181,81 +181,76 @@
             </section>
             {% endif %}
 
-            <!-- Sección: Historial de Actividades -->
+            <!-- Sección: Historial del Trámite (Timeline integrado) -->
             <section class="card shadow-sm mb-4">
                 <div class="card-header bg-secondary text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-history px-2"></i>Historial de Actividades
+                        <i class="fas fa-history px-2"></i>Historial del Trámite
                     </h5>
                 </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                    {% if tramite.historial_actividades %}
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Fecha/Hora</th>
-                                <th>Estatus</th>
-                                <th>Responsable</th>
-                                <th>Observación</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for actividad in tramite.historial_actividades %}
-                            <tr>
-                                <td>{{ actividad.timestamp|date:"Y-m-d H:i:s" }}</td>
-                                <td>
-                                    <span class="badge badge-{{ actividad.estatus_id|status_badge_class }}">
-                                        {{ actividad.estatus.estatus }}
-                                    </span>
-                                </td>
-                                <td>{{ actividad.responsable|default:"—" }}</td>
-                                <td>{{ actividad.observacion|default:"—" }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% else %}
-                    <p class="text-muted">No hay actividades registradas para este trámite.</p>
-                    {% endif %}
-                </div>
-            </section>
+                <div class="card-body">
+                    {% for entry in timeline_entries %}
+                    <div class="timeline-item" data-status="{{ entry.actividad.estatus_id|status_group }}">
+                        <!-- Header: estatus badge + timestamp -->
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="badge badge-{{ entry.actividad.estatus_id|status_badge_class }} me-2">
+                                {{ entry.actividad.estatus.estatus }}
+                            </span>
+                            <small class="text-muted">{{ entry.actividad.timestamp|date:"Y-m-d H:i:s" }}</small>
+                        </div>
 
-            <!-- Sección: Requisitos (PDFs desde SFTP) -->
-            <section class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-clipboard-list px-2"></i>Documentos PDF
-                    </h5>
-                </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                    {% if requisitos %}
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Requisito ID</th>
-                                <th>Nombre de Requisito</th>
-                                <th>Archivo</th>
-                                <th>Tamaño</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for requisito in requisitos %}
-                            <tr>
-                                <td>{{ requisito.requisito_id }}</td>
-                                <td>{{ requisito.requisito_nombre|default:"—" }}</td>
-                                <td>
-                                    <a href="{% url 'tramites:download-requisito-pdf' pk=tramite.pk filename=requisito.file_name %}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-download m-2"></i>{{ requisito.file_name }}
-                                    </a>
-                                </td>
-                                <td>{{ requisito.size_mb|floatformat:2 }} MB</td>
-                            </tr>
+                        <!-- Usuario -->
+                        {% if entry.user %}
+                        <div class="mb-1">
+                            <i class="fas fa-user px-1"></i>{{ entry.user.get_full_name }}
+                        </div>
+                        {% endif %}
+
+                        <!-- Observación -->
+                        {% if entry.actividad.observacion %}
+                        <div class="text-muted mb-2">{{ entry.actividad.observacion }}</div>
+                        {% endif %}
+
+                        <!-- Requisitos (solo en PENDIENTE_PAGO) -->
+                        {% if entry.requisito_files %}
+                        <div class="timeline-files mb-2">
+                            <small class="text-muted">
+                                <i class="fas fa-paperclip"></i> Documentos del ciudadano ({{ entry.requisito_files|length }})
+                            </small>
+                            {% for f in entry.requisito_files %}
+                            <div class="file-item">
+                                <a href="{% url 'tramites:download-pdf' pk=tramite.pk filename=f.file_name %}" class="me-2">
+                                    <i class="fas fa-file-pdf"></i> {{ f.file_name }}
+                                </a>
+                                <small>({{ f.size_mb|floatformat:2 }} MB)</small>
+                                {% if f.requisito_nombre %}
+                                <small class="text-muted"> — {{ f.requisito_nombre|truncatechars:60 }}</small>
+                                {% endif %}
+                            </div>
                             {% endfor %}
-                        </tbody>
-                    </table>
-                    {% else %}
-                    <p class="text-muted">No hay documentos PDF disponibles.</p>
-                    {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Actividad files (REQUERIMIENTO / SUBSANADO) -->
+                        {% if entry.actividad_files %}
+                        <div class="timeline-files mb-2">
+                            <small class="text-muted">
+                                <i class="fas fa-paperclip"></i> Archivos adjuntos ({{ entry.actividad_files|length }})
+                            </small>
+                            {% for f in entry.actividad_files %}
+                            <div class="file-item">
+                                <a href="{% url 'tramites:download-pdf' pk=tramite.pk filename=f.file_name %}" class="me-2">
+                                    <i class="fas fa-file-pdf"></i> {{ f.file_name }}
+                                </a>
+                                <small>({{ f.size_mb|floatformat:2 }} MB)</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No hay actividades registradas para este trámite.</p>
+                    {% endfor %}
                 </div>
             </section>
 
@@ -264,6 +259,11 @@
         <!-- Columna lateral: Acciones -->
         <div class="col-12 col-lg-3">
 
+            <a href="../.." class="btn btn-secondary mb-4">
+                <i class="fas fa-arrow-left px-2"></i>Regresar a Listado
+            </a>
+
+            {% if available_actions %}
             <!-- Sección: Acciones Disponibles -->
             <section class="card shadow-sm mb-4">
                 <div class="card-header bg-primary text-white">
@@ -276,18 +276,12 @@
                         {% csrf_token %}
                         <input type="hidden" name="action" id="action-input">
 
-                        <div class="form-group mb-3">
-                            <label>{{ form.observacion.label }}</label>
-                            {{ form.observacion }}
-                            <small class="form-text text-muted">{{ form.observacion.help_text }}</small>
-                        </div>
-
                         <div class="d-grid gap-2">
                             {% if 'requerir_documentos' in available_actions %}
                             <button
                                 type="submit"
                                 class="btn btn-warning"
-                                onclick="document.getElementById('action-input').value='requerir_documentos'"
+                                data-action="requerir_documentos"
                             >
                                 <i class="fas fa-file-alt px-2"></i>Requerir Documentos
                             </button>
@@ -297,7 +291,7 @@
                             <button
                                 type="submit"
                                 class="btn btn-info"
-                                onclick="document.getElementById('action-input').value='en_diligencia'"
+                                data-action="en_diligencia"
                             >
                                 <i class="fas fa-clock px-2"></i>Poner en Diligencia
                             </button>
@@ -311,20 +305,36 @@
                                 <i class="fas fa-times-circle px-2"></i>Cerrar Trámite
                             </a>
                             {% endif %}
-
-                            {% if not available_actions %}
-                            <p class="text-muted text-center">No hay acciones disponibles para este trámite.</p>
-                            {% endif %}
-
-                            <a href="../.." class="btn btn-secondary">
-                                <i class="fas fa-arrow-left px-2"></i>Regresar a Listado
-                            </a>
                         </div>
+
+                        {% if 'requerir_documentos' in available_actions or 'en_diligencia' in available_actions %}
+                        <div class="form-group mt-3">
+                            <label for="id_observacion" class="font-weight-bold">
+                                <i class="fas fa-comment mr-1"></i>Observación:
+                            </label>
+                            {{ form.observacion }}
+                            <small class="form-text text-muted">
+                                {{ form.observacion.help_text }}
+                            </small>
+                            {% if form.observacion.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.observacion.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                     </form>
                 </div>
             </section>
+            {% endif %}
 
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extrajs %}
+<script src="{% static 'admin/js/tramite_actions.js' %}" defer></script>
 {% endblock %}

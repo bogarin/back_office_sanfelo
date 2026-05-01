@@ -1,14 +1,14 @@
 # 003: PostgreSQL Schema Separation for Multi-Database Architecture
 
 **Date:** 2026-04-14
-**Status:** Draft
+**Status:** Accepted
 **Supersedes:** 002-configuracion-multiples-bases-de-datos.md
 
 ## Context
 
 The Backoffice Trámites project uses a PostgreSQL database with schema separation instead of previous dual-database architecture (SQLite + PostgreSQL). All database connections now use PostgreSQL, but are logically separated by schema:
 
-- **backoffice schema** (formerly "default" database): Django auth, admin, sessions, and `AsignacionTramite` table
+- **backoffice schema** (formerly "default" database): Django auth, admin, sessions, and custom User model
 - **public schema** (formerly "backend" database): Business legacy tables (tramites, catalogos, costos, bitacora, actividades)
 
 This separation provides:
@@ -23,7 +23,7 @@ This separation provides:
 
 | Database Alias | Schema | Purpose | Access Pattern |
 |---------------|---------|---------|----------------|
-| `default` | `backoffice` | Django auth, admin, sessions, `AsignacionTramite` | Full read/write, migrations allowed |
+| `default` | `backoffice` | Django auth, admin, sessions, User (custom) | Full read/write, migrations allowed |
 | `backend` | `public` | Business legacy tables (tramites, catalogos, relaciones) | Mixed (see per-model rules below) |
 
 ### Access Patterns

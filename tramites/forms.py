@@ -18,7 +18,11 @@ class TramiteDetailForm(forms.Form):
         label='Observación',
         required=True,
         widget=forms.Textarea(
-            attrs={'rows': 3, 'placeholder': 'Describe el motivo de esta acción...'}
+            attrs={
+                'rows': 3,
+                'class': 'form-control',
+                'placeholder': 'Describe el motivo de esta acción...',
+            }
         ),
         help_text='Observación requerida para esta acción',
     )

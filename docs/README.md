@@ -28,62 +28,33 @@ docs/
 │   ├── developers/
 │   │   └── local-dev-setup.md
 │   └── admins/
-│       ├── manage-catalogs.md
-│       ├── manage-groups.md
-│       ├── setup-users.md
-│       └── seguridad-auditoria-produccion.md  # ← Checklist obligatorio antes de deploy
+│       ├── manage-catalogs.md       # ⚠️ Catálogos son solo lectura — necesita reescritura
+│       ├── manage-groups.md         # ⚠️ Solo 3 grupos fijos — necesita reescritura
+│       ├── setup-users.md           # ⚠️ Describe 2 roles, el sistema tiene 3 — necesita reescritura
+│       └── seguridad-auditoria-produccion.md
 ├── 03-guides/                 # Soluciones a problemas específicos
 │   ├── sysadmins/
 │   │   ├── deploy-production.md
 │   │   └── sftp-setup.md
 │   └── admins/
-│       ├── configure-costs.md
-│       ├── manage-workflow.md
-│       ├── add-peritos.md
-│       ├── change-status.md
+│       ├── configure-costs.md       # ⚠️ Costos son solo lectura — necesita reescritura
+│       ├── manage-workflow.md       # ⚠️ Describe flujo incorrecto
+│       ├── add-peritos.md           # ⚠️ Peritos son solo lectura — necesita reescritura
+│       ├── change-status.md         # ⚠️ Usa estados incorrectos
 │       └── manage-tramites.md
 ├── 05-reference/              # Referencia técnica (SSOT)
 │   ├── commands.md
 │   ├── environment-vars.md    # ← TODAS las variables de entorno
-│   ├── models.md
-│   ├── admin-setup.md
+│   ├── models.md              # ⚠️ Documenta modelos que no existen — necesita reescritura
+│   ├── admin-setup.md         # ⚠️ Documenta clases que no existen — necesita reescritura
 │   ├── sftp.md
 │   ├── estados-tramites.md
-│   └── rbac.md
+│   └── rbac.md                # ⚠️ Falta info de ADR-014
 ├── 06-decisions/              # ADRs (Architecture Decision Records)
 │   ├── README.md
-│   ├── 001 a 013              # 13 ADRs
+│   ├── 001 a 014              # 14 ADRs (algunos numerados 009a/010a)
 │   └── adr-template.md
 ├── COMANDOS_DJANGO.md         # Redirect → 05-reference/commands.md
-└── _templates/                # Plantillas para nuevos documentos
-```
-docs/
-├── 00-system-design/          # Requisitos y diseño del sistema
-│   └── REQUERIMIENTOS_ALTO_NIVEL.md
-├── 01-onboarding/             # Onboarding y visión general
-│   ├── overview.md
-│   ├── glossary.md
-│   └── architecture-overview.md
-├── 02-tutorials/              # Aprendizaje paso a paso
-│   └── developers/
-│       └── local-dev-setup.md
-├── 03-guides/                 # Soluciones a problemas específicos
-│   └── sysadmins/
-│       ├── deploy-production.md
-│       └── sftp-setup.md
-├── 05-reference/              # Referencia técnica (SSOT)
-│   ├── commands.md
-│   ├── environment-vars.md    # ← TODAS las variables de entorno
-│   ├── models.md
-│   ├── admin-setup.md
-│   ├── sftp.md
-│   ├── estados-tramites.md
-│   └── rbac.md
-├── 06-decisions/              # ADRs (Architecture Decision Records)
-│   ├── README.md
-│   ├── 001 a 013              # 13 ADRs
-│   └── adr-template.md
-├── COMANDOS_DDJANGO.md         # Redirect → 05-reference/commands.md
 └── _templates/                # Plantillas para nuevos documentos
 ```
 
@@ -138,10 +109,13 @@ docs/
 | [007](06-decisions/007-implementacion-rbac-django-60.md) | RBAC 2 roles | Superseded by 013 |
 | [008](06-decisions/008-postgresql-schema-separation.md) | PostgreSQL schema separation | **Current** |
 | [009](06-decisions/009-vista-postgresql-para-tramites.md) | Vista unificada | Current |
+| [009b](06-decisions/009-remove-schema-validator.md) | Remover schema validator | Accepted |
 | [010](06-decisions/010-integracion-con-sftp.md) | Integración SFTP | Current |
+| [010b](06-decisions/010-remove-asignacion-tramite.md) | Remover AsignacionTramite | Accepted |
 | [011](06-decisions/011-docs-cleanup.md) | Cleanup de documentación | Current |
 | [012](06-decisions/012-stack-base-actualizado.md) | Stack actualizado | **Current** |
-| [013](06-decisions/013-rbac-tres-roles.md) | RBAC 3 roles | **Current** |
+| [013](06-decisions/013-rbac-tres-roles.md) | RBAC 3 roles | Superseded by 014 |
+| [014](06-decisions/014-custom-user-workflow.md) | Custom User + Workflow | **Current** |
 
 ### Diseño del Sistema
 

@@ -18,7 +18,7 @@ El sistema de gestión de trámites operaba con múltiples modelos dispersos que
 - Falta de un mecanismo centralizado para mantener sincronizados los datos denormalizados
 
 **Restricciones:**
-- Arquitectura multi-database: SQLite (schema auth) + PostgreSQL (schema backoffice)
+- Arquitectura multi-database: PostgreSQL con separación de esquemas (backoffice + public) — ver ADR-008
 - Necesidad de mantener el historial completo de actividades de cada trámite
 - Requerimiento de performance para consultas de lectura frecuentes en el admin
 - Django no soporta ForeignKeys entre bases de datos diferentes
@@ -35,7 +35,7 @@ Implementar una arquitectura de datos basada en una vista PostgreSQL denormaliza
 
 3. **Modelo `Actividades`**: Tabla fuente de verdad para todas las operaciones de escritura. PostgreSQL triggers mantienen la vista sincronizada.
 
-4. **Cache multi-nivel**: Estrategia de caché con 3 niveles (process, Django, request) y Redis para optimizar consultas de lectura de catálogos y distribución de estatus.
+4. **Cache multi-nivel**: Estrategia de caché con 3 niveles (process, Django, request) para optimizar consultas de lectura de catálogos y distribución de estatus.
 
 5. **Sistema de estatus con agrupación por prefijo**: Códigos numéricos agrupados en rangos lógicos (1xx: inicio, 2xx: proceso, 3xx: finalizado).
 
@@ -91,16 +91,12 @@ Implementación de caché en 4 niveles diferentes:
 - Timeout: 1 hora (3600 segundos)
 - Keys: `'sf_tramites:catalog:v1:{model_name}:all'`
 
-**Nivel 3: Redis-based**
-- Caché de métricas: `estatus_distribution` con 60s TTL
-- Invalidación vía signals Django (`post_save`, `post_delete`)
-
-**Nivel 4: Request-level**
+**Nivel 3: Request-level**
 - Middleware: `CacheUserRolesMiddleware`
 - Carga roles de usuario una vez por request
 - Almacenamiento: `request.user.roles` como `set`
 
-**Beneficio:** Reducción significativa de carga en base de datos, mejor tiempo de respuesta, escalabilidad horizontal.
+**Beneficio:** Reducción significativa de carga en base de datos, mejor tiempo de respuesta.
 
 ### 4. Sistema de Estatus con Agrupación por Prefijo
 
@@ -144,9 +140,8 @@ def es_activo(cls, estatus: int) -> bool:
 **Ventajas:**
 - Reducción significativa de carga en base de datos (medido: -1,100ms cold para distribución de estatus)
 - Mejor tiempo de respuesta para consultas frecuentes
-- Escalabilidad horizontal (Redis es distribuido)
-- Separación de preocupaciones por nivel (process vs request vs distributed)
-- Menos dependencias externas (LocMemCache vs memcached/redis complejos)
+- Separación de preocupaciones por nivel (process vs Django cache vs request)
+- Menos dependencias externas (LocMemCache no requiere infraestructura adicional)
 
 **Desventajas:**
 - Complejidad de invalidación y consistencia eventual
@@ -210,7 +205,7 @@ def es_activo(cls, estatus: int) -> bool:
 | **CQRS (Command Query Responsibility Segregation)** | Separación Tramite (lectura) / Actividades (escritura) |
 | **Data Mapper** | Vista PostgreSQL como mapeador entre datos y modelo Django |
 | **Cache-Aside** | `CachedReadOnlyManager` con lógica cache-aside (check cache, if miss load from DB) |
-| **Multi-Level Caching** | Jerarquía: process-level → request-level → distributed (Redis) |
+| **Multi-Level Caching** | Jerarquía: process-level (@lru_cache) → Django cache (LocMemCache) → request-level (middleware) |
 | **Database View Pattern** | `v_tramites_unificado` como vista denormalizada optimizada para lectura |
 | **Event Sourcing (parcial)** | Actividades como registro de eventos que construyen el estado actual |
 | **Registry Pattern** | Decorador `@register_model()` para registro de modelos en sistema de migraciones |
@@ -395,7 +390,7 @@ def es_activo(cls, estatus: int) -> bool:
 **Riesgo 3: Complejidad de Invalidación en Cache Multi-Nivel**
 - **Probabilidad:** Media
 - **Impacto:** Medio
-- **Descripción:** Difícil garantizar consistencia entre 3 niveles de caché (process, Django, Redis).
+- **Descripción:** Difícil garantizar consistencia entre 3 niveles de caché (process, Django, request).
 - **Mitigación:** Implementar signals consistentes; tests de integración de caché; documentar estrategias de invalidación.
 
 **Riesgo 4: Performance Degradation con Growth**
@@ -415,7 +410,7 @@ def es_activo(cls, estatus: int) -> bool:
 **De qué depende esta decisión:**
 - Infraestructura de PostgreSQL con triggers habilitados
 - Router multi-database correctamente configurado
-- Sistema de caché (LocMemCache o Redis) disponible
+- Sistema de caché (LocMemCache) disponible
 - Procesos de monitoreo para detectar desincronización
 
 ## Deuda Técnica Generada

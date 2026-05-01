@@ -93,21 +93,16 @@ Este ADR ha sido **parcialmente superseded** por [ADR-009: Vista PostgreSQL Unif
    - Timeout: 1 hora (3600 segundos) - más específico que ADR-003
    - Keys: `'sf_tramites:catalog:v1:{model_name}:all'`
 
-3. **Redis-based cache** - Nuevo en ADR-009
-   - Caché de métricas: `estatus_distribution` con 60s TTL
-   - Invalidación vía signals Django (`post_save`, `post_delete`)
-   - Implementa la "posibilidad de integrar Redis" mencionada en ADR-003
-
-4. **Request-level cache** - Nuevo en ADR-009
+3. **Request-level cache** - Nuevo en ADR-009
    - Middleware: `CacheUserRolesMiddleware`
    - Carga roles de usuario una vez por request
    - Almacenamiento: `request.user.roles` como `set`
 
 ### Impacto en decisiones:
 
-- **Riesgo "Escalabilidad del caching"** en ADR-003 fue mitigado mediante implementación de Redis en ADR-009
+- **Riesgo "Escalabilidad del caching"** en ADR-003 fue evaluado y se determinó que LocMemCache es suficiente para la carga actual (ver ADR-012)
 - **Riesgo "Invalidación de cache"** en ADR-003 fue abordado con signals de invalidación consistentes en ADR-009
-- **Trade-off "Limitaciones de escalabilidad del caching en memoria local"** en ADR-003 fue resuelto con Redis en ADR-009
+- **Trade-off "Limitaciones de escalabilidad del caching en memoria local"** en ADR-003 se acepta como trade-off: LocMemCache no escala horizontalmente pero es suficiente para ~50 usuarios concurrentes
 
 ### Recomendación:
 Para detalles completos de la implementación actual de cache, referirse a [ADR-009](009-vista-postgresql-para-tramites.md). Este documento se mantiene como referencia histórica de la arquitectura inicial de caching del proyecto.

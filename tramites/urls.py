@@ -21,7 +21,7 @@ urlpatterns = [
     ),
     path(
         'tramite/<int:pk>/download/<str:filename>/',
-        views.download_requisito_pdf,
-        name='download-requisito-pdf',
+        views.download_pdf,
+        name='download-pdf',
     ),
 ]

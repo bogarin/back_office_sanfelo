@@ -4,6 +4,8 @@ from django import template
 
 register = template.Library()
 
+_STATUS_GROUPS = {1: 'inicio', 2: 'proceso', 3: 'finalizado'}
+
 
 @register.filter(name='status_badge_class')
 def status_badge_class(estatus_id: int) -> str:
@@ -27,3 +29,15 @@ def status_badge_class(estatus_id: int) -> str:
     if 300 <= estatus_id < 400:
         return f'finalizado-{estatus_id}'
     return 'otro'
+
+
+@register.filter(name='status_group')
+def status_group(estatus_id: int) -> str:
+    """Retorna el grupo de estatus (inicio, proceso, finalizado, otro).
+
+    Usado para aplicar estilos CSS contextuales por familia de estatus.
+    """
+    if estatus_id is None:
+        return 'otro'
+    group = _STATUS_GROUPS.get(estatus_id // 100)
+    return group or 'otro'

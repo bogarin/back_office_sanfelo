@@ -4,8 +4,9 @@ Servicios SFTP para el módulo de trámites.
 Conexión, listing de archivos, descarga con caché y validación de folios.
 
 Public API (classmethods — no instance creation needed):
-    - ``SFTPService.serve_requisito_pdf(tramite, filename)`` → HttpResponse
+    - ``SFTPService.serve_pdf(tramite, filename)`` → HttpResponse
     - ``SFTPService.fetch_requisito_files(folio)`` → (files, warning)
+    - ``SFTPService.fetch_actividad_files(folio)`` → (files, warning)
     - ``SFTPService.download_to_path(folio, filename, local_path)`` → None
     - ``SFTPService.ping()`` → None
 
@@ -29,6 +30,7 @@ from django.conf import settings
 from django.http import FileResponse, HttpResponse
 
 from .constants import (
+    ACTIVIDAD_FILENAME_REGEX,
     FILE_COUNT_WARNING_THRESHOLD,
     FILENAME_REGEX,
     FOLIO_REGEX,
@@ -37,7 +39,7 @@ from .constants import (
     MAX_DOWNLOAD_FILE_SIZE_BYTES,
 )
 from .exceptions import SFTPConnectionError
-from .models import Requisito, RequisitoFile
+from .models import ActividadFile, Actividades, Requisito, RequisitoFile
 
 if TYPE_CHECKING:
     from .models import Tramite
@@ -127,6 +129,8 @@ def validate_folio(folio: str) -> str:
 def validate_filename(filename: str) -> str:
     """Validate PDF filename format to prevent SFTP path traversal.
 
+    Accepts both requisito files (DAU-*.pdf) and actividad files (ACT-*.pdf).
+
     Args:
         filename: The filename string to validate.
 
@@ -149,8 +153,8 @@ def validate_filename(filename: str) -> str:
             'Verifica que el archivo sea correcto.'
         )
 
-    # Enforce expected format (anchored regex)
-    if not FILENAME_REGEX.match(filename):
+    # Enforce expected format (anchored regex) — supports both schemas
+    if not (FILENAME_REGEX.match(filename) or ACTIVIDAD_FILENAME_REGEX.match(filename)):
         logger.error('Seguridad: archivo no coincide formato esperado: %r', filename)
         raise SFTPConnectionError(
             'Formato de nombre de archivo inválido. Verifica que el archivo sea correcto.'
@@ -173,8 +177,9 @@ class SFTPService:
 
     Public API::
 
-        SFTPService.serve_requisito_pdf(tramite, filename) -> HttpResponse
+        SFTPService.serve_pdf(tramite, filename) -> HttpResponse
         SFTPService.fetch_requisito_files(folio) -> (files, warning)
+        SFTPService.fetch_actividad_files(folio) -> (files, warning)
         SFTPService.download_to_path(folio, filename, local_path) -> None
         SFTPService.ping() -> None
     """
@@ -184,17 +189,17 @@ class SFTPService:
     # ------------------------------------------------------------------
 
     @classmethod
-    def serve_requisito_pdf(
+    def serve_pdf(
         cls,
         tramite: Tramite,
         filename: str,
     ) -> HttpResponse:
         """Full download pipeline: validate → cache → download → build response.
 
-        Validates folio and filename, checks the local cache, downloads from
-        SFTP if needed, and returns an appropriate HTTP response (dev:
-        ``FileResponse``, prod: ``X-Accel-Redirect``).  Connection lifecycle
-        is managed internally.
+        Validates folio and filename (supports both requisito and actividad
+        file patterns), checks the local cache, downloads from SFTP if needed,
+        and returns an appropriate HTTP response (dev: ``FileResponse``,
+        prod: ``X-Accel-Redirect``).  Connection lifecycle is managed internally.
 
         Args:
             tramite: Tramite instance.
@@ -246,15 +251,19 @@ class SFTPService:
     def fetch_requisito_files(
         cls,
         folio: str,
+        files: list[tuple[str, float]] | None = None,
     ) -> tuple[list[RequisitoFile], str | None]:
         """List requisito PDFs with catalog names from the database.
 
-        Validates the folio, fetches the file listing from SFTP, and enriches
-        each entry with the requisito name from the database catalog.
+        Validates folio, fetches file listing from SFTP, and enriches
+        each entry with requisito name from database catalog.
         Connection lifecycle is managed internally.
 
         Args:
             folio: Folio of the tramite.
+            files: Optional pre-fetched file list. If provided, uses this list
+                instead of fetching from SFTP. Allows sharing a single
+                SFTP connection with ``fetch_actividad_files``.
 
         Returns:
             ``(files, warning_message)`` — *warning_message* is ``None``
@@ -267,12 +276,58 @@ class SFTPService:
 
         service = cls()
         try:
-            return service._list_requisito_files(folio)
+            return service._list_requisito_files(folio, files)
         except SFTPConnectionError:
             raise
         except Exception as exc:
             logger.error(
                 'Error inesperado al listar requisitos para folio %s: %s',
+                folio,
+                exc,
+                exc_info=True,
+            )
+            raise SFTPConnectionError(
+                'Ocurrió un error inesperado al cargar los archivos. '
+                'Por favor contacta al administrador del sistema.'
+            ) from exc
+        finally:
+            service.close_connection()
+
+    @classmethod
+    def fetch_actividad_files(
+        cls,
+        folio: str,
+        files: list[tuple[str, float]] | None = None,
+    ) -> tuple[list[ActividadFile], str | None]:
+        """List actividad PDFs with associated actividad records from DB.
+
+        Validates folio, fetches file listing from SFTP, and enriches
+        each entry with data from the Actividades model.
+        Connection lifecycle is managed internally.
+
+        Args:
+            folio: Folio of the tramite.
+            files: Optional pre-fetched file list. If provided, uses this list
+                instead of fetching from SFTP. Allows sharing a single
+                SFTP connection with ``fetch_requisito_files``.
+
+        Returns:
+            ``(files, warning_message)`` — *warning_message* is ``None``
+            when everything is normal.
+
+        Raises:
+            SFTPConnectionError: On validation or SFTP failure.
+        """
+        validate_folio(folio)
+
+        service = cls()
+        try:
+            return service._list_actividad_files(folio, files)
+        except SFTPConnectionError:
+            raise
+        except Exception as exc:
+            logger.error(
+                'Error inesperado al listar archivos de actividades para folio %s: %s',
                 folio,
                 exc,
                 exc_info=True,
@@ -654,9 +709,36 @@ class SFTPService:
             if e.filename.endswith('.pdf')
         ]
 
+    @classmethod
+    def _list_all_files_for_tramite(cls, folio: str) -> list[tuple[str, float]]:
+        """List PDF files for a tramite using a single SFTP connection.
+
+        This classmethod shares a single SFTP connection between
+        ``fetch_requisito_files`` and ``fetch_actividad_files`` calls
+        in the admin view, avoiding redundant network round-trips.
+
+        Args:
+            folio: Folio of the tramite.
+
+        Returns:
+            List of ``(file_name, size_mb)`` tuples (PDF files only).
+
+        Raises:
+            SFTPConnectionError: On connection / listing failure.
+        """
+        service = cls()
+        try:
+            return service._list_files_for_tramite(folio)
+        except SFTPConnectionError:
+            raise
+        finally:
+            service.close_connection()
+
+
     def _list_requisito_files(
         self,
         folio: str,
+        files: list[tuple[str, float]] | None = None,
     ) -> tuple[list[RequisitoFile], str | None]:
         """List requisito PDFs with catalog names from the database.
 
@@ -665,6 +747,10 @@ class SFTPService:
 
         Args:
             folio: Folio of the tramite.
+            files: Optional pre-fetched file list from SFTP. If None, calls
+                ``_list_files_for_tramite`` to fetch files. This allows
+                sharing a single SFTP connection for both requisitos and
+                actividades files.
 
         Returns:
             ``(files, warning_message)`` — *warning_message* is ``None``
@@ -674,7 +760,8 @@ class SFTPService:
             SFTPConnectionError: On SFTP failure.
         """
         try:
-            files = self._list_files_for_tramite(folio)
+            if files is None:
+                files = self._list_files_for_tramite(folio)
             requisitos_dict = self._get_cached_requisitos()
 
             resultado: list[RequisitoFile] = []
@@ -703,6 +790,99 @@ class SFTPService:
         except Exception as exc:
             logger.error(
                 'Error inesperado al listar requisitos para folio %s: %s',
+                folio,
+                exc,
+            )
+            raise SFTPConnectionError(
+                'Ocurrió un error inesperado al cargar los archivos. '
+                'Por favor contacta al administrador del sistema.'
+            ) from exc
+
+    # ------------------------------------------------------------------
+    # File listing — actividad files (internal)
+    # ------------------------------------------------------------------
+
+    def _list_actividad_files(
+        self,
+        folio: str,
+        files: list[tuple[str, float]] | None = None,
+    ) -> tuple[list[ActividadFile], str | None]:
+        """List actividad PDFs with associated actividad records from DB.
+
+        Internal method — callers should use the ``fetch_actividad_files``
+        classmethod instead.
+
+        Args:
+            folio: Folio of the tramite.
+            files: Optional pre-fetched file list from SFTP. If None, calls
+                ``_list_files_for_tramite`` to fetch files. This allows
+                sharing a single SFTP connection for both requisitos and
+                actividades files.
+
+        Returns:
+            ``(files, warning_message)`` — *warning_message* is ``None``
+            when everything is normal.
+
+        Raises:
+            SFTPConnectionError: On SFTP failure.
+        """
+        validate_folio(folio)
+
+        try:
+            if files is None:
+                files = self._list_files_for_tramite(folio)
+
+            # Parse ACT filenames and collect actividad IDs
+            parsed: list[tuple[str, float, int, str]] = []
+            actividad_ids: set[int] = set()
+            for file_name, size_mb in files:
+                match = ACTIVIDAD_FILENAME_REGEX.match(file_name)
+                if not match:
+                    continue
+                actividad_id = int(match.group('actividad_id'))
+                actividad_ids.add(actividad_id)
+                parsed.append((
+                    file_name,
+                    size_mb,
+                    actividad_id,
+                    match.group('timestamp'),
+                ))
+
+            if not parsed:
+                return [], None
+
+            # Bulk lookup: {actividad_id: Actividades}
+            actividades_map = {
+                a.id: a
+                for a in Actividades.objects.filter(id__in=actividad_ids)
+            }
+
+            resultado: list[ActividadFile] = []
+            for file_name, size_mb, actividad_id, timestamp_str in parsed:
+                act = actividades_map.get(actividad_id)
+                resultado.append(
+                    ActividadFile(
+                        actividad_id=actividad_id,
+                        file_name=file_name,
+                        size_mb=size_mb,
+                        timestamp_str=timestamp_str,
+                        observacion=act.observacion if act else None,
+                        estatus_nombre=act.estatus.estatus if act and act.estatus else None,
+                        backoffice_user_id=act.backoffice_user_id if act else None,
+                    )
+                )
+
+            # Sort by timestamp descending (most recent first)
+            resultado.sort(key=lambda f: f.timestamp_str, reverse=True)
+
+            warning = self._check_file_count_warning(len(resultado), folio)
+            return resultado, warning
+
+        except SFTPConnectionError:
+            raise
+        except Exception as exc:
+            logger.error(
+                'Error inesperado al listar archivos de actividades para folio %s: %s',
                 folio,
                 exc,
             )
@@ -896,7 +1076,7 @@ class SFTPService:
     ) -> Path:
         """Download file to cache with atomic operations and temp file management.
 
-        Internal method — callers should use the ``serve_requisito_pdf``
+        Internal method — callers should use the ``serve_pdf``
         classmethod instead.
 
         Args:

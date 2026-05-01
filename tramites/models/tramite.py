@@ -381,7 +381,7 @@ class Tramite(models.Model):
         )
         if estatus_cierre not in estatus_validos:
             raise ValueError(
-                f'Estaus de cierre inválido: {estatus_cierre}. '
+                f'Estatus de cierre inválido: {estatus_cierre}. '
                 f'Debe ser uno de: {estatus_validos}'
             )
 

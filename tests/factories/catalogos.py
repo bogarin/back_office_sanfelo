@@ -1,14 +1,8 @@
 """Factories for catalog models (now in tramites app)."""
 
-import factory
 from datetime import date
 
-from tramites.models import (
-    Actividades,
-    Perito,
-    TramiteCatalogo,
-    TramiteEstatus,
-)
+import factory
 
 
 class TramiteCatalogoFactory(factory.django.DjangoModelFactory):

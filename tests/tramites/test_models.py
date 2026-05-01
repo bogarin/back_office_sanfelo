@@ -3,7 +3,7 @@ Tests for tramites models.
 
 This module contains tests for:
 - Tramite model business logic
-- Model methods (asignar, finalizar, etc.)
+- Model methods (asignar, cerrar, etc.)
 - Model properties
 - Validation logic
 """
@@ -1094,8 +1094,8 @@ class TestTramiteEnDiligencia:
 
 
 @pytest.mark.django_db
-class TestTramiteFinalizar:
-    """Test suite for Tramite.finalizar() method."""
+class TestTramiteCerrar:
+    """Test suite for Tramite.cerrar() method."""
 
     @pytest.fixture
     def analista(self, django_db_setup):
@@ -1132,38 +1132,80 @@ class TestTramiteFinalizar:
         return tramite
 
     @patch('tramites.models.Tramite.registrar_actividad')
-    def test_finalizar_exitoso_actividad_finalizada(
+    def test_cerrar_exitoso_actividad_por_recoger(
         self, mock_registrar, analista, tramite_activo_asignado
     ):
         """
-        Happy path: Finalize tramite successfully.
+        Happy path: Close tramite with POR_RECOGER status.
 
         Expected behavior:
-        - Creates Actividades with estatus FINALIZADO (303)
+        - Creates Actividades with estatus POR_RECOGER (301)
         - Uses provided observation
-        - Logs finalization
         """
         tramite = tramite_activo_asignado
 
-        # Finalize
-        tramite.finalizar(
+        tramite.cerrar(
             analista=analista,
-            observacion='Trámite finalizado correctamente',
+            estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
+            observacion='Trámite listo para recoger',
         )
 
-        # Verify actividad was created
         assert mock_registrar.call_count == 1
         call_args = mock_registrar.call_args
-        assert call_args[0][0] == TramiteEstatus.Estatus.FINALIZADO
+        assert call_args[0][0] == TramiteEstatus.Estatus.POR_RECOGER
         assert call_args.kwargs['analista_id'] == analista.id
-        assert 'finalizado correctamente' in call_args.kwargs['observacion']
+        assert 'listo para recoger' in call_args.kwargs['observacion']
 
     @patch('tramites.models.Tramite.registrar_actividad')
-    def test_finalizar_observacion_vacia_raises_value_error(
+    def test_cerrar_exitoso_actividad_rechazado(
         self, mock_registrar, analista, tramite_activo_asignado
     ):
         """
-        Edge case: Try to finalize with empty observation.
+        Happy path: Close tramite with RECHAZADO status.
+
+        Expected behavior:
+        - Creates Actividades with estatus RECHAZADO (302)
+        """
+        tramite = tramite_activo_asignado
+
+        tramite.cerrar(
+            analista=analista,
+            estatus_cierre=TramiteEstatus.Estatus.RECHAZADO,
+            observacion='Documentos incompletos',
+        )
+
+        assert mock_registrar.call_count == 1
+        call_args = mock_registrar.call_args
+        assert call_args[0][0] == TramiteEstatus.Estatus.RECHAZADO
+
+    @patch('tramites.models.Tramite.registrar_actividad')
+    def test_cerrar_exitoso_actividad_cancelado(
+        self, mock_registrar, analista, tramite_activo_asignado
+    ):
+        """
+        Happy path: Close tramite with CANCELADO status.
+
+        Expected behavior:
+        - Creates Actividades with estatus CANCELADO (304)
+        """
+        tramite = tramite_activo_asignado
+
+        tramite.cerrar(
+            analista=analista,
+            estatus_cierre=TramiteEstatus.Estatus.CANCELADO,
+            observacion='Solicitante canceló el trámite',
+        )
+
+        assert mock_registrar.call_count == 1
+        call_args = mock_registrar.call_args
+        assert call_args[0][0] == TramiteEstatus.Estatus.CANCELADO
+
+    @patch('tramites.models.Tramite.registrar_actividad')
+    def test_cerrar_observacion_vacia_raises_value_error(
+        self, mock_registrar, analista, tramite_activo_asignado
+    ):
+        """
+        Edge case: Try to close with empty observation.
 
         Expected behavior:
         - Raises ValueError
@@ -1172,17 +1214,17 @@ class TestTramiteFinalizar:
         tramite = tramite_activo_asignado
 
         with pytest.raises(ValueError, match='observación es requerida'):
-            tramite.finalizar(
+            tramite.cerrar(
                 analista=analista,
+                estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
                 observacion='   ',  # Empty after strip
             )
 
-        # Verify no new actividad was created
         assert mock_registrar.call_count == 0
 
-    def test_finalizar_estatus_no_activo_raises_no_asignable(self, analista, tramite_no_activo):
+    def test_cerrar_estatus_no_activo_raises_no_asignable(self, analista, tramite_no_activo):
         """
-        Edge case: Try to finalize non-active tramite.
+        Edge case: Try to close non-active tramite.
 
         Expected behavior:
         - Raises TramiteNoAsignableError
@@ -1190,17 +1232,18 @@ class TestTramiteFinalizar:
         tramite = tramite_no_activo
 
         with pytest.raises(TramiteNoAsignableError, match='ya no se encuentra activo'):
-            tramite.finalizar(
+            tramite.cerrar(
                 analista=analista,
+                estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
                 observacion='Test',
             )
 
     @patch('tramites.models.Tramite.registrar_actividad')
-    def test_finalizar_usuario_no_asignado_raises_permission_denied(
+    def test_cerrar_usuario_no_asignado_raises_permission_denied(
         self, mock_registrar, analista, tramite_activo_asignado
     ):
         """
-        Edge case: Try to finalize tramite not assigned to this analyst.
+        Edge case: Try to close tramite not assigned to this analyst.
 
         Expected behavior:
         - Raises PermissionDenied
@@ -1220,8 +1263,31 @@ class TestTramiteFinalizar:
         tramite = tramite_activo_asignado
 
         with pytest.raises(PermissionDenied, match='Este tramite esta asignado a otro analista'):
-            tramite.finalizar(
+            tramite.cerrar(
                 analista=other_analista,
+                estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
+                observacion='Test',
+            )
+
+        assert mock_registrar.call_count == 0
+
+    @patch('tramites.models.Tramite.registrar_actividad')
+    def test_cerrar_estatus_cierre_invalido_raises_value_error(
+        self, mock_registrar, analista, tramite_activo_asignado
+    ):
+        """
+        Edge case: Try to close with invalid closing status.
+
+        Expected behavior:
+        - Raises ValueError
+        - No Actividades created
+        """
+        tramite = tramite_activo_asignado
+
+        with pytest.raises(ValueError, match='Estatus de cierre inválido'):
+            tramite.cerrar(
+                analista=analista,
+                estatus_cierre=TramiteEstatus.Estatus.FINALIZADO,
                 observacion='Test',
             )
 
@@ -1279,7 +1345,7 @@ class TestTramiteDatabaseError:
         self, analista, tramite_en_revision
     ):
         """
-        Edge case: Try to finalize with invalid status (not in REVISION/REQUERIMIENTO/EN_DILIGENCIA).
+        Edge case: Try to close with invalid status (not in REVISION/REQUERIMIENTO/EN_DILIGENCIA).
 
         Expected behavior:
         - Raises EstadoNoPermitidoError
@@ -1290,7 +1356,8 @@ class TestTramiteDatabaseError:
         tramite.ultima_actividad_estatus_id = TramiteEstatus.Estatus.PRESENTADO
 
         with pytest.raises(EstadoNoPermitidoError, match='estatus actual'):
-            tramite.finalizar(
+            tramite.cerrar(
                 analista=analista,
+                estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
                 observacion='Observación de prueba',
             )

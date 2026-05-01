@@ -28,7 +28,6 @@ Todos los comandos de desarrollo se ejecutan con `just` (task runner). Los coman
 | `just migrate` | Aplicar migraciones pendientes |
 | `just migrate-status` | Ver estado de migraciones |
 | `just makemigrations APP` | Crear migración para una app (solo schema backoffice) |
-| `just validate-schema` | Validar sync entre modelos Django y PostgreSQL |
 
 ### Usuarios y Roles
 
@@ -99,16 +98,6 @@ uv run manage.py setup_roles
 ```
 
 Ver: [Referencia RBAC](rbac.md)
-
-#### `validate_schema`
-
-Verifica que los modelos Django estén sincronizados con las tablas PostgreSQL en el schema `public`.
-
-```bash
-uv run manage.py validate_schema
-```
-
-> **Nota:** Solo valida el schema `public` (datos de negocio). El schema `backoffice` usa Django migrations.
 
 #### `sftp`
 

@@ -2,7 +2,7 @@
 
 import factory
 
-from tests.factories.catalogos import TramiteCatalogoFactory, TramiteEstatusFactory
+from tests.factories.catalogos import TramiteEstatusFactory
 from tramites.models import Actividades
 
 
@@ -77,11 +77,11 @@ class TramiteWithEstatusFactory(factory.django.DjangoModelFactory):
         # The tramite instance is available via self
         tramite_instance = self
 
-        from tramites.models import Actividades, TramiteEstatus
+        from tramites.models import TramiteEstatus
 
         # Determine estatus to use
         # Priority order: estatus_id kwarg -> estatus kwarg -> create default
-        estatus_id = kwargs.get('estatus_id', None)
+        estatus_id = kwargs.get('estatus_id')
 
         if estatus_id is not None:
             # Use estatus_id kwarg
@@ -91,14 +91,14 @@ class TramiteWithEstatusFactory(factory.django.DjangoModelFactory):
             estatus_obj = None
 
             # 1. Check if estatus was passed as a kwarg
-            estatus_passed = kwargs.get('estatus', None)
+            estatus_passed = kwargs.get('estatus')
             if estatus_passed is not None:
                 estatus_obj = estatus_passed
 
             # 2. Check if estatus was stored on instance
             if estatus_obj is None:
                 try:
-                    estatus_obj = getattr(tramite_instance, '_estatus')
+                    estatus_obj = tramite_instance._estatus
                 except AttributeError:
                     pass
 

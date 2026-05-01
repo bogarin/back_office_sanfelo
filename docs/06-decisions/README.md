@@ -32,6 +32,7 @@ Un **ADR (Architecture Decision Record)** es un documento corto que captura una 
 | [ADR-013](013-rbac-tres-roles.md) | Sistema RBAC con tres roles *(Superseded by ADR-014)* |
 | [ADR-014](014-custom-user-workflow-permissions.md) | Custom User Model, Workflow Refactoring y Permission Methods |
 | [ADR-015](015-timestamps-timezone-america-tijuana.md) | Estrategia unificada de timestamps y zona horaria (America/Tijuana) |
+| [ADR-016](016-timeline-integrado-dtos-archivos.md) | Timeline integrado con DTOs y doble schema de archivos PDF |
 
 ## Cómo crear un nuevo ADR
 

@@ -12,12 +12,69 @@ Schema matches PostgreSQL actividades table:
 - timestamp (timestamp, default=CURRENT_TIMESTAMP)
 """
 
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 from django.db import models
 from django.db.models.functions import Now
 
 from core.managers import CreateOnlyManager
 from core.model_config import AccessPattern, register_model
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import User
+
+
+# =============================================================================
+# DTOs for SFTP file metadata + DB enrichment
+# =============================================================================
+
+
+@dataclass
+class RequisitoFile:
+    """Archivo PDF de requisito con información de SFTP y catálogo.
+
+    DTO que combina metadata del archivo en SFTP con el nombre del
+    requisito desde el catálogo en base de datos.
+    """
+
+    requisito_id: int
+    requisito_nombre: str | None  # None si no existe en catálogo
+    file_name: str
+    size_mb: float
+
+
+@dataclass
+class ActividadFile:
+    """Archivo PDF de actividad con información del registro actividades.
+
+    DTO que combina metadata del archivo en SFTP con datos del
+    registro de actividades desde la base de datos.
+    """
+
+    actividad_id: int
+    file_name: str
+    size_mb: float
+    timestamp_str: str
+    observacion: str | None = None
+    estatus_nombre: str | None = None
+    backoffice_user_id: int | None = None
+
+
+@dataclass
+class TimelineEntry:
+    """Entrada del timeline del trámite.
+
+    Une una actividad del historial con sus archivos adjuntos (ACT-*.pdf
+    si aplica) y los documentos del ciudadano (DAU-*.pdf) solo para la
+    primera actividad en estatus PENDIENTE_PAGO.
+    """
+
+    actividad: Actividades
+    actividad_files: list[ActividadFile]
+    requisito_files: list[RequisitoFile]
+    user: 'User | None' = None
 
 
 @register_model('backend', AccessPattern.APPEND_ONLY, False)

@@ -202,32 +202,75 @@ class Command(BaseCommand):
         self.stdout.write('')
 
         try:
-            # Obtener archivos desde el servicio
-            files, warning_message = SFTPService.fetch_requisito_files(folio)
+            # Get requisito files
+            requisitos, req_warning = SFTPService.fetch_requisito_files(folio)
 
-            # Mostrar advertencia si existe
-            if warning_message:
-                self.stdout.write(self.style.WARNING(f'⚠ {warning_message}'))
-                self.stdout.write('')
+            # Get actividad files
+            actividades, act_warning = SFTPService.fetch_actividad_files(folio)
 
-            if not files:
-                self.stdout.write('  No se encontraron archivos')
+            # Show warnings
+            for warning in (req_warning, act_warning):
+                if warning:
+                    self.stdout.write(self.style.WARNING(f'⚠ {warning}'))
+                    self.stdout.write('')
+
+            # Show actividad files FIRST (more relevant / recent)
+            self.stdout.write('  ┌─ Actividades')
+            if not actividades:
+                self.stdout.write('  │   No se encontraron archivos')
             else:
-                # Imprimir cabecera de tabla
-                self.stdout.write(
-                    f'  {"Requisito ID":<14} {"Nombre":<40} {"Archivo":<35} {"Tamaño":<10}'
-                )
-                self.stdout.write(f'  {"-" * 99}')
+                # Build user lookup: {user_id: username}
+                user_lookup = {}
+                user_ids = {a.backoffice_user_id for a in actividades if a.backoffice_user_id}
+                if user_ids:
+                    from django.contrib.auth import get_user_model
 
-                for f in files:
+                    for u in get_user_model().objects.filter(id__in=user_ids):
+                        user_lookup[u.id] = u.username
+
+                self.stdout.write(
+                    f'  │   {"Actividad ID":<14} {"Usuario":<20} {"Observación":<30} {"Archivo":<40} {"Tamaño":<10}'
+                )
+                self.stdout.write(f'  │   {"-" * 114}')
+                for f in actividades:
+                    usuario = '—'
+                    if f.backoffice_user_id:
+                        username = user_lookup.get(f.backoffice_user_id)
+                        usuario = f'{f.backoffice_user_id}/{username}' if username else f'{f.backoffice_user_id}/—'
+                    observacion = (
+                        (f.observacion[:27] + '...') if f.observacion and len(f.observacion) > 30
+                        else (f.observacion or '—')
+                    )
+                    self.stdout.write(
+                        f'  │   {f.actividad_id:<14} {usuario:<20} {observacion:<30} '
+                        f'{f.file_name:<40} {f.size_mb:.2f} MB'
+                    )
+            self.stdout.write('  │')
+
+            # Show requisito files SECOND
+            self.stdout.write('  └─ Requisitos')
+            if not requisitos:
+                self.stdout.write('      No se encontraron archivos')
+            else:
+                self.stdout.write(
+                    f'      {"Requisito ID":<14} {"Nombre":<40} {"Archivo":<35} {"Tamaño":<10}'
+                )
+                self.stdout.write(f'      {"-" * 99}')
+                for f in requisitos:
                     requisito_nombre = f.requisito_nombre or '—'
                     self.stdout.write(
-                        f'  {f.requisito_id:<14} {requisito_nombre:<40} '
+                        f'      {f.requisito_id:<14} {requisito_nombre:<40} '
                         f'{f.file_name:<35} {f.size_mb:.2f} MB'
                     )
 
+            total = len(requisitos) + len(actividades)
             self.stdout.write('')
-            self.stdout.write(self.style.SUCCESS(f'✓ {len(files)} archivos listados'))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'✓ {total} archivos listados ({len(actividades)} actividades, '
+                    f'{len(requisitos)} requisitos)',
+                )
+            )
 
         except SFTPConnectionError as e:
             self.stdout.write(self.style.ERROR(f'✗ {e}'))

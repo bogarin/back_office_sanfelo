@@ -18,6 +18,13 @@ FORBIDDEN_FOLIO_CHARS = frozenset('/\\\x00.')
 # Anchored with ^ and $ to prevent partial matches (security hardening)
 FILENAME_REGEX = re.compile(r'^[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]-(?P<requisito_id>\d+)\.pdf$')
 
+# Regex for parsing actividad_id from ACT filename (path traversal defense)
+# Example: ACT-145-2026-04-30T02-54-49.pdf → actividad_id=145
+# Anchored with ^ and $ to prevent partial matches (security hardening)
+ACTIVIDAD_FILENAME_REGEX = re.compile(
+    r'^ACT-(?P<actividad_id>\d+)-(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})\.pdf$',
+)
+
 # Characters that must NEVER appear in a filename (path traversal vectors)
 # Note: '.' is NOT forbidden here (needed for .pdf extension)
 FORBIDDEN_FILENAME_CHARS = frozenset('/\\\x00')

@@ -63,7 +63,7 @@ Un solo servidor PostgreSQL con dos esquemas:
 
 | Schema | Propósito | Gestión |
 |--------|-----------|---------|
-| `backoffice` | Django auth, sessions, admin, AsignacionTramite | Django migrations |
+| `backoffice` | Django auth, sessions, admin, User (custom) | Django migrations |
 | `public` | Trámites, catálogos, actividades, peritos | Externo (no migrations) |
 
 **Routing:** `core.db_router.ModelBasedRouter` con decorador `@register_model()` y `AccessPattern` (FULL_ACCESS, READ_ONLY, APPEND_ONLY).

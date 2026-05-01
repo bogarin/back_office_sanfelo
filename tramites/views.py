@@ -39,17 +39,20 @@ logger = logging.getLogger(__name__)
 
 
 @staff_member_required
-def download_requisito_pdf(
+def download_pdf(
     request: HttpRequest,
     pk: int,
     filename: str,
 ) -> HttpResponse:
-    """Download a PDF requisito file from SFTP server.
+    """Download a PDF file from SFTP server.
+
+    Supports both requisito files (DAU-*.pdf) and actividad files
+    (ACT-*.pdf).
 
     This view implements a secure file download pattern:
     1. Validates filename format (defense-in-depth early reject)
     2. Fetches the tramite and checks object-level authorization
-    3. Delegates to ``SFTPService.serve_requisito_pdf()`` which handles
+    3. Delegates to ``SFTPService.serve_pdf()`` which handles
        cache checking, SFTP download, and response building
     4. Logs the download for audit purposes
 
@@ -80,7 +83,7 @@ def download_requisito_pdf(
         )
 
     try:
-        response = SFTPService.serve_requisito_pdf(
+        response = SFTPService.serve_pdf(
             tramite=tramite,
             filename=filename,
         )

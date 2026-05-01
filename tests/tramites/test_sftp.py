@@ -34,7 +34,7 @@ from tramites.sftp import (
     validate_filename,
     validate_folio,
 )
-from tramites.views import download_requisito_pdf
+from tramites.views import download_pdf
 
 # =============================================================================
 # Helpers
@@ -199,31 +199,31 @@ def test_validate_filename_dot_allowed_for_pdf_extension():
 
 
 # =============================================================================
-# P0-3: SFTPService.serve_requisito_pdf()
+# P0-3: SFTPService.serve_pdf()
 # =============================================================================
 
 
-def test_serve_requisito_pdf_rejects_invalid_folio():
+def test_serve_pdf_rejects_invalid_folio():
     tramite = _make_tramite(folio='../../../etc')
     with pytest.raises(SFTPConnectionError, match='caracteres no permitidos'):
-        SFTPService.serve_requisito_pdf(tramite, 'DAU-260420-AAAE-B-19.pdf')
+        SFTPService.serve_pdf(tramite, 'DAU-260420-AAAE-B-19.pdf')
 
 
-def test_serve_requisito_pdf_rejects_invalid_filename():
+def test_serve_pdf_rejects_invalid_filename():
     tramite = _make_tramite()
     with pytest.raises(SFTPConnectionError):
-        SFTPService.serve_requisito_pdf(tramite, '../../etc/passwd.pdf')
+        SFTPService.serve_pdf(tramite, '../../etc/passwd.pdf')
 
 
 @patch.object(SFTPService, '_download_with_cache')
 @patch.object(SFTPService, 'close_connection')
-def test_serve_requisito_pdf_cache_hit_returns_response(mock_close, mock_download):
+def test_serve_pdf_cache_hit_returns_response(mock_close, mock_download):
     """Cache hit: _download_with_cache returns path, response is built."""
     mock_download.return_value = Path('/tmp/.sftp_cache/DAU-260420-AAAE-B/DAU-260420-AAAE-B-19.pdf')
 
     with patch.object(SFTPService, 'build_file_response') as mock_build:
         mock_build.return_value = HttpResponse()
-        SFTPService.serve_requisito_pdf(
+        SFTPService.serve_pdf(
             _make_tramite(),
             'DAU-260420-AAAE-B-19.pdf',
         )
@@ -235,12 +235,12 @@ def test_serve_requisito_pdf_cache_hit_returns_response(mock_close, mock_downloa
 
 @patch.object(SFTPService, '_download_with_cache')
 @patch.object(SFTPService, 'close_connection')
-def test_serve_requisito_pdf_closes_connection_on_sftp_error(mock_close, mock_download):
+def test_serve_pdf_closes_connection_on_sftp_error(mock_close, mock_download):
     """Connection is closed even when SFTPConnectionError is raised."""
     mock_download.side_effect = SFTPConnectionError('download failed')
 
     with pytest.raises(SFTPConnectionError, match='download failed'):
-        SFTPService.serve_requisito_pdf(
+        SFTPService.serve_pdf(
             _make_tramite(),
             'DAU-260420-AAAE-B-19.pdf',
         )
@@ -250,12 +250,12 @@ def test_serve_requisito_pdf_closes_connection_on_sftp_error(mock_close, mock_do
 
 @patch.object(SFTPService, '_download_with_cache')
 @patch.object(SFTPService, 'close_connection')
-def test_serve_requisito_pdf_wraps_unexpected_error(mock_close, mock_download):
+def test_serve_pdf_wraps_unexpected_error(mock_close, mock_download):
     """Unexpected exceptions are wrapped in SFTPConnectionError."""
     mock_download.side_effect = RuntimeError('boom')
 
     with pytest.raises(SFTPConnectionError):
-        SFTPService.serve_requisito_pdf(
+        SFTPService.serve_pdf(
             _make_tramite(),
             'DAU-260420-AAAE-B-19.pdf',
         )
@@ -265,13 +265,13 @@ def test_serve_requisito_pdf_wraps_unexpected_error(mock_close, mock_download):
 
 @patch.object(SFTPService, '_download_with_cache')
 @patch.object(SFTPService, 'close_connection')
-def test_serve_requisito_pdf_valid_input_passes_traversal_assertion(mock_close, mock_download):
+def test_serve_pdf_valid_input_passes_traversal_assertion(mock_close, mock_download):
     """Defense-in-depth: valid folio+filename passes the '..' assertion."""
     mock_download.return_value = Path('/safe/DAU-260420-AAAE-B/DAU-260420-AAAE-B-19.pdf')
 
     with patch.object(SFTPService, 'build_file_response') as mock_build:
         mock_build.return_value = HttpResponse()
-        SFTPService.serve_requisito_pdf(
+        SFTPService.serve_pdf(
             _make_tramite(),
             'DAU-260420-AAAE-B-19.pdf',
         )
@@ -587,7 +587,7 @@ def test_close_connection_does_not_suppress_critical_errors():
 
 
 # =============================================================================
-# P0-7: download_requisito_pdf (view) — integration tests
+# P0-7: download_pdf (view) — integration tests
 # =============================================================================
 
 
@@ -601,7 +601,7 @@ def download_url():
     Uses a sentinel pk=1; tests that need different PKs can call
     reverse() directly with the desired kwargs.
     """
-    return reverse('tramites:download-requisito-pdf', kwargs={'pk': 1, 'filename': VALID_FILENAME})
+    return reverse('tramites:download-pdf', kwargs={'pk': 1, 'filename': VALID_FILENAME})
 
 
 def test_download_view_redirects_anonymous_user(client, db, download_url):
@@ -622,7 +622,7 @@ def test_download_view_rejects_non_staff_user(client, db, download_url):
     assert '/login/' in response['Location']
 
 
-@patch('tramites.views.SFTPService.serve_requisito_pdf')
+@patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
 def test_download_view_rejects_invalid_filename(mock_log, mock_serve, admin_client, db):
     """Invalid filename is rejected before any DB or SFTP access.
@@ -636,13 +636,13 @@ def test_download_view_rejects_invalid_filename(mock_log, mock_serve, admin_clie
     request.user = MagicMock(is_superuser=True)
 
     with pytest.raises(SFTPConnectionError):
-        download_requisito_pdf(request, pk=1, filename='malicious.pdf')
+        download_pdf(request, pk=1, filename='malicious.pdf')
 
-    # serve_requisito_pdf should never be called — filename is validated first
+    # serve_pdf should never be called — filename is validated first
     mock_serve.assert_not_called()
 
 
-@patch('tramites.views.SFTPService.serve_requisito_pdf')
+@patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
 def test_download_view_returns_404_for_missing_tramite(mock_log, mock_serve, admin_client, db):
     """Non-existent tramite PK returns 404.
@@ -652,7 +652,7 @@ def test_download_view_returns_404_for_missing_tramite(mock_log, mock_serve, adm
     """
     with patch('tramites.views.get_object_or_404', side_effect=Http404):
         url = reverse(
-            'tramites:download-requisito-pdf', kwargs={'pk': 99999, 'filename': VALID_FILENAME}
+            'tramites:download-pdf', kwargs={'pk': 99999, 'filename': VALID_FILENAME}
         )
         response = admin_client.get(url)
 
@@ -677,7 +677,7 @@ def test_download_view_rejects_unauthorized_user(mock_log, superuser, client, db
     assert response.status_code == 403
 
 
-@patch('tramites.views.SFTPService.serve_requisito_pdf')
+@patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
 def test_download_view_success_logs_download(
     mock_log, mock_serve, superuser, client, db, download_url
@@ -699,7 +699,7 @@ def test_download_view_success_logs_download(
     assert mock_log.call_args.kwargs['success'] is True
 
 
-@patch('tramites.views.SFTPService.serve_requisito_pdf')
+@patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
 def test_download_view_sftp_error_logs_failure(
     mock_log, mock_serve, superuser, client, db, download_url
@@ -717,18 +717,18 @@ def test_download_view_sftp_error_logs_failure(
 
         request = MagicMock()
         request.user = superuser
-        download_requisito_pdf(request, pk=1, filename=VALID_FILENAME)
+        download_pdf(request, pk=1, filename=VALID_FILENAME)
 
     mock_log.assert_called_once()
     assert mock_log.call_args.kwargs['success'] is False
 
 
-@patch('tramites.views.SFTPService.serve_requisito_pdf')
+@patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
 def test_download_view_passes_correct_args_to_service(
     mock_log, mock_serve, superuser, client, db, download_url
 ):
-    """View passes tramite and filename to SFTPService.serve_requisito_pdf."""
+    """View passes tramite and filename to SFTPService.serve_pdf."""
     mock_serve.return_value = HttpResponse(b'%PDF', content_type='application/pdf')
     client.force_login(superuser)
 

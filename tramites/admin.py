@@ -59,9 +59,26 @@ def _display_timestamp(dt: datetime | None) -> str:
         return '—'
     from django.utils import timezone as _tz
 
-    if _tz.is_naive(dt):
-        dt = _tz.make_aware(dt)
-    return _tz.localtime(dt).strftime('%Y-%m-%d %H:%M:%S')
+from tramites.models import (
+    Actividades,
+    Buzon,
+    Requisito,
+    Tramite,
+    TramiteEstatus,
+)
+from tramites.models.actividades import (
+    ActividadFile,
+    RequisitoFile,
+    TimelineEntry,
+)
+from tramites.sftp import SFTPService, SFTPConnectionError
+from tramites.templatetags.admin_extras import status_badge_class
+from tramites.timeline import build_timeline_entries
+from tramites.exceptions import (
+    EstadoNoPermitidoError,
+    SFTPConnectionError,
+    TramiteNoAsignableError,
+)
 
 
 # =============================================================================

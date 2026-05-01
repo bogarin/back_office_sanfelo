@@ -1,10 +1,14 @@
-from .actividades import Actividades
+from .actividades import (
+    ActividadFile,
+    Actividades,
+    RequisitoFile,
+    TimelineEntry,
+)
 from .catalogos import (
     Actividad,
     Categoria,
     Perito,
     Requisito,
-    RequisitoFile,
     Tipo,
     TramiteCatalogo,
     TramiteEstatus,
@@ -31,9 +35,11 @@ __all__ = [
     'Categoria',
     'Requisito',
     'RequisitoFile',
+    'ActividadFile',
     'Tipo',
     # Transaccional
     'Actividades',
+    'TimelineEntry',
     # Relaciones (pivotes)
     'TramiteCatalogoCategoria',
     'TramiteCatalogoRequisito',

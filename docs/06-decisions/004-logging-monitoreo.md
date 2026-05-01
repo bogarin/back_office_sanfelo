@@ -1,7 +1,7 @@
 # 004: Logging y monitoreo
 
 **Fecha:** 26 de febrero de 2026  
-**Estado:** Propuesto
+**Estado:** Accepted
 
 ## Contexto
 
