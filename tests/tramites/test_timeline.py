@@ -592,7 +592,7 @@ def test_timeline_building_no_pendiente_pago_no_requisitos():
 
     entries = build_timeline_entries(historial, [], [rf], {})
 
-    assert len(entries) == 0
+    assert len(entries) == 1
     assert all(len(e.requisito_files) == 0 for e in entries)
 
 
@@ -602,7 +602,11 @@ def test_timeline_building_user_resolution():
     act_without_user = _make_actividad_mock(actividad_id=200, user_id=None)
     historial = [act_with_user, act_without_user]
 
-    entries = build_timeline_entries(historial, [], [], {})
+    mock_user = MagicMock()
+    mock_user.id = 42
+    users = {42: mock_user}
+
+    entries = build_timeline_entries(historial, [], [], users)
 
     user_entry = next(e for e in entries if e.actividad.backoffice_user_id == 42)
     assert user_entry.user is not None

@@ -29,14 +29,22 @@ from tramites.exceptions import (
 )
 from tramites.forms import TramiteDetailForm
 from tramites.models import (
+    Actividades,
     Buzon,
     Cerrado,
     Disponible,
+    Requisito,
     Tramite,
     TramiteCatalogo,
     TramiteEstatus,
 )
+from tramites.models.actividades import (
+    ActividadFile,
+    RequisitoFile,
+    TimelineEntry,
+)
 from tramites.sftp import SFTPService
+from tramites.timeline import build_timeline_entries
 
 logger = logging.getLogger(__name__)
 
@@ -59,26 +67,9 @@ def _display_timestamp(dt: datetime | None) -> str:
         return '—'
     from django.utils import timezone as _tz
 
-from tramites.models import (
-    Actividades,
-    Buzon,
-    Requisito,
-    Tramite,
-    TramiteEstatus,
-)
-from tramites.models.actividades import (
-    ActividadFile,
-    RequisitoFile,
-    TimelineEntry,
-)
-from tramites.sftp import SFTPService, SFTPConnectionError
-from tramites.templatetags.admin_extras import status_badge_class
-from tramites.timeline import build_timeline_entries
-from tramites.exceptions import (
-    EstadoNoPermitidoError,
-    SFTPConnectionError,
-    TramiteNoAsignableError,
-)
+    if _tz.is_naive(dt):
+        dt = _tz.make_aware(dt)
+    return _tz.localtime(dt).strftime('%Y-%m-%d %H:%M:%S')
 
 
 # =============================================================================
@@ -533,18 +524,55 @@ class TramiteBaseAdmin(admin.ModelAdmin):
         else:
             form = TramiteDetailForm()
 
-        requisitos = []
+        # Fetch files from SFTP once to avoid redundant connections
+        all_files = []
         try:
-            requisitos, _ = SFTPService.fetch_requisito_files(tramite.folio)
+            all_files = SFTPService._list_all_files_for_tramite(tramite.folio)
         except SFTPConnectionError as e:
             logger.warning('SFTP error for tramite %s: %s', tramite.folio, e)
             messages.error(
                 request, 'Error al cargar los documentos. Por favor intenta nuevamente más tarde.'
             )
+            all_files = []
+
+        requisitos = []
+        try:
+            requisitos, _ = SFTPService.fetch_requisito_files(
+                tramite.folio, files=all_files
+            )
+        except SFTPConnectionError as e:
+            logger.warning('SFTP error parsing requisitos for tramite %s: %s', tramite.folio, e)
+            messages.error(
+                request, 'Error al cargar los documentos. Por favor intenta nuevamente más tarde.'
+            )
+
+        actividades_files = []
+        try:
+            actividades_files, _ = SFTPService.fetch_actividad_files(
+                tramite.folio, files=all_files
+            )
+        except SFTPConnectionError as e:
+            logger.warning('SFTP error parsing actividad files for tramite %s: %s', tramite.folio, e)
+            messages.warning(
+                request, 'No se pudieron cargar los archivos de actividades. '
+                'El trámite se mostrará sin los archivos de sistema.'
+            )
+
+        # --- Build timeline entries ---
+        historial = list(tramite.historial_actividades)
+        user_ids = {a.backoffice_user_id for a in historial if a.backoffice_user_id}
+        users = {u.id: u for u in User.objects.filter(id__in=user_ids)}
+
+        timeline_entries = build_timeline_entries(
+            historial=historial,
+            actividades_files=actividades_files,
+            requisitos=requisitos,
+            users=users,
+        )
 
         context = {
             'tramite': tramite,
-            'requisitos': requisitos,
+            'timeline_entries': timeline_entries,
             'form': form,
             'opts': self.model._meta,
             'is_popup': False,

@@ -148,6 +148,8 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 # CSP context processor - provides csp_nonce for inline scripts/styles
                 'django.template.context_processors.csp',
+                # Custom context processors
+                'sanfelipe.context_processors.image_tag',
             ],
         },
     },
