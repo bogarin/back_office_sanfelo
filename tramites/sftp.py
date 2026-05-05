@@ -222,9 +222,12 @@ class SFTPService:
             # Defense-in-depth: reject any path traversal in the nginx header.
             # Both folio and filename are already validated, but this is a cheap
             # output-boundary guard against future regressions.
-            assert '..' not in cache_path_for_nginx, (
-                f'Path traversal detected in cache path: {cache_path_for_nginx!r}'
-            )
+            # NOTE: Do NOT use assert here — it gets stripped with PYTHONOPTIMIZE.
+            if '..' in cache_path_for_nginx:
+                logger.error('Path traversal detected in cache path: %r', cache_path_for_nginx)
+                raise SFTPConnectionError(
+                    'Error de seguridad al procesar el archivo. Contacta al administrador.'
+                )
 
             return cls.build_file_response(
                 final_path=final_path,

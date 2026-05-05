@@ -21,6 +21,7 @@ Una **auditoría técnica** es una evaluación sistemática de un aspecto del si
 
 | Fecha | Archivo | Tipo | Descripción |
 | ----- | ------- | ---- | ----------- |
+| 2026-05-04 | [AUDIT-002](002-limpieza-de-codigo.md) | Calidad | Limpieza de código: 50 hallazgos, 4 críticos, 8 altos, antipatrones de mantenibilidad |
 | 2026-05-04 | [AUDIT-001](001-calidad-de-pruebas.md) | Calidad | Calidad de pruebas unitarias/integración: 12 hallazgos, 344 tests, 100% pass rate |
 
 ## Cómo crear una nueva auditoría

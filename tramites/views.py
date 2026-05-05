@@ -14,6 +14,7 @@ they can be added here.
 """
 
 import logging
+from urllib.parse import urlparse
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -31,6 +32,34 @@ from tramites.models import Tramite
 from tramites.sftp import SFTPService, validate_filename
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Security helpers
+# =============================================================================
+
+
+def _safe_redirect_url(url: str, fallback: str) -> str:
+    """Only allow relative URLs (no scheme, no netloc).
+
+    Prevents open redirect attacks by rejecting absolute URLs,
+    protocol-relative URLs (//evil.com), and non-/ paths.
+
+    Args:
+        url: The URL to validate.
+        fallback: Safe fallback URL if validation fails.
+
+    Returns:
+        The validated URL or the fallback.
+    """
+    if not url:
+        return fallback
+    parsed = urlparse(url)
+    if parsed.scheme or parsed.netloc:
+        return fallback
+    if not url.startswith('/'):
+        return fallback
+    return url
 
 
 # =============================================================================
@@ -124,9 +153,9 @@ def cerrar_tramite_view(request: HttpRequest, pk: int) -> HttpResponse:
         raise PermissionDenied
 
     # Redirect back to the originating admin change page after action.
-    return_url = request.GET.get(
-        'next',
-        f'/admin/tramites/tramite/{pk}/change/',
+    return_url = _safe_redirect_url(
+        request.GET.get('next', ''),
+        fallback=f'/admin/tramites/tramite/{pk}/change/',
     )
 
     if 'cerrar' not in tramite.available_actions(request.user):

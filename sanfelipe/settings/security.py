@@ -51,8 +51,9 @@ def configure_security(env: Env) -> dict:
             {
                 'X_FRAME_OPTIONS': 'DENY',
                 'SECURE_SSL_REDIRECT': env.bool('DJANGO_SECURE_SSL_REDIRECT', default=False),
-                'SESSION_COOKIE_SECURE': env.bool('DJANGO_SESSION_COOKIE_SECURE', default=False),
-                'CSRF_COOKIE_SECURE': env.bool('DJANGO_CSRF_COOKIE_SECURE', default=False),
+                # Default to True in production — HTTPS is assumed
+                'SESSION_COOKIE_SECURE': env.bool('DJANGO_SESSION_COOKIE_SECURE', default=True),
+                'CSRF_COOKIE_SECURE': env.bool('DJANGO_CSRF_COOKIE_SECURE', default=True),
             }
         )
 
