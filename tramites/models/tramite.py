@@ -405,6 +405,9 @@ class Tramite(models.Model):
         back to the pool, so we only check that the trámite is active
         (not that a specific transition exists).
         """
+        if liberado_por is None:
+            raise ValueError('Se requiere un usuario para liberar el trámite.')
+
         self._assert_activo()
         self.registrar_actividad(
             TramiteEstatus.Estatus.PRESENTADO,

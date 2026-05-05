@@ -21,11 +21,60 @@ from tramites.models.catalogos import TramiteEstatus
 User = get_user_model()
 
 
+# ---------------------------------------------------------------------------
+# Shared fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def analista(django_db_setup):
+    """Create an analyst user."""
+    return User.objects.create_user(
+        username='analista_test',
+        email='analista@example.com',
+        password='testpass123',
+        first_name='Juan',
+        last_name='Pérez',
+    )
+
+
+@pytest.fixture
+def coordinador(django_db_setup):
+    """Create a coordinator user."""
+    return User.objects.create_user(
+        username='coordinador_test',
+        email='coordinador@example.com',
+        password='testpass123',
+        first_name='María',
+        last_name='Gómez',
+    )
+
+
+@pytest.fixture
+def tramite_en_revision(django_db_setup, django_db_blocker):
+    """Create a tramite in memory with estatus 202 (EN_REVISION), unassigned."""
+    tramite = Tramite(
+        id=3,
+        folio='TRAM-000003',
+        tramite_id=1,
+        tramite_nombre='Prueba en Revisión',
+        ultima_actividad_estatus_id=TramiteEstatus.Estatus.EN_REVISION,
+        ultima_actividad_estatus='EN REVISIÓN',
+        asignado_user_id=None,
+        asignado_username=None,
+        asignado_nombre=None,
+        tramite_categoria_id=1,
+        tramite_categoria_nombre='General',
+        urgente=False,
+        es_propietario=True,
+        creado='2024-01-01 00:00:00',
+    )
+    return tramite
+
+
 @pytest.fixture
 def tramite_no_activo(django_db_setup, django_db_blocker):
     """Create a non-active tramite in memory (estatus 301 - POR_RECOGER)."""
-    from tramites.models import TramiteEstatus
-
     tramite = Tramite(
         id=2,
         folio='TRAM-000002',
@@ -45,9 +94,6 @@ def tramite_no_activo(django_db_setup, django_db_blocker):
 @pytest.fixture
 def tramite_activo(django_db_setup, django_db_blocker):
     """Create an active tramite in memory (estatus 201 - PRESENTADO)."""
-    # Tramite is read-only, so we create instance in memory (not saved to DB)
-    from tramites.models import TramiteEstatus
-
     tramite = Tramite(
         id=1,
         folio='TRAM-000001',
@@ -67,54 +113,31 @@ def tramite_activo(django_db_setup, django_db_blocker):
     return tramite
 
 
+@pytest.fixture
+def tramite_en_revision_asignado(analista, django_db_setup, django_db_blocker):
+    """Create a tramite in EN_REVISION assigned to the shared analyst."""
+    tramite = Tramite(
+        id=1,
+        folio='TRAM-000001',
+        tramite_id=1,
+        tramite_nombre='Prueba en Revisión',
+        ultima_actividad_estatus_id=TramiteEstatus.Estatus.EN_REVISION,
+        ultima_actividad_estatus='EN REVISIÓN',
+        asignado_user_id=analista.id,
+        asignado_username=analista.username,
+        asignado_nombre=analista.get_full_name(),
+        tramite_categoria_id=1,
+        tramite_categoria_nombre='General',
+        urgente=False,
+        es_propietario=True,
+        creado='2024-01-01 00:00:00',
+    )
+    return tramite
+
+
 @pytest.mark.django_db
 class TestTramiteAsignar:
     """Test suite for Tramite.asignar() method."""
-
-    @pytest.fixture
-    def analista(self, django_db_setup):
-        """Create an analyst user."""
-        return User.objects.create_user(
-            username='analista_test',
-            email='analista@example.com',
-            password='testpass123',
-            first_name='Juan',
-            last_name='Pérez',
-        )
-
-    @pytest.fixture
-    def coordinador(self, django_db_setup):
-        """Create a coordinator user."""
-        return User.objects.create_user(
-            username='coordinador_test',
-            email='coordinador@example.com',
-            password='testpass123',
-            first_name='María',
-            last_name='Gómez',
-        )
-
-    @pytest.fixture
-    def tramite_en_revision(self, django_db_setup, django_db_blocker):
-        """Create a tramite in memory with estatus 202 (EN_REVISION)."""
-        from tramites.models import TramiteEstatus
-
-        tramite = Tramite(
-            id=3,
-            folio='TRAM-000003',
-            tramite_id=1,
-            tramite_nombre='Prueba en Revisión',
-            ultima_actividad_estatus_id=TramiteEstatus.Estatus.EN_REVISION,
-            ultima_actividad_estatus='EN REVISIÓN',
-            asignado_user_id=None,
-            asignado_username=None,
-            asignado_nombre=None,
-            tramite_categoria_id=1,
-            tramite_categoria_nombre='General',
-            urgente=False,
-            es_propietario=True,
-            creado='2024-01-01 00:00:00',
-        )
-        return tramite
 
     @pytest.fixture
     def tramite_ya_asignado(self, analista, django_db_setup, django_db_blocker):
@@ -463,21 +486,21 @@ class TestTramiteAsignar:
         assert mock_registrar.call_count == 0
 
     @patch('tramites.models.Tramite.registrar_actividad')
-    def test_asignar_liberar_con_asignado_por_none_lanza_attribute_error(
+    def test_asignar_liberar_con_asignado_por_none_lanza_value_error(
         self, mock_registrar, tramite_en_revision
     ):
         """
         Edge case: Liberate tramite with asignado_por=None.
 
         Expected behavior:
-        - Raises AttributeError when trying to access asignado_por.get_full_name()
+        - Raises ValueError: se requiere un usuario para liberar
         - No Actividades created
         """
         tramite = tramite_en_revision
 
         # When liberating (analista=None) and asignado_por is None,
-        # the method will crash trying to call asignado_por.get_full_name()
-        with pytest.raises(AttributeError):
+        # the method validates that a user is provided
+        with pytest.raises(ValueError, match='Se requiere un usuario'):
             tramite.asignar(
                 analista=None,  # Liberar
                 asignado_por=None,  # None
@@ -881,40 +904,8 @@ class TestTramiteAsignar:
 class TestTramiteRequerirDocumentos:
     """Test suite for Tramite.requerir_documentos() method."""
 
-    @pytest.fixture
-    def analista(self, django_db_setup):
-        """Create an analyst user."""
-        return User.objects.create_user(
-            username='analista_test',
-            email='analista@example.com',
-            password='testpass123',
-            first_name='Juan',
-            last_name='Pérez',
-        )
-
-    @pytest.fixture
-    def tramite_en_revision(self, analista, django_db_setup, django_db_blocker):
-        """Create a tramite in EN_REVISION assigned to analyst."""
-        tramite = Tramite(
-            id=1,
-            folio='TRAM-000001',
-            tramite_id=1,
-            tramite_nombre='Prueba en Revisión',
-            ultima_actividad_estatus_id=TramiteEstatus.Estatus.EN_REVISION,
-            ultima_actividad_estatus='EN REVISIÓN',
-            asignado_user_id=analista.id,
-            asignado_username=analista.username,
-            asignado_nombre=analista.get_full_name(),
-            tramite_categoria_id=1,
-            tramite_categoria_nombre='General',
-            urgente=False,
-            es_propietario=True,
-            creado='2024-01-01 00:00:00',
-        )
-        return tramite
-
     @patch('tramites.models.Tramite.registrar_actividad')
-    def test_requerir_documentos_exitoso(self, mock_registrar, analista, tramite_en_revision):
+    def test_requerir_documentos_exitoso(self, mock_registrar, analista, tramite_en_revision_asignado):
         """
         Happy path: Request documents successfully.
 
@@ -922,7 +913,7 @@ class TestTramiteRequerirDocumentos:
         - Creates Actividades with estatus REQUERIMIENTO (203)
         - Uses provided observation
         """
-        tramite = tramite_en_revision
+        tramite = tramite_en_revision_asignado
 
         tramite.requerir_documentos(
             analista=analista,
@@ -958,7 +949,7 @@ class TestTramiteRequerirDocumentos:
     @patch('tramites.models.Tramite._assert_asignado_a')
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_requerir_documentos_usuario_no_asignado_raises_permission(
-        self, mock_registrar, mock_verificar, analista, tramite_en_revision
+        self, mock_registrar, mock_verificar, analista, tramite_en_revision_asignado
     ):
         """
         Edge case: Request documents by non-assigned analyst.
@@ -966,7 +957,7 @@ class TestTramiteRequerirDocumentos:
         Expected behavior:
         - Raises PermissionDenied from _assert_asignado_a
         """
-        tramite = tramite_en_revision
+        tramite = tramite_en_revision_asignado
 
         # Mock _assert_asignado_a to raise PermissionDenied
         from django.core.exceptions import PermissionDenied
@@ -989,40 +980,8 @@ class TestTramiteRequerirDocumentos:
 class TestTramiteEnDiligencia:
     """Test suite for Tramite.en_diligencia() method."""
 
-    @pytest.fixture
-    def analista(self, django_db_setup):
-        """Create an analyst user."""
-        return User.objects.create_user(
-            username='analista_test',
-            email='analista@example.com',
-            password='testpass123',
-            first_name='Juan',
-            last_name='Pérez',
-        )
-
-    @pytest.fixture
-    def tramite_en_revision(self, analista, django_db_setup, django_db_blocker):
-        """Create a tramite in EN_REVISION assigned to analyst."""
-        tramite = Tramite(
-            id=1,
-            folio='TRAM-000001',
-            tramite_id=1,
-            tramite_nombre='Prueba en Revisión',
-            ultima_actividad_estatus_id=TramiteEstatus.Estatus.EN_REVISION,
-            ultima_actividad_estatus='EN REVISIÓN',
-            asignado_user_id=analista.id,
-            asignado_username=analista.username,
-            asignado_nombre=analista.get_full_name(),
-            tramite_categoria_id=1,
-            tramite_categoria_nombre='General',
-            urgente=False,
-            es_propietario=True,
-            creado='2024-01-01 00:00:00',
-        )
-        return tramite
-
     @patch('tramites.models.Tramite.registrar_actividad')
-    def test_en_diligencia_exitoso(self, mock_registrar, analista, tramite_en_revision):
+    def test_en_diligencia_exitoso(self, mock_registrar, analista, tramite_en_revision_asignado):
         """
         Happy path: Set in diligence successfully.
 
@@ -1030,7 +989,7 @@ class TestTramiteEnDiligencia:
         - Creates Actividades with estatus EN_DILIGENCIA (205)
         - Uses provided observation
         """
-        tramite = tramite_en_revision
+        tramite = tramite_en_revision_asignado
 
         tramite.en_diligencia(
             analista=analista,
@@ -1066,7 +1025,7 @@ class TestTramiteEnDiligencia:
     @patch('tramites.models.Tramite._assert_asignado_a')
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_en_diligencia_usuario_no_asignado_raises_permission(
-        self, mock_registrar, mock_verificar, analista, tramite_en_revision
+        self, mock_registrar, mock_verificar, analista, tramite_en_revision_asignado
     ):
         """
         Edge case: Set in diligence by non-assigned analyst.
@@ -1074,7 +1033,7 @@ class TestTramiteEnDiligencia:
         Expected behavior:
         - Raises PermissionDenied from _assert_asignado_a
         """
-        tramite = tramite_en_revision
+        tramite = tramite_en_revision_asignado
 
         # Mock _assert_asignado_a to raise PermissionDenied
         from django.core.exceptions import PermissionDenied
@@ -1097,43 +1056,9 @@ class TestTramiteEnDiligencia:
 class TestTramiteCerrar:
     """Test suite for Tramite.cerrar() method."""
 
-    @pytest.fixture
-    def analista(self, django_db_setup):
-        """Create an analyst user."""
-        return User.objects.create_user(
-            username='analista_test',
-            email='analista@example.com',
-            password='testpass123',
-            first_name='Juan',
-            last_name='Pérez',
-        )
-
-    @pytest.fixture
-    def tramite_activo_asignado(self, analista, django_db_setup, django_db_blocker):
-        """Create an active tramite in memory assigned to analyst."""
-        from tramites.models import TramiteEstatus
-
-        tramite = Tramite(
-            id=1,
-            folio='TRAM-000001',
-            tramite_id=1,
-            tramite_nombre='Prueba de Trámite',
-            ultima_actividad_estatus_id=TramiteEstatus.Estatus.EN_REVISION,
-            ultima_actividad_estatus='EN REVISIÓN',
-            asignado_user_id=analista.id,
-            asignado_username=analista.username,
-            asignado_nombre=analista.get_full_name(),
-            tramite_categoria_id=1,
-            tramite_categoria_nombre='General',
-            urgente=False,
-            es_propietario=True,
-            creado='2024-01-01 00:00:00',
-        )
-        return tramite
-
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_cerrar_exitoso_actividad_por_recoger(
-        self, mock_registrar, analista, tramite_activo_asignado
+        self, mock_registrar, analista, tramite_en_revision_asignado
     ):
         """
         Happy path: Close tramite with POR_RECOGER status.
@@ -1142,7 +1067,7 @@ class TestTramiteCerrar:
         - Creates Actividades with estatus POR_RECOGER (301)
         - Uses provided observation
         """
-        tramite = tramite_activo_asignado
+        tramite = tramite_en_revision_asignado
 
         tramite.cerrar(
             analista=analista,
@@ -1158,7 +1083,7 @@ class TestTramiteCerrar:
 
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_cerrar_exitoso_actividad_rechazado(
-        self, mock_registrar, analista, tramite_activo_asignado
+        self, mock_registrar, analista, tramite_en_revision_asignado
     ):
         """
         Happy path: Close tramite with RECHAZADO status.
@@ -1166,7 +1091,7 @@ class TestTramiteCerrar:
         Expected behavior:
         - Creates Actividades with estatus RECHAZADO (302)
         """
-        tramite = tramite_activo_asignado
+        tramite = tramite_en_revision_asignado
 
         tramite.cerrar(
             analista=analista,
@@ -1180,7 +1105,7 @@ class TestTramiteCerrar:
 
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_cerrar_exitoso_actividad_cancelado(
-        self, mock_registrar, analista, tramite_activo_asignado
+        self, mock_registrar, analista, tramite_en_revision_asignado
     ):
         """
         Happy path: Close tramite with CANCELADO status.
@@ -1188,7 +1113,7 @@ class TestTramiteCerrar:
         Expected behavior:
         - Creates Actividades with estatus CANCELADO (304)
         """
-        tramite = tramite_activo_asignado
+        tramite = tramite_en_revision_asignado
 
         tramite.cerrar(
             analista=analista,
@@ -1202,7 +1127,7 @@ class TestTramiteCerrar:
 
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_cerrar_observacion_vacia_raises_value_error(
-        self, mock_registrar, analista, tramite_activo_asignado
+        self, mock_registrar, analista, tramite_en_revision_asignado
     ):
         """
         Edge case: Try to close with empty observation.
@@ -1211,7 +1136,7 @@ class TestTramiteCerrar:
         - Raises ValueError
         - No Actividades created
         """
-        tramite = tramite_activo_asignado
+        tramite = tramite_en_revision_asignado
 
         with pytest.raises(ValueError, match='observación es requerida'):
             tramite.cerrar(
@@ -1240,7 +1165,7 @@ class TestTramiteCerrar:
 
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_cerrar_usuario_no_asignado_raises_permission_denied(
-        self, mock_registrar, analista, tramite_activo_asignado
+        self, mock_registrar, analista, tramite_en_revision_asignado
     ):
         """
         Edge case: Try to close tramite not assigned to this analyst.
@@ -1260,7 +1185,7 @@ class TestTramiteCerrar:
             last_name='López',
         )
 
-        tramite = tramite_activo_asignado
+        tramite = tramite_en_revision_asignado
 
         with pytest.raises(PermissionDenied, match='Este tramite esta asignado a otro analista'):
             tramite.cerrar(
@@ -1273,7 +1198,7 @@ class TestTramiteCerrar:
 
     @patch('tramites.models.Tramite.registrar_actividad')
     def test_cerrar_estatus_cierre_invalido_raises_value_error(
-        self, mock_registrar, analista, tramite_activo_asignado
+        self, mock_registrar, analista, tramite_en_revision_asignado
     ):
         """
         Edge case: Try to close with invalid closing status.
@@ -1282,7 +1207,7 @@ class TestTramiteCerrar:
         - Raises ValueError
         - No Actividades created
         """
-        tramite = tramite_activo_asignado
+        tramite = tramite_en_revision_asignado
 
         with pytest.raises(ValueError, match='Estatus de cierre inválido'):
             tramite.cerrar(
@@ -1298,51 +1223,8 @@ class TestTramiteCerrar:
 class TestTramiteDatabaseError:
     """Test suite for DatabaseError handling in Tramite methods."""
 
-    @pytest.fixture
-    def analista(self, django_db_setup):
-        """Create an analyst user."""
-        return User.objects.create_user(
-            username='analista_test_db',
-            email='analista_db@example.com',
-            password='testpass123',
-            first_name='Juan',
-            last_name='Pérez',
-        )
-
-    @pytest.fixture
-    def coordinador(self, django_db_setup):
-        """Create a coordinator user."""
-        return User.objects.create_user(
-            username='coordinador_test_db',
-            email='coordinador_db@example.com',
-            password='testpass123',
-            first_name='María',
-            last_name='Gómez',
-        )
-
-    @pytest.fixture
-    def tramite_en_revision(self, analista, django_db_setup, django_db_blocker):
-        """Create a tramite in EN_REVISION assigned to analyst."""
-        tramite = Tramite(
-            id=1,
-            folio='TRAM-DB-001',
-            tramite_id=1,
-            tramite_nombre='Prueba DB Error',
-            ultima_actividad_estatus_id=TramiteEstatus.Estatus.EN_REVISION,
-            ultima_actividad_estatus='EN REVISIÓN',
-            asignado_user_id=analista.id,
-            asignado_username=analista.username,
-            asignado_nombre=analista.get_full_name(),
-            tramite_categoria_id=1,
-            tramite_categoria_nombre='General',
-            urgente=False,
-            es_propietario=True,
-            creado='2024-01-01 00:00:00',
-        )
-        return tramite
-
     def test_asignar_estatus_invalido_finaliza_sin_crear_actividad(
-        self, analista, tramite_en_revision
+        self, analista, tramite_en_revision_asignado
     ):
         """
         Edge case: Try to close with invalid status (not in REVISION/REQUERIMIENTO/EN_DILIGENCIA).
@@ -1351,7 +1233,7 @@ class TestTramiteDatabaseError:
         - Raises EstadoNoPermitidoError
         - No Actividades created
         """
-        tramite = tramite_en_revision
+        tramite = tramite_en_revision_asignado
         # Change to invalid status (PRESENTADO instead of REVISION/REQUERIMIENTO/EN_DILIGENCIA)
         tramite.ultima_actividad_estatus_id = TramiteEstatus.Estatus.PRESENTADO
 

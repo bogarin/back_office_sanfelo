@@ -1,8 +1,12 @@
-"""Integration tests for sidebar permissions and Jazzmin visibility.
+"""Integration tests for RBAC permissions, setup_roles command, and Jazzmin sidebar.
 
 Verifies that:
-- Custom permissions (acceso_analista, acceso_coordinador) are created by setup_roles
+- setup_roles creates all groups and custom permissions
 - Each role gets exactly the permissions it should have
+- Administrador receives auth model permissions
+- setup_roles updates existing groups (idempotent)
+- setup_roles repairs is_staff for users in RBAC groups
+- setup_roles does not touch users outside RBAC groups
 - Users see the correct sidebar links when logged in
 - Users do NOT see sidebar links they lack permission for
 """
@@ -227,3 +231,51 @@ def test_analista_no_usuarios_link(role_user):
 
     html = _get_admin_html(client)
     assert 'Usuarios' not in html
+
+
+# ---------------------------------------------------------------------------
+# Group creation and idempotency (migrated from test_management.py)
+# ---------------------------------------------------------------------------
+
+
+def test_setup_roles_creates_all_groups(db):
+    """setup_roles creates all three RBAC groups."""
+    Group.objects.filter(name__in=list(BackOfficeRole)).delete()
+
+    call_command('setup_roles', verbosity=0)
+
+    for role in BackOfficeRole:
+        assert Group.objects.filter(name=role).exists(), f'Group {role} was not created'
+
+
+def test_setup_roles_updates_existing_groups(db):
+    """setup_roles is idempotent: updates permissions for existing groups."""
+    Group.objects.get_or_create(name=BackOfficeRole.ADMINISTRADOR)
+
+    call_command('setup_roles', verbosity=0)
+
+    admin_group = Group.objects.get(name=BackOfficeRole.ADMINISTRADOR)
+    assert admin_group.permissions.count() > 1
+
+
+def test_administrador_has_auth_permissions(setup_roles_run):
+    """Administrador group gets auth model permissions."""
+    admin_group = setup_roles_run[BackOfficeRole.ADMINISTRADOR]
+    auth_permissions = admin_group.permissions.filter(content_type__app_label='auth').count()
+    assert auth_permissions > 0
+
+
+def test_setup_roles_does_not_touch_users_without_roles(db):
+    """setup_roles does not modify users outside RBAC groups."""
+    call_command('setup_roles', verbosity=0)
+
+    user = User.objects.create_user(
+        username='no_role_user',
+        password='pass',
+        is_staff=False,
+    )
+
+    call_command('setup_roles', verbosity=0)
+
+    user.refresh_from_db()
+    assert user.is_staff is False
