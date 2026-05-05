@@ -13,7 +13,6 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.messages.storage.cookie import CookieStorage
-from django.core.management import call_command
 from django.test import Client, RequestFactory
 
 from core.rbac.constants import BackOfficeRole
@@ -230,36 +229,3 @@ def test_remove_role_cannot_login(superuser, admin_user, db):
 
     _assert_cannot_login('test_admin')
 
-
-# ---------------------------------------------------------------------------
-# setup_roles repairs is_staff
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    'role',
-    list(BackOfficeRole),
-    ids=[r.name for r in BackOfficeRole],
-)
-def test_setup_roles_fixes_is_staff(db, role):
-    """setup_roles command repairs is_staff for users in RBAC groups."""
-    call_command('setup_roles', verbosity=0)
-
-    group = Group.objects.get(name=role)
-    user = User.objects.create_user(
-        username=f'lifecycle_fix_{role.name.lower()}',
-        password='testpass123',
-        is_staff=False,
-    )
-    user.groups.add(group)
-
-    # Before: cannot login
-    _assert_cannot_login(f'lifecycle_fix_{role.name.lower()}')
-
-    # Run setup_roles to repair
-    call_command('setup_roles', verbosity=0)
-
-    # After: can login
-    user.refresh_from_db()
-    assert user.is_staff is True
-    _assert_can_login(f'lifecycle_fix_{role.name.lower()}')

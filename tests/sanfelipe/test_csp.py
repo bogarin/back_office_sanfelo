@@ -1,65 +1,61 @@
-"""
-Tests for Content Security Policy configuration.
+"""Tests for Content Security Policy configuration.
 
-This module contains tests for:
-- CSP constants
-- CSP configuration structure
-- External script blocking
-- Plugin blocking
+Validates that CSP is properly configured to protect against XSS,
+plugin injection, and iframe embedding attacks.
 """
 
 from django.conf import settings
-from django.test import TestCase
 from django.utils.csp import CSP
 
+import pytest
 
-class TestContentSecurityPolicy(TestCase):
-    """Test suite for CSP security configuration."""
 
-    def test_csp_constants_defined(self) -> None:
-        """Test that CSP constants are defined in settings."""
-        self.assertTrue(hasattr(CSP, 'SELF'))
-        self.assertTrue(hasattr(CSP, 'NONE'))
-        self.assertTrue(hasattr(CSP, 'NONCE'))
-        self.assertTrue(hasattr(CSP, 'UNSAFE_INLINE'))
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
 
-    def test_csp_configuration_structure(self) -> None:
-        """Test that CSP configuration is properly structured."""
-        # Check that CSP settings exist
-        self.assertTrue(
-            hasattr(settings, 'SECURE_CSP') or hasattr(settings, 'SECURE_CSP_REPORT_ONLY')
-        )
 
-        # If SECURE_CSP is not None, verify its structure
-        if hasattr(settings, 'SECURE_CSP') and settings.SECURE_CSP is not None:
-            csp = settings.SECURE_CSP
-            self.assertIn('default-src', csp)
-            self.assertIn('script-src', csp)
-            self.assertIn('style-src', csp)
-            self.assertIn('object-src', csp)
-            self.assertIn('frame-src', csp)
+@pytest.fixture
+def csp_policy():
+    """Return the active CSP policy dict, failing if not configured."""
+    assert hasattr(settings, 'SECURE_CSP'), 'SECURE_CSP must be defined in settings'
+    policy = settings.SECURE_CSP
+    assert policy is not None, 'SECURE_CSP must not be None'
+    return policy
 
-    def test_csp_script_src_uses_self(self) -> None:
-        """Test that CSP script-src includes 'self' for same-origin scripts."""
-        csp = settings.SECURE_CSP
-        self.assertIsNotNone(csp)
-        script_sources = csp.get('script-src', [])
-        self.assertIn(CSP.SELF, script_sources)
 
-    def test_csp_blocks_plugins(self) -> None:
-        """Test that CSP configuration blocks all plugins."""
-        if hasattr(settings, 'SECURE_CSP') and settings.SECURE_CSP is not None:
-            csp = settings.SECURE_CSP
-            object_sources = csp.get('object-src', [])
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
 
-            # Should block all plugins
-            self.assertTrue(CSP.NONE in object_sources or "'none'" in object_sources)
 
-    def test_csp_blocks_frames(self) -> None:
-        """Test that CSP configuration blocks iframes."""
-        if hasattr(settings, 'SECURE_CSP') and settings.SECURE_CSP is not None:
-            csp = settings.SECURE_CSP
-            frame_sources = csp.get('frame-src', [])
+def test_csp_constants_defined():
+    """CSP constants (SELF, NONE, NONCE, UNSAFE_INLINE) must exist."""
+    assert hasattr(CSP, 'SELF')
+    assert hasattr(CSP, 'NONE')
+    assert hasattr(CSP, 'NONCE')
+    assert hasattr(CSP, 'UNSAFE_INLINE')
 
-            # Should block iframes
-            self.assertTrue(CSP.NONE in frame_sources or "'none'" in frame_sources)
+
+def test_csp_has_required_directives(csp_policy):
+    """CSP policy must include all required security directives."""
+    required = ('default-src', 'script-src', 'style-src', 'object-src', 'frame-src')
+    for directive in required:
+        assert directive in csp_policy, f'CSP missing required directive: {directive}'
+
+
+def test_csp_script_src_uses_self(csp_policy):
+    """CSP script-src must include 'self' for same-origin scripts."""
+    assert CSP.SELF in csp_policy['script-src']
+
+
+def test_csp_blocks_plugins(csp_policy):
+    """CSP object-src must block all plugins (None)."""
+    object_sources = csp_policy.get('object-src', [])
+    assert CSP.NONE in object_sources or "'none'" in object_sources
+
+
+def test_csp_blocks_frames(csp_policy):
+    """CSP frame-src must block all iframes (None)."""
+    frame_sources = csp_policy.get('frame-src', [])
+    assert CSP.NONE in frame_sources or "'none'" in frame_sources
