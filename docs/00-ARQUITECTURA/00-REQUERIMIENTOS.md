@@ -2,7 +2,7 @@
 
 **Autores:** Noe Nieto, Jose Ramon Bogarin, Carlos Ahizotl
 **Estatus:** Aprobado
-**Fecha de actualización:** 28 Abril 2026
+**Fecha de actualización:** 4 Mayo 2026
 
 ## 1. Resumen Ejecutivo
 
@@ -95,6 +95,102 @@ El sistema consulta catálogos maestros que son administrados externamente:
 
 **Restricción importante:** Estos catálogos son SOLO LECTURA. No se pueden modificar ni administrar a través del sistema backoffice.
 
+#### RF-04.1: Catálogo de Tipos de Trámite
+**Prioridad:** Alta
+**Descripción:** Mantener catálogo maestro de tipos de trámites disponibles.
+
+**Campos:**
+- Código único
+- Nombre del trámite
+- Descripción detallada
+- Área/Departamento responsable
+- Tiempo estimado de respuesta (en días)
+- URL de información adicional
+- Estado activo/inactivo
+
+**Funcionalidad:**
+- Consulta de tipos de trámites disponibles
+- Referencia en trámites
+- Solo lectura desde el backoffice
+- Modificado por sistemas externos o procedimientos administrativos
+
+#### RF-04.2: Catálogo de Estatus
+**Prioridad:** Alta
+**Descripción:** Definir los estados posibles de un trámite.
+
+**Campos:**
+- Código numérico (con prefijo 1xx, 2xx, 3xx)
+- Nombre del estatus
+- Responsable del estado
+- Descripción del significado del estado
+- Categoría (100s, 200s, 300s)
+
+**Funcionalidad:**
+- Referencia en todos los trámites
+- Usado en validación de transiciones de workflow
+- Solo lectura desde el backoffice
+- Modificado por sistemas externos
+
+#### RF-04.3: Catálogo de Peritos Autorizados
+**Prioridad:** Alta
+**Descripción:** Mantener registro de peritos autorizados por el gobierno.
+
+**Campos:**
+- Nombre completo (paterno, materno, nombre)
+- Domicilio
+- Colonia
+- Teléfono y celular
+- Correo electrónico
+- Fecha de registro
+- Fecha de revalidación
+- RFC
+- Número de cédula profesional
+- Especialidad técnica
+- Estado activo/inactivo
+
+**Funcionalidad:**
+- Búsqueda por nombre, RFC, cédula
+- Consulta de peritos disponibles
+- Solo lectura desde el backoffice
+- Alerta de vencimiento de revalidación (opcional)
+
+#### RF-04.4: Catálogo de Usuarios del Sistema
+**Prioridad:** Baja
+**Descripción:** Registro de usuarios del sistema interno (distintos de gestión de autenticación).
+
+**Nota:** Este catálogo existe para compatibilidad con sistema legacy, pero NO se usa para autenticación. La autenticación se maneja a través de Django auth (session-based).
+
+**Campos:**
+- Nombre completo
+- Usuario (username)
+- Contraseña (encriptada) - gestionada por Django
+- Fecha de alta
+- Fecha de baja
+- Estatus activo/inactivo
+- Nivel de acceso
+- Correo electrónico
+
+**Funcionalidad:**
+- Consulta de usuarios disponibles para referencia
+- Solo lectura desde el backoffice
+- Autenticación manejada por Django auth (no por este catálogo)
+
+#### RF-04.5: Catálogos Complementarios
+**Prioridad:** Baja
+**Descripción:** Catálogos adicionales para clasificación y organización de trámites.
+
+**Catálogos incluidos:**
+- `cat_actividad`: Actividades realizadas durante trámite
+- `cat_categoria`: Categorías de trámites
+- `cat_inciso`: Incisos presupuestarios (si aplica)
+- `cat_requisito`: Requisitos por tipo de trámite
+
+**Funcionalidad:**
+- Consulta de catálogos complementarios
+- Referencia en relaciones many-to-many
+- Solo lectura desde el backoffice
+- Modificados por sistemas externos
+
 ### RF-05: Auditoría Completa
 
 Cada acción realizada en el sistema debe registrarse en tabla de auditoría:
@@ -136,10 +232,137 @@ El sistema debe presentar diferentes vistas según el rol:
 
 ### RNF-01: Tiempos de Respuesta
 
-- **Consultar trámite individual**: < 2 segundos
-- **Listar trámites (página)**: < 3 segundos
-- **Cambiar estatus de trámite**: < 1 segundo
-- **Descargar documento PDF**: < 5 segundos (según tamaño)
+**Objetivos de Performance basados en estándares de la industria:**
+
+| Operación | Objetivo | Referencia Técnica | Justificación |
+|-----------|----------|-------------------|---------------|
+| **Carga inicial de página** | < 2.5s | Google Core Web Vitals - LCP | Largest Contentful Paint (LCP) debe ser < 2.5s para buena experiencia de usuario |
+| **Interacciones (clics, botones, formularios)** | < 200ms | Google Core Web Vitals - INP | Interaction to Next Paint (INP) < 200ms para respuestas fluidas |
+| **Consultar trámite individual** | < 1-2s | Nielsen Norman (1s rule) | 1 segundo mantiene el flujo de pensamiento del usuario sin interrupción |
+| **Listar trámites (página)** | < 2-3s | Core Web Vitals LCP | Lista con datos paginados, ajustado a estándares de carga web |
+| **Cambiar estatus de trámite** | < 500ms | Nielsen Norman (0.1s ideal) | Respuesta inmediata para acciones de escritura, feedback visual rápido |
+| **Descargar documento PDF** | < 3-5s | UX heuristics (3s tolerable) | Depende de tamaño de archivo y red del usuario, feedback de progreso |
+| **Búsqueda/filtros** | < 1-2s | UX best practices | Búsqueda con feedback visual, indicadores de carga |
+
+**Referencias Técnicas:**
+
+1. **Google Core Web Vitals (Estándar Web Internacional)**
+   - **LCP (Largest Contentful Paint)**: < 2.5s para una buena experiencia de carga
+     - Referencia: https://web.dev/articles/vitals
+     - Métrica principal de performance web usada por Google para SEO
+   - **INP (Interaction to Next Paint)**: < 200ms para interacciones fluidas
+     - Referencia: https://developers.google.com/search/blog/2023/05/introducing-inp
+     - Reemplazó a FID en marzo 2024 como métrica de respuesta
+     - Mide la latencia de interacciones del usuario
+
+2. **Nielsen Norman Group (Estándar de UX)**
+   - **0.1 segundo (100ms)**: Respuesta instantánea - usuario siente que controla directamente el sistema
+   - **1.0 segundo**: Flujo de pensamiento continuo - usuario no pierde el hilo mental
+   - **10 segundos**: Límite de atención del usuario - después de esto, la paciencia disminuye drásticamente
+     - Referencia: https://www.nngroup.com/articles/response-times-3-important-limits/
+     - Límites establecidos por investigación de UX desde 1993, válidos en 2025
+
+3. **ISO 25010:2011 (Estándar de Calidad de Software)**
+   - **Time Behaviour**: Característica de calidad que mide tiempos de respuesta y throughput
+   - Define métricas de performance para sistemas en operación
+     - Referencia: https://iso25000.com/index.php/en/iso-25000-standards/iso-25010
+     - Estándar internacional para calidad de producto de software
+
+4. **Sello de Excelencia en Gobierno Digital (México)**
+   - **Criterio 3.4**: Disminuir el tiempo de entrega por canal con la utilización del canal digital
+   - Aunque no especifica cifras numéricas, establece la necesidad de mejorar tiempos de respuesta
+     - Referencia: https://www.gob.mx/sellodeexcelencia/articulos/criterios-de-seleccion-183170
+     - Estándar mexicano para certificación de trámites digitales
+
+5. **ORFIS (Oficina para la Reforma Institucional y la Innovación Social - México)**
+   - **Estándar 3**: Desempeño y Adaptabilidad - Velocidad de carga
+   - Reconoce la velocidad de carga como estándar actual para sitios web de gobierno
+     - Referencia: Estándares y tendencias para sitios web de gobierno (2016)
+     - https://www.orfis.gob.mx/BibliotecaVirtual/archivos/02122016103210.pdf
+
+**NOTA IMPORTANTE:**
+
+Los tiempos de respuesta mostrados son **objetivos iniciales basados en estándares de la industria** (Core Web Vitals, Nielsen Norman, ISO 25010, Sello de Excelencia en Gobierno Digital México).
+
+Estos valores serán **ajustados y refinados** después de:
+
+1. **Implementación de pruebas de carga** (Locust, k6, JMeter)
+   - Simular usuarios concurrentes reales
+   - Medir performance bajo diferentes escenarios de carga
+   - Identificar cuellos de botella en backend y frontend
+
+2. **Medición de baseline en ambiente de staging**
+   - Establecer baseline de performance antes de producción
+   - Medir tiempos de respuesta reales de endpoints Django
+   - Optimizar consultas SQL, índices, y caché
+
+3. **Análisis de métricas reales en producción**
+   - Implementar APM (Application Performance Monitoring)
+   - Medir LCP, INP, CLS con Google PageSpeed Insights
+   - Monitorizar tiempos de respuesta de usuarios reales
+
+4. **Optimización iterativa basada en datos**
+   - Implementar caché de catálogos (LocMemCache, Redis si es necesario)
+   - Optimizar consultas SQL con select_related, prefetch_related
+   - Implementar paginación eficiente en listados grandes
+
+**Estos objetivos NO son compromisos contractuales sin pruebas de rendimiento validadas.**
+
+**Plan de Validación de Performance:**
+
+| Fase | Actividad | Herramienta | Métrica |
+|------|-----------|-------------|---------|
+| **Desarrollo** | Tests de unidad de rendimiento | Django Debug Toolbar | Tiempo de query SQL |
+| **Staging** | Pruebas de carga baselines | Locust | Usuarios concurrentes, tiempos de respuesta |
+| **Producción** | Monitorización APM | New Relic / Datadog / Sentry | LCP, INP, CLS, tiempos de endpoint |
+| **Mantenimiento** | Auditoría de performance mensual | Google PageSpeed Insights | Puntuación Web Vitals |
+
+**Referencias de Gobierno Digital - México y Baja California:**
+
+**México - Estándares Nacionales:**
+1. **Sello de Excelencia en Gobierno Digital**
+   - Criterio de impacto: "Disminuir el tiempo de entrega por canal con la utilización del canal de atención en línea"
+   - Criterios de eficiencia: Interoperabilidad, fuentes de confianza, integración de canales
+   - Criterios de satisfacción: Encuestas de satisfacción ciudadana, participación digital
+   - Referencia: https://www.gob.mx/sellodeexcelencia/articulos/criterios-de-seleccion-183170
+   - Certificación de trámites digitales de alta calidad
+
+2. **ORFIS - Oficina para la Reforma Institucional y la Innovación Social**
+   - Estándar 3: Desempeño y Adaptabilidad - Velocidad de carga como estándar actual
+   - Estándar 1: Experiencia de Usuario (UX) - Información útil, utilizable, atractiva, encontrable
+   - Estándar 2: Indexabilidad y Búsquedas Internas - Buscador con funciones avanzadas
+   - Referencia: Estándares y tendencias para sitios web de gobierno (2016)
+   - https://www.orfis.gob.mx/BibliotecaVirtual/archivos/02122016103210.pdf
+
+3. **Lineamientos de Digitalización de Trámites y Servicios**
+   - Lineamientos relativos a la digitalización estandarizada con apego a la Estrategia Digital
+   - Indicador: Tecnologías de la Información
+   - Referencia: https://www.gob.mx/buengobierno/documentos/lineamientos-de-la-digitalizacion-de-tramites-y-servicios
+   - Guía para estandarización de trámites digitales en el gobierno federal
+
+4. **Guía para la estandarización y certificación de los trámites digitales**
+   - Acuerdo por el que se emite la Guía para la estandarización y certificación de los trámites digitales con el Sello de Excelencia en Gobierno Digital
+   - Referencia: https://dof.gob.mx/nota_detalle_popup.php?codigo=5446678
+   - Marco normativo para trámites digitales de alta calidad
+
+**Baja California - Recursos Estatales:**
+1. **Agencia Digital del Estado de Baja California (ADBC)**
+   - RETYS: Registro Estatal de Trámites y Servicios - plataforma centralizada oficial
+   - Modelo Único de Atención Ciudadana para trámites gubernamentales
+   - Referencia: https://www.adbc.gob.mx/Herramienta/15 (RETYS)
+   - Referencia: https://www.ventanillabc.bajacalifornia.gob.mx/muac/assets/doc/Lineamientos.pdf (Lineamientos)
+   - Implementación local de Estrategia Digital Nacional
+
+2. **Coordinación de Gobierno Digital - Baja California**
+   - Revisión Técnica de las TICS - Cámara Digital, Normas y Estándares, Software y Manuales
+   - Referencia: https://www.bajacalifornia.gob.mx/adbc/dictaminacion/
+   - Lineamientos técnicos para implementación de gobierno digital en el estado
+
+**Notas Importantes:**
+- Aunque los estándares nacionales de gobierno digital en México enfatizan la mejora de tiempos de respuesta (Sello de Excelencia: "disminuir tiempo de entrega"), **no existen cifras numéricas específicas** documentadas públicamente
+- Por lo tanto, este documento usa **estándares internacionales de la industria** (Core Web Vitals, Nielsen Norman, ISO 25010) complementados con principios de gobierno digital mexicano
+- Estos objetivos de performance se consideran **alineados con las prioridades de gobierno digital mexicano** de mejora continua y satisfacción ciudadana
+- Los valores se ajustarán según resultados de pruebas de carga y métricas reales de producción
 
 ### RNF-02: Disponibilidad
 
@@ -206,8 +429,8 @@ Los catálogos de referencia son inmutables desde el backoffice:
 | Prioridad | Requerimientos |
 |-----------|----------------|
 | **P1 - Crítico** | RF-01 (Ciclo de vida), RF-02 (Asignación), RF-05 (Auditoría) |
-| **P2 - Alto** | RF-03 (Documentos SFTP), RF-04 (Catálogos), RNF-01 (Tiempos de respuesta) |
-| **P3 - Medio** | RF-06 (Búsquedas), RF-07 (Estadísticas), RNF-03 (Usabilidad) |
+| **P2 - Alto** | RF-03 (Documentos SFTP), RF-04.1 (Tipos de trámite), RF-04.2 (Estatus), RF-04.3 (Peritos), RNF-01 (Tiempos de respuesta) |
+| **P3 - Medio** | RF-04.4 (Usuarios sistema), RF-04.5 (Catálogos complementarios), RF-06 (Búsquedas), RF-07 (Estadísticas), RNF-03 (Usabilidad) |
 | **P4 - Bajo** | RF-08 (Vistas por rol), RNF-02 (Disponibilidad), RNF-05 (Escalabilidad) |
 
 ## 8. Notas Importantes

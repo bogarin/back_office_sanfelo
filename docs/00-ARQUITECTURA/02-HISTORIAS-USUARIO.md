@@ -2,7 +2,7 @@
 
 **Autores:** Noe Nieto, Jose Ramon Bogarin, Carlos Ahizotl
 **Estatus:** Aprobado
-**Fecha de actualización:** 28 Abril 2026
+**Fecha de actualización:** 4 Mayo 2026
 
 ## 1. Introducción
 
