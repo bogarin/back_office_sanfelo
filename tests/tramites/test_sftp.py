@@ -265,8 +265,8 @@ def test_serve_pdf_wraps_unexpected_error(mock_close, mock_download):
 
 @patch.object(SFTPService, '_download_with_cache')
 @patch.object(SFTPService, 'close_connection')
-def test_serve_pdf_valid_input_passes_traversal_assertion(mock_close, mock_download):
-    """Defense-in-depth: valid folio+filename passes the '..' assertion."""
+def test_serve_pdf_valid_input_passes_traversal_check(mock_close, mock_download):
+    """Defense-in-depth: valid folio+filename passes the '..' check (SEC-003)."""
     mock_download.return_value = Path('/safe/DAU-260420-AAAE-B/DAU-260420-AAAE-B-19.pdf')
 
     with patch.object(SFTPService, 'build_file_response') as mock_build:

@@ -405,7 +405,11 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                 messages.error(request, 'Debe seleccionar un analista o "Ninguno"')
                 return redirect(request.get_full_path())
 
-            analista = User.objects.get(id=analista_id)
+            try:
+                analista = User.objects.get(id=analista_id)
+            except (User.DoesNotExist, ValueError):
+                messages.error(request, 'Analista no encontrado.')
+                return redirect(request.get_full_path())
             asignados = []
             errores = []
 

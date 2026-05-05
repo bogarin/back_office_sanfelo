@@ -1,8 +1,8 @@
 # AUDIT-002: seguridad-previa-al-release
 
-> **Fecha:** 2026-05-04
+> **Fecha:** 2026-05-05
 > **Tipo:** Seguridad
-> **Estado:** En Progreso
+> **Estado:** Completada
 
 ---
 
@@ -64,11 +64,12 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
 
 > Los que degradan significativamente la seguridad o permiten explotación dirigida.
 
-- **H-002-001:** Open Redirect en `cerrar_tramite_view`
+- **H-002-001:** ~~Open Redirect en `cerrar_tramite_view`~~ ✅ **Corregido**
   - **Severidad:** Alto
-  - **Evidencia:** `tramites/views.py:127-130` — El parámetro `next` del query string se usa como destino de redirección sin validación. Un atacante puede crear `?next=https://evil.com` para redirigir a un usuario autenticado a un sitio de phishing.
+  - **Evidencia:** `tramites/views.py:127-130` — El parámetro `next` del query string se usaba como destino de redirección sin validación.
   - **Riesgo:** Robo de credenciales de personal del gobierno mediante redirección maliciosa.
-  - **Recomendación:** Validar que `next` sea una URL relativa (sin scheme ni netloc).
+  - **Corrección:** Agregada función `_safe_redirect_url()` que valida que `next` sea URL relativa (sin scheme ni netloc). Testeado con 12 casos.
+  - **Tests:** `tests/sanfelipe/test_security_audit.py::TestSafeRedirectUrl` (12 tests)
 
 ### Medios
 
@@ -76,19 +77,22 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
 
 - **H-002-002:** CSP permite `unsafe-inline` para scripts — Protección XSS debilitada
   - **Severidad:** Medio
+  - **Estado:** Pendiente — requiere migración gradual
   - **Evidencia:** `sanfelipe/settings/security.py:84` — `'script-src': [CSP.SELF, CSP.UNSAFE_INLINE]` neutraliza la protección XSS de CSP.
-  - **Recomendación:** Migrar a NONCE-based CSP (el código comentado en líneas 85-92 ya tiene el plan). Usar `DJANGO_CSP_REPORT_ONLY=True` primero para monitorear.
+  - **Plan:** Migrar a NONCE-based CSP (código comentado en líneas 85-92 tiene el plan). Usar `DJANGO_CSP_REPORT_ONLY=True` primero para monitorear.
+  - **Tests:** `tests/sanfelipe/test_security_audit.py::TestCSPSecurityDirectives` (6 tests validan directivas SÍ configuradas)
 
-- **H-002-003:** `assert` usado para verificación de seguridad (eliminado en modo optimizado)
+- **H-002-003:** ~~`assert` usado para verificación de seguridad~~ ✅ **Corregido**
   - **Severidad:** Medio
-  - **Evidencia:** `tramites/sftp.py:225-227` — `assert '..' not in cache_path_for_nginx`. Si se ejecuta con `PYTHONOPTIMIZE=1`, este check desaparece.
-  - **Recomendación:** Reemplazar con `if/raise` explícito.
+  - **Evidencia:** `tramites/sftp.py:225-227` — `assert '..' not in cache_path_for_nginx` se eliminaba con `PYTHONOPTIMIZE=1`.
+  - **Corrección:** Reemplazado con `if '..' in cache_path_for_nginx: raise SFTPConnectionError(...)`.
+  - **Tests:** `tests/sanfelipe/test_security_audit.py::TestPathTraversalDefenseInDepth` (3 tests)
 
-- **H-002-004:** Nginx location blocks sobreescriben headers de seguridad para archivos estáticos
+- **H-002-004:** ~~Nginx location blocks sobreescriben headers de seguridad~~ ✅ **Corregido**
   - **Severidad:** Medio
-  - **Evidencia:** `nginx/nginx.conf:147-151, 159-163` — Los bloques `/static/` y `/media/` usan `add_header Cache-Control`, lo que hace que nginx NO herede los headers de seguridad del bloque `server`.
-  - **Nota:** En producción el nginx.conf se sobreescribe, pero el template base debería ser correcto.
-  - **Recomendación:** Re-agregar `X-Content-Type-Options nosniff always` y `X-Frame-Options DENY always` en cada location block.
+  - **Evidencia:** `nginx/nginx.conf:147-151, 159-163` — Los bloques `/static/` y `/media/` usaban `add_header Cache-Control` sin re-incluir headers de seguridad.
+  - **Corrección:** Agregados `X-Content-Type-Options nosniff always` y `X-Frame-Options DENY always` en ambos location blocks.
+  - **Nota:** En producción el nginx.conf se sobreescribe, pero el template base ahora es correcto.
 
 ### Bajos
 
@@ -96,65 +100,103 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
 
 - **H-002-005:** Race condition (TOCTOU) en transiciones de estado del workflow
   - **Severidad:** Bajo
+  - **Estado:** Riesgo aceptado
   - **Evidencia:** `tramites/models/tramite.py:359-395` — Las acciones de workflow siguen un patrón check-then-act sin locking a nivel base de datos.
-  - **Recomendación:** Aceptable para un backoffice gubernamental con baja concurrencia. Considerar `select_for_update()` si escala.
+  - **Justificación:** Aceptable para un backoffice gubernamental con baja concurrencia. Considerar `select_for_update()` si escala.
 
 - **H-002-006:** Vista `asignar_rol` carece de verificación explícita de permisos
   - **Severidad:** Bajo
+  - **Estado:** Pendiente
   - **Evidencia:** `core/views.py:46` — Solo usa `@staff_member_required`, no verifica que el usuario tenga permisos de gestión de roles.
-  - **Recomendación:** Agregar verificación de `is_superuser or is_administrador`.
+  - **Mitigación actual:** La vista es inofensiva sin datos de sesión (cookies firmadas), que solo se establecen via la admin action con permisos.
+  - **Tests:** `tests/sanfelipe/test_security_audit.py::TestAsignarRolPermissionCheck` (1 test)
 
 - **H-002-007:** `X-Forwarded-For` confiado sin validación de proxy
   - **Severidad:** Bajo
+  - **Estado:** Mitigado por arquitectura
   - **Evidencia:** `tramites/views.py:209-226` — `_get_client_ip` confía en el header sin validar que la request vino a través de un proxy confiable.
-  - **Recomendación:** Gunicorn escucha en `127.0.0.1`, mitigando el riesgo. Considerar usar `REMOTE_ADDR` directamente.
+  - **Mitigación:** Gunicorn escucha en `127.0.0.1`, haciendo acceso directo muy difícil.
+  - **Tests:** `tests/sanfelipe/test_security_audit.py::TestGetClientIP` (4 tests)
 
-- **H-002-008:** Excepción no manejada en `modificar_asignacion` para ID de analista inválido
+- **H-002-008:** ~~Excepción no manejada en `modificar_asignacion` para ID de analista inválido~~ ✅ **Corregido**
   - **Severidad:** Bajo
-  - **Evidencia:** `tramites/admin.py:408` — `User.objects.get(id=analista_id)` sin try/except.
-  - **Recomendación:** Envolver en try/except con `User.DoesNotExist, ValueError`.
+  - **Evidencia:** `tramites/admin.py:408` — `User.objects.get(id=analista_id)` sin try/except generaba 500.
+  - **Corrección:** Agregado try/except con `User.DoesNotExist, ValueError` → redirect con mensaje de error.
+  - **Tests:** `tests/sanfelipe/test_security_audit.py::TestModificarAsignacionErrorHandling` (1 test)
 
-- **H-002-009:** `SESSION_COOKIE_SECURE` y `CSRF_COOKIE_SECURE` por defecto en `False` incluso en producción
+- **H-002-009:** ~~`SESSION_COOKIE_SECURE` y `CSRF_COOKIE_SECURE` por defecto en `False` incluso en producción~~ ✅ **Corregido**
   - **Severidad:** Bajo
-  - **Evidencia:** `sanfelipe/settings/security.py:53-55` — Los defaults son `False` en producción.
-  - **Recomendación:** Cambiar defaults a `True` para producción.
+  - **Evidencia:** `sanfelipe/settings/security.py:53-55` — Los defaults eran `False` en producción.
+  - **Corrección:** Cambiados defaults a `True` para producción.
+  - **Tests:** `tests/sanfelipe/test_security_audit.py::TestProductionCookieDefaults` (3 tests)
 
 ## 5. Acciones Correctivas
 
 | Hallazgo | Acción | Responsable | Estado | Fecha límite |
 |----------|--------|-------------|--------|--------------|
-| H-002-001 | Validar que `next` sea URL relativa (sin scheme/netloc) | dev | Pendiente | 2026-05-05 |
+| H-002-001 | Agregar `_safe_redirect_url()` para validar parámetro `next` | dev | ✅ Resuelto | 2026-05-05 |
 | H-002-002 | Migrar CSP a NONCE-based (primero en report-only) | dev | Pendiente | 2026-05-15 |
-| H-002-003 | Reemplazar `assert` con `if/raise` en sftp.py | dev | Pendiente | 2026-05-05 |
-| H-002-004 | Re-agregar headers de seguridad en location blocks de nginx | dev | Pendiente | 2026-05-05 |
-| H-002-005 | Documentar como riesgo aceptado (baja concurrencia) | dev | Pendiente | 2026-05-10 |
+| H-002-003 | Reemplazar `assert` con `if/raise` en sftp.py | dev | ✅ Resuelto | 2026-05-05 |
+| H-002-004 | Re-agregar headers de seguridad en location blocks de nginx | dev | ✅ Resuelto | 2026-05-05 |
+| H-002-005 | Riesgo aceptado (baja concurrencia) | dev | Aceptado | — |
 | H-002-006 | Agregar verificación de permisos en `asignar_rol` | dev | Pendiente | 2026-05-10 |
-| H-002-007 | Usar `REMOTE_ADDR` directamente en auditoría | dev | Pendiente | 2026-05-10 |
-| H-002-008 | Agregar try/except para `User.DoesNotExist` en admin | dev | Pendiente | 2026-05-10 |
-| H-002-009 | Cambiar defaults de cookies seguras a `True` en producción | dev | Pendiente | 2026-05-10 |
+| H-002-007 | Mitigado por arquitectura (gunicorn 127.0.0.1) | dev | Aceptado | — |
+| H-002-008 | Agregar try/except para `User.DoesNotExist` en admin | dev | ✅ Resuelto | 2026-05-05 |
+| H-002-009 | Cambiar defaults de cookies seguras a `True` en producción | dev | ✅ Resuelto | 2026-05-05 |
+
+### Archivos Modificados
+
+| Archivo | Cambio | Hallazgo |
+|---------|--------|----------|
+| `tramites/views.py` | Agregada `_safe_redirect_url()`, usada en `cerrar_tramite_view` | H-002-001 |
+| `tramites/sftp.py` | `assert` → `if/raise` en path traversal check | H-002-003 |
+| `nginx/nginx.conf` | Headers de seguridad en `/static/` y `/media/` | H-002-004 |
+| `tramites/admin.py` | try/except para `User.DoesNotExist` en `modificar_asignacion` | H-002-008 |
+| `sanfelipe/settings/security.py` | Cookies seguras default `True` en producción | H-002-009 |
+| `tests/sanfelipe/test_security_audit.py` | 30 tests de regresión de seguridad (nuevo) | Todos |
+| `tests/tramites/test_sftp.py` | Actualizado nombre de test (assertion→check) | H-002-003 |
 
 ## 6. Métricas
 
 | Métrica | Baseline | Post-corrección | Delta |
 |---------|----------|----------------|-------|
-| Hallazgos Críticos | 0 | — | — |
-| Hallazgos Altos | 1 | Pendiente | — |
-| Hallazgos Medios | 3 | Pendiente | — |
-| Hallazgos Bajos | 5 | Pendiente | — |
-| Total hallazgos | 9 | Pendiente | — |
-| Protección IDOR | 100% views cubiertas | — | — |
-| SQL Injection | 0 (ORM exclusivo) | — | — |
-| Path Traversal SFTP | 5 capas de defensa | — | — |
-| Validación SECRET_KEY | Shannon entropy + patterns | — | — |
+| Hallazgos Críticos | 0 | 0 | — |
+| Hallazgos Altos | 1 | 0 | -1 |
+| Hallazgos Medios | 3 | 1 | -2 |
+| Hallazgos Bajos | 5 | 2 | -3 |
+| Total hallazgos | 9 | 3 pendientes | -6 resueltos |
+| Tests de seguridad | 0 | 30 | +30 |
+| Tests totales suite | 344 | 374 | +30 |
+| Pass rate | 100% | 100% | — |
+| Protección IDOR | 100% views cubiertas | 100% | — |
+| SQL Injection | 0 (ORM exclusivo) | 0 | — |
+| Path Traversal SFTP | 5 capas de defensa | 5 capas | — |
+| Validación SECRET_KEY | Shannon entropy + patterns | Igual | — |
+
+### Cobertura de tests por hallazgo
+
+| Hallazgo | Tests | Clase de test |
+|----------|-------|---------------|
+| SEC-001 Open Redirect | 12 | `TestSafeRedirectUrl` |
+| SEC-002 CSP Config | 6 | `TestCSPSecurityDirectives` |
+| SEC-003 Path Traversal | 3 | `TestPathTraversalDefenseInDepth` |
+| SEC-006 asignar_rol | 1 | `TestAsignarRolPermissionCheck` |
+| SEC-007 X-Forwarded-For | 4 | `TestGetClientIP` |
+| SEC-008 Admin exception | 1 | `TestModificarAsignacionErrorHandling` |
+| SEC-009 Cookie defaults | 3 | `TestProductionCookieDefaults` |
+| **Total** | **30** | — |
 
 ## 7. Decisiones Derivadas
 
-- Ninguna. Las correcciones se implementan dentro de la arquitectura existente.
+- **H-002-005 (Race condition):** Riesgo aceptado. El backoffice gubernamental tiene baja concurrencia (5-10 usuarios simultáneos). Si la aplicación escala, considerar `select_for_update()` con `transaction.atomic()`.
+- **H-002-007 (X-Forwarded-For):** Riesgo aceptado. Gunicorn escucha en `127.0.0.1` y nginx es el único proxy. Si la arquitectura cambia (ej. load balancer separado), reconsiderar.
+- **H-002-002 (CSP unsafe-inline):** Pendiente migración gradual a NONCE. Se recomienda habilitar `DJANGO_CSP_REPORT_ONLY=True` en producción primero para identificar inline scripts necesarios.
 
 ## 8. Documentos Relacionados
 
 - [`audit-template.md`](audit-template.md) — Template utilizado para esta auditoría
 - [`001-calidad-de-pruebas.md`](001-calidad-de-pruebas.md) — Auditoría de calidad de pruebas (344 tests, 100% pass rate)
+- [`tests/sanfelipe/test_security_audit.py`](../../tests/sanfelipe/test_security_audit.py) — Tests de regresión de seguridad (30 tests)
 
 ---
 
