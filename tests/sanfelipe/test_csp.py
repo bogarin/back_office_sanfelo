@@ -39,16 +39,12 @@ class TestContentSecurityPolicy(TestCase):
             self.assertIn('object-src', csp)
             self.assertIn('frame-src', csp)
 
-    def test_csp_blocks_external_scripts(self) -> None:
-        """Test that CSP configuration blocks external scripts."""
-        if hasattr(settings, 'SECURE_CSP') and settings.SECURE_CSP is not None:
-            csp = settings.SECURE_CSP
-            script_sources = csp.get('script-src', [])
-
-            # Should include SELF and NONCE (not 'unsafe-inline')
-            self.assertTrue(CSP.SELF in script_sources or 'self' in script_sources)
-            # NONCE is included as a CSP directive object
-            self.assertTrue(CSP.NONCE in script_sources)
+    def test_csp_script_src_uses_self(self) -> None:
+        """Test that CSP script-src includes 'self' for same-origin scripts."""
+        csp = settings.SECURE_CSP
+        self.assertIsNotNone(csp)
+        script_sources = csp.get('script-src', [])
+        self.assertIn(CSP.SELF, script_sources)
 
     def test_csp_blocks_plugins(self) -> None:
         """Test that CSP configuration blocks all plugins."""

@@ -48,5 +48,6 @@ CACHES = {
     }
 }
 
-# Remove 'tests' app from INSTALLED_APPS (we don't need it anymore)
-INSTALLED_APPS = [app for app in INSTALLED_APPS if app != 'tests']
+INSTALLED_APPS = [app for app in INSTALLED_APPS if app not in ('tests', 'debug_toolbar')]
+
+MIDDLEWARE = [m for m in MIDDLEWARE if 'debug_toolbar' not in m]
