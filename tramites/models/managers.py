@@ -32,6 +32,36 @@ from django.core.cache import cache
 from django.db import models
 
 from core.managers import ReadOnlyQuerySet
+from tramites.constants import (
+    ESTATUS_FINALIZADO_LOWER,
+    ESTATUS_PROCESO_LOWER,
+    ESTATUS_PROCESO_UPPER,
+)
+
+
+class TramiteQuerySet(models.QuerySet):
+    """Custom QuerySet for Tramite with status-range shortcuts."""
+
+    def en_proceso(self):
+        """Trámites with estatus in the proceso range (201-300)."""
+        return self.filter(
+            ultima_actividad_estatus_id__gte=ESTATUS_PROCESO_LOWER,
+            ultima_actividad_estatus_id__lt=ESTATUS_PROCESO_UPPER,
+        )
+
+    def finalizados(self):
+        """Trámites with estatus >= 301 (finalized)."""
+        return self.filter(
+            ultima_actividad_estatus_id__gte=ESTATUS_FINALIZADO_LOWER,
+        )
+
+    def asignados_a(self, user_id: int):
+        """Trámites assigned to a specific user."""
+        return self.filter(asignado_user_id=user_id)
+
+    def sin_asignar(self):
+        """Trámites without assignment."""
+        return self.filter(asignado_user_id__isnull=True)
 
 
 class CachedReadOnlyManager(models.Manager.from_queryset(ReadOnlyQuerySet)):  # type: ignore[misc]

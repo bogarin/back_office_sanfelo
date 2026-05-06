@@ -14,6 +14,7 @@ from core.model_config import AccessPattern, register_model
 from tramites.exceptions import EstadoNoPermitidoError, TramiteNoAsignableError
 from tramites.models.actividades import Actividades
 from tramites.models.catalogos import TramiteEstatus
+from tramites.models.managers import TramiteQuerySet
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -55,6 +56,8 @@ class Tramite(models.Model):
     Modelo de Django que mapea a la vista v_tramites_unificado en el esquema backoffice.
     Esta vista unifica información de trámites con sus actividades, usuarios asignados y categorías.
     """
+
+    objects = models.Manager.from_queryset(TramiteQuerySet)()
 
     id = models.IntegerField(primary_key=True)
     folio = models.CharField(max_length=50, help_text='Folio del trámite')

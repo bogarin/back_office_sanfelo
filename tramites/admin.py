@@ -12,7 +12,7 @@ from datetime import datetime
 from django.contrib import admin, messages
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.utils.safestring import mark_safe
@@ -22,6 +22,7 @@ from core.admin_utils import (
     render_quick_action,
     render_status_badge,
 )
+from core.rbac.constants import VALID_ROLE_PROPERTIES
 from tramites.exceptions import (
     EstadoNoPermitidoError,
     SFTPConnectionError,
@@ -29,19 +30,11 @@ from tramites.exceptions import (
 )
 from tramites.forms import TramiteDetailForm
 from tramites.models import (
-    Actividades,
     Buzon,
     Cerrado,
     Disponible,
-    Requisito,
     Tramite,
     TramiteCatalogo,
-    TramiteEstatus,
-)
-from tramites.models.actividades import (
-    ActividadFile,
-    RequisitoFile,
-    TimelineEntry,
 )
 from tramites.sftp import SFTPService
 from tramites.timeline import build_timeline_entries
@@ -174,6 +167,48 @@ DEFAULT_FILTERS = (
     'creado',
     'actualizado',
 )
+
+
+# =============================================================================
+# Role-check mixin
+# =============================================================================
+
+
+class RoleCheckMixin:
+    """Configurable role-check for has_change_permission.
+
+    Set ``allowed_roles`` as a tuple of role property names on the user model.
+    The permission check only passes when ``obj is None`` (list view actions)
+    AND the user has at least one of the allowed roles.
+
+    Only strings listed in ``VALID_ROLE_PROPERTIES`` are accepted — invalid
+    role names raise ``ImproperlyConfigured`` at import time.
+
+    Usage::
+
+        class MyAdmin(RoleCheckMixin, TramiteBaseAdmin):
+            allowed_roles = ('is_analista', 'is_coordinador', 'is_administrador')
+    """
+
+    allowed_roles: tuple[str, ...] = ()
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        super().__init_subclass__(**kwargs)
+        invalid = set(cls.allowed_roles) - VALID_ROLE_PROPERTIES
+        if invalid:
+            raise ImproperlyConfigured(
+                f'{cls.__name__}.allowed_roles contains invalid role(s): '
+                f'{sorted(invalid)}. '
+                f'Allowed: {sorted(VALID_ROLE_PROPERTIES)}'
+            )
+
+    def has_change_permission(self, request, obj=None):
+        if obj is not None:
+            return False
+        user = request.user
+        if user.is_superuser:
+            return True
+        return any(getattr(user, role, False) for role in self.allowed_roles)
 
 
 # =============================================================================
@@ -597,8 +632,10 @@ class TramiteBaseAdmin(admin.ModelAdmin):
 
 
 @admin.register(Buzon)
-class BuzonTramitesAdmin(TramiteBaseAdmin):
+class BuzonTramitesAdmin(RoleCheckMixin, TramiteBaseAdmin):
     """Trámites asignados al usuario actual (orientado a Analistas)."""
+
+    allowed_roles = ('is_analista', 'is_coordinador', 'is_administrador')
 
     list_filter = (
         TramiteTipoFilter,
@@ -613,31 +650,20 @@ class BuzonTramitesAdmin(TramiteBaseAdmin):
         cols = super().get_list_display(request)
         return [z for z in cols if not z.startswith("asignado")]
 
-    def has_change_permission(self, request, obj=None):
-        """Analistas pueden ejecutar acciones (obj=None), no editar form."""
-        user = request.user
-        return obj is None and (user.is_analista or user.is_coordinador or user.is_administrador)
-
     def get_queryset(self, request):
-        """
-        Filter to only show trámites assigned to current user with estatus 200-299.
-
-        Range: 200 <= ultima_actividad_estatus_id < 300
-        """
         return (
             super()
             .get_queryset(request)
-            .filter(
-                asignado_user_id=request.user.id,
-                ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.PRESENTADO.value,
-                ultima_actividad_estatus_id__lt=TramiteEstatus.Estatus.POR_RECOGER.value,
-            )
+            .en_proceso()
+            .asignados_a(request.user.id)
         )
 
 
 @admin.register(Disponible)
-class TramitesDisponiblesAdmin(TramiteBaseAdmin):
+class TramitesDisponiblesAdmin(RoleCheckMixin, TramiteBaseAdmin):
     """Trámites disponibles para tomar (orientado a Analistas)."""
+
+    allowed_roles = ('is_analista', 'is_coordinador', 'is_administrador')
 
     list_filter = (
         TramiteTipoFilter,
@@ -654,11 +680,6 @@ class TramitesDisponiblesAdmin(TramiteBaseAdmin):
         cols = super().get_list_display(request)
         return [z for z in cols if not z.startswith("asignado")]
 
-    def has_change_permission(self, request, obj=None):
-        """Analistas pueden ejecutar acciones (obj=None), no editar form."""
-        user = request.user
-        return obj is None and (user.is_analista or user.is_coordinador or user.is_administrador)
-
     def get_actions(self, request: HttpRequest):
         """
         Retorna solo la acción de tomar asignación.
@@ -671,19 +692,11 @@ class TramitesDisponiblesAdmin(TramiteBaseAdmin):
         return {k: v for k, v in actions.items() if k == 'tomar_asignacion'}
 
     def get_queryset(self, request):
-        """
-        Filter to only show trámites with estatus 200-299.
-
-        Range: 200 <= ultima_actividad_estatus_id < 300
-        """
         return (
             super()
             .get_queryset(request)
-            .filter(
-                ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.PRESENTADO.value,
-                ultima_actividad_estatus_id__lt=TramiteEstatus.Estatus.POR_RECOGER.value,
-                asignado_user_id__isnull=True,
-            )
+            .en_proceso()
+            .sin_asignar()
         )
 
     @admin.display(description='Acciones Rápidas')
@@ -697,13 +710,10 @@ class TramitesDisponiblesAdmin(TramiteBaseAdmin):
 
 
 @admin.register(Tramite)
-class TramitesAdmin(TramiteBaseAdmin):
+class TramitesAdmin(RoleCheckMixin, TramiteBaseAdmin):
     """Trámites para Coordinadores y Administradores — gestión completa."""
 
-    def has_change_permission(self, request, obj=None):
-        """Coordinador/Admin pueden ejecutar acciones, no editar form."""
-        user = request.user
-        return obj is None and (user.is_coordinador or user.is_administrador)
+    allowed_roles = ('is_coordinador', 'is_administrador')
 
     def get_list_filter(self, request):
         """
@@ -715,19 +725,7 @@ class TramitesAdmin(TramiteBaseAdmin):
         return [AsignadoUserFilter, *super().get_list_filter(request)]
 
     def get_queryset(self, request):
-        """
-        Filter to only show trámites with estatus 200-299.
-
-        Range: 200 <= ultima_actividad_estatus_id < 300
-        """
-        return (
-            super()
-            .get_queryset(request)
-            .filter(
-                ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.PRESENTADO.value,
-                ultima_actividad_estatus_id__lt=TramiteEstatus.Estatus.POR_RECOGER.value,
-            )
-        )
+        return super().get_queryset(request).en_proceso()
 
     @admin.display(description='Acciones Rápidas')
     def acciones_disponibles(self, obj):
@@ -741,13 +739,10 @@ class TramitesAdmin(TramiteBaseAdmin):
         )
 
 @admin.register(Cerrado)
-class TramitesCerradosAdmin(TramiteBaseAdmin):
+class TramitesCerradosAdmin(RoleCheckMixin, TramiteBaseAdmin):
     """Trámites para Coordinadores y Administradores — Solo tramites finalizados."""
 
-    def has_change_permission(self, request, obj=None):
-        """Coordinador/Admin pueden ejecutar acciones, no editar form."""
-        user = request.user
-        return obj is None and (user.is_coordinador or user.is_administrador)
+    allowed_roles = ('is_coordinador', 'is_administrador')
 
     def get_list_filter(self, request):
         """
@@ -759,16 +754,7 @@ class TramitesCerradosAdmin(TramiteBaseAdmin):
         return [AsignadoUserFilter, *super().get_list_filter(request)]
 
     def get_queryset(self, request):
-        """
-        Solo muestra tramites con estatus_id > 300
-        """
-        return (
-            super()
-            .get_queryset(request)
-            .filter(
-                ultima_actividad_estatus_id__gte=TramiteEstatus.Estatus.POR_RECOGER.value,
-            )
-        )
+        return super().get_queryset(request).finalizados()
 
     @admin.display(description='Acciones Rápidas')
     def acciones_disponibles(self, obj):

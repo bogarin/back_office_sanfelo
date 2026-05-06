@@ -11,11 +11,10 @@ Covers:
 
 from __future__ import annotations
 
-from collections import defaultdict
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.template import Template, Context
+from django.template import Context, Template
 from django.template.engine import Engine
 from django.test import override_settings
 
@@ -24,7 +23,6 @@ from tramites.exceptions import SFTPConnectionError
 from tramites.models import ActividadFile, RequisitoFile, TimelineEntry
 from tramites.models.catalogos import TramiteEstatus
 from tramites.sftp import SFTPService, validate_filename
-
 
 # =============================================================================
 # P0: validate_filename() — ACT-*.pdf pattern
