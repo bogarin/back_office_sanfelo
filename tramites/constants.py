@@ -34,3 +34,50 @@ FILE_COUNT_WARNING_THRESHOLD = 100
 
 # Maximum file size allowed for download (50 MB)
 MAX_DOWNLOAD_FILE_SIZE_BYTES = 50 * 1024 * 1024
+
+
+# =============================================================================
+# Estatus range constants
+# =============================================================================
+
+
+ESTATUS_INICIO_RANGE = range(100, 200)
+ESTATUS_PROCESO_RANGE = range(200, 300)
+ESTATUS_FINALIZADO_RANGE = range(300, 400)
+
+_STATUS_GROUPS = {
+    1: 'inicio',
+    2: 'proceso',
+    3: 'finalizado',
+}
+
+
+def get_status_group(estatus_id: int | None) -> str:
+    """Return the status group name for a given estatus ID.
+
+    Maps estatus IDs to their family:
+      - 100-199 → 'inicio'
+      - 200-299 → 'proceso'
+      - 300-399 → 'finalizado'
+      - anything else → 'otro'
+    """
+    if estatus_id is None:
+        return 'otro'
+    return _STATUS_GROUPS.get(estatus_id // 100) or 'otro'
+
+
+def get_status_badge_class(estatus_id: int | None) -> str:
+    """Return the CSS badge class for a given estatus ID.
+
+    Format: '{group}-{estatus_id}' (e.g. 'proceso-202').
+    Returns 'otro' for None or out-of-range values.
+    """
+    if estatus_id is None:
+        return 'otro'
+    if estatus_id in ESTATUS_INICIO_RANGE:
+        return f'inicio-{estatus_id}'
+    if estatus_id in ESTATUS_PROCESO_RANGE:
+        return f'proceso-{estatus_id}'
+    if estatus_id in ESTATUS_FINALIZADO_RANGE:
+        return f'finalizado-{estatus_id}'
+    return 'otro'

@@ -19,12 +19,11 @@ from django.template import Template, Context
 from django.template.engine import Engine
 from django.test import override_settings
 
-from tramites.constants import ACTIVIDAD_FILENAME_REGEX
+from tramites.constants import ACTIVIDAD_FILENAME_REGEX, get_status_badge_class, get_status_group
 from tramites.exceptions import SFTPConnectionError
 from tramites.models import ActividadFile, RequisitoFile, TimelineEntry
 from tramites.models.catalogos import TramiteEstatus
 from tramites.sftp import SFTPService, validate_filename
-from tramites.templatetags.admin_extras import status_badge_class, status_group
 
 
 # =============================================================================
@@ -422,8 +421,8 @@ def test_timeline_entry_with_requisito_files():
     ],
 )
 def test_status_group_returns_correct_group(estatus_id, expected):
-    """status_group returns the correct family name for each range."""
-    assert status_group(estatus_id) == expected
+    """get_status_group returns the correct family name for each range."""
+    assert get_status_group(estatus_id) == expected
 
 
 @pytest.mark.parametrize(
@@ -431,13 +430,13 @@ def test_status_group_returns_correct_group(estatus_id, expected):
     [0, 1, 50, 99, 400, 500, 999],
 )
 def test_status_group_out_of_range_returns_otro(estatus_id):
-    """status_group returns 'otro' for IDs outside 100-399."""
-    assert status_group(estatus_id) == 'otro'
+    """get_status_group returns 'otro' for IDs outside 100-399."""
+    assert get_status_group(estatus_id) == 'otro'
 
 
 def test_status_group_none_returns_otro():
-    """status_group handles None gracefully."""
-    assert status_group(None) == 'otro'
+    """get_status_group handles None gracefully."""
+    assert get_status_group(None) == 'otro'
 
 
 # =============================================================================
@@ -457,14 +456,14 @@ def test_status_group_none_returns_otro():
     ],
 )
 def test_status_badge_class_includes_group_and_id(estatus_id, expected_prefix):
-    """status_badge_class returns '{group}-{estatus_id}' format."""
-    result = status_badge_class(estatus_id)
+    """get_status_badge_class returns '{group}-{estatus_id}' format."""
+    result = get_status_badge_class(estatus_id)
     assert result == f'{expected_prefix}-{estatus_id}'
 
 
 def test_status_badge_class_none_returns_otro():
-    """status_badge_class handles None gracefully."""
-    assert status_badge_class(None) == 'otro'
+    """get_status_badge_class handles None gracefully."""
+    assert get_status_badge_class(None) == 'otro'
 
 
 # =============================================================================
