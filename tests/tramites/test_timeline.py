@@ -153,7 +153,7 @@ def test_fetch_actividad_files_returns_files(mock_get_client, mock_close):
         patch.object(SFTPService, '_check_file_count_warning', return_value=None),
         override_settings(SFTP_BASE_DIR='/remote/pdfs'),
     ):
-        mock_act_model.objects.filter.return_value = []
+        mock_act_model.objects.filter.return_value.select_related.return_value = []
         files, warning = SFTPService.fetch_actividad_files('DAU-260420-AAAE-B')
 
     assert len(files) == 1
@@ -202,7 +202,7 @@ def test_fetch_actividad_files_filters_non_act(mock_get_client, mock_close):
         patch.object(SFTPService, '_check_file_count_warning', return_value=None),
         override_settings(SFTP_BASE_DIR='/remote/pdfs'),
     ):
-        mock_act_model.objects.filter.return_value = []
+        mock_act_model.objects.filter.return_value.select_related.return_value = []
         files, warning = SFTPService.fetch_actividad_files('DAU-260420-AAAE-B')
 
     assert len(files) == 1
@@ -241,7 +241,7 @@ def test_fetch_actividad_files_sorts_by_timestamp_desc(mock_get_client, mock_clo
         patch.object(SFTPService, '_check_file_count_warning', return_value=None),
         override_settings(SFTP_BASE_DIR='/remote/pdfs'),
     ):
-        mock_act_model.objects.filter.return_value = []
+        mock_act_model.objects.filter.return_value.select_related.return_value = []
         files, _ = SFTPService.fetch_actividad_files('DAU-260420-AAAE-B')
 
     timestamps = [f.timestamp_str for f in files]

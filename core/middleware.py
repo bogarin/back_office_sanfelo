@@ -21,10 +21,9 @@ class CacheUserRolesMiddleware:
 
     No database query is needed for the rest of the request lifecycle.
 
-    The attribute is only set for authenticated users.  For anonymous
-    users or requests without a user (e.g. management commands that
-    build a request manually), ``getattr(user, 'roles', set())`` should
-    be used as a safe fallback.
+    For anonymous users, ``request.user.roles`` is set to an empty ``set()``
+    so downstream code can safely access ``request.user.roles`` without
+    ``getattr()`` guards.
     """
 
     def __init__(self, get_response):
@@ -33,4 +32,6 @@ class CacheUserRolesMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         if hasattr(request, 'user') and request.user.is_authenticated:
             request.user.roles = set(request.user.groups.values_list('name', flat=True))
+        elif hasattr(request, 'user'):
+            request.user.roles = set()
         return self.get_response(request)

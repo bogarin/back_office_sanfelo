@@ -91,7 +91,7 @@ class TestCacheUserRolesMiddleware:
         assert request.user.roles == set()
 
     def test_anonymous_user_no_roles_attribute(self, middleware, factory):
-        """Anonymous user: no roles attribute added."""
+        """Anonymous user gets an empty roles set."""
         from django.contrib.auth.models import AnonymousUser
 
         request = factory.get('/')
@@ -99,7 +99,8 @@ class TestCacheUserRolesMiddleware:
 
         middleware(request)
 
-        assert not hasattr(request.user, 'roles')
+        assert hasattr(request.user, 'roles')
+        assert request.user.roles == set()
 
     def test_request_without_user_attribute(self, middleware, factory):
         """Request without user attribute: middleware passes through cleanly."""

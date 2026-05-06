@@ -1,10 +1,6 @@
-"""Custom managers for read-heavy catalog tables.
+"""Custom manager for read-heavy catalog tables.
 
-Provides two caching managers for small, rarely-changing catalog tables:
-
-``CachedCatalogManager``
-    Pure ``lru_cache`` in process memory.  No write protection — use on
-    models that are *already* read-only by convention or decorator.
+Provides a caching manager for small, rarely-changing catalog tables:
 
 ``CachedReadOnlyManager``
     Combines ``ReadOnlyQuerySet`` (prevents all writes at the ORM level)
@@ -12,90 +8,30 @@ Provides two caching managers for small, rarely-changing catalog tables:
     Ideal for models like ``Requisito`` that must be strictly read-only *and*
     benefit from caching.
 
-Cache strategy for both:
+Cache strategy:
     - Invalidation: Manual via ``invalidate_cache()`` or the maintenance
       URL at ``/admin/maintenance/invalidate-cache/``.
 
 Usage::
 
-    from tramites.models.managers import CachedCatalogManager, CachedReadOnlyManager
-
-    # Process-level lru_cache, no write protection
-    class MyCatalog(models.Model):
-        objects = CachedCatalogManager()
+    from tramites.models.managers import CachedReadOnlyManager
 
     # Django cache + read-only queryset (write-safe)
     class Requisito(models.Model):
         objects = CachedReadOnlyManager()
 
-    # Shared API
-    records = MyCatalog.objects.all_cached()
-    record  = MyCatalog.objects.get_cached(42)
-    MyCatalog.objects.invalidate_cache()
+    # API
+    records = Requisito.objects.all_cached()
+    record  = Requisito.objects.get_cached(42)
+    Requisito.objects.invalidate_cache()
 """
 
 from __future__ import annotations
-
-from functools import lru_cache
 
 from django.core.cache import cache
 from django.db import models
 
 from core.managers import ReadOnlyQuerySet
-
-
-class CachedCatalogManager(models.Manager):
-    """Manager for small, read-only catalog tables.
-
-    Caches the full table contents as a Python list in process memory
-    on first access.  Subsequent reads are served from the LRU cache
-    — zero DB queries for the rest of the worker's lifetime.
-
-    Not suitable for large tables (> ~500 rows) due to O(n) lookups
-    and full-table materialization in memory.
-    """
-
-    def all_cached(self) -> list:
-        """Return all records, cached in process memory.
-
-        The first call per worker process fetches from PostgreSQL.
-        Every subsequent call returns the cached list with zero
-        queries.  Cache survives across requests until explicitly
-        invalidated or the worker process restarts.
-
-        Returns:
-            list[model instance]: All records for this model.
-        """
-        return self._all_cached_impl()
-
-    @lru_cache(maxsize=1)
-    def _all_cached_impl(self) -> list:
-        """Materialize the full table. Separated for lru_cache."""
-        return list(self.all())
-
-    def get_cached(self, pk: int):
-        """Return a single record by primary key from the cached list.
-
-        Performs a linear scan — fine for small tables (< 100 rows).
-
-        Args:
-            pk: Primary key value to look up.
-
-        Returns:
-            Model instance or ``None`` if not found.
-        """
-        for record in self.all_cached():
-            if record.pk == pk:
-                return record
-        return None
-
-    def invalidate_cache(self) -> None:
-        """Clear the in-process cache for this model.
-
-        Forces the next ``all_cached()`` call to fetch fresh data
-        from PostgreSQL.  Safe to call even if nothing is cached.
-        """
-        self._all_cached_impl.cache_clear()
 
 
 class CachedReadOnlyManager(models.Manager.from_queryset(ReadOnlyQuerySet)):  # type: ignore[misc]

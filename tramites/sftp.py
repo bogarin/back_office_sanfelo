@@ -857,7 +857,7 @@ class SFTPService:
             # Bulk lookup: {actividad_id: Actividades}
             actividades_map = {
                 a.id: a
-                for a in Actividades.objects.filter(id__in=actividad_ids)
+                for a in Actividades.objects.filter(id__in=actividad_ids).select_related('estatus')
             }
 
             resultado: list[ActividadFile] = []

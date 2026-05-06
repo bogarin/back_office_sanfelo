@@ -274,31 +274,91 @@ Auditoría automatizada mediante análisis estático de 5 subagentes examinando 
 
 ## 5. Acciones Correctivas
 
-> Priorizadas por impacto. Las acciones de prioridad P0 y P1 deben completarse antes del próximo deploy.
+> Ordenadas por complejidad creciente. Los bloques 1-3 son de nulo/bajo riesgo y pueden ejecutarse inmediatamente.
 
-| Hallazgo | Acción | Prioridad | Estado | Fecha límite |
-|----------|--------|-----------|--------|--------------|
-| H-002-001, H-002-002 | Crear `tramites/services/workflow.py` y extraer lógica de workflow del modelo Tramite | P0 | Pendiente | 2026-05-11 |
-| H-002-003 | Agregar `transaction.atomic()` en `core/views.py:asignar_rol` POST loop | P0 | Pendiente | 2026-05-06 |
-| H-002-004 | Agregar `transaction.atomic()` en `tramites/admin.py:modificar_asignacion` batch loop | P0 | Pendiente | 2026-05-06 |
-| H-002-012 | Agregar `transaction.atomic()` en `core/admin.py:save_model` | P0 | Pendiente | 2026-05-06 |
-| H-002-005 | Extraer helper methods de `change_view`: `_handle_post_action()`, `_fetch_sftp_files()`, `_build_timeline()` | P1 | Pendiente | 2026-05-11 |
-| H-002-006 | Dividir `_create_sftp_connection` en `_connect_with_key()` y `_connect_with_password()` | P1 | Pendiente | 2026-05-11 |
-| H-002-007 | Agregar `.select_related('estatus')` a `historial_actividades` y query en `sftp.py` | P1 | Pendiente | 2026-05-08 |
-| H-002-009 | Reemplazar inline `onclick` con nonce-based script en `403_csrf.html` | P1 | Pendiente | 2026-05-08 |
-| H-002-010 | Envolver strings en `{% trans %}` en 4 templates principales | P1 | Pendiente | 2026-05-15 |
-| H-002-017 | Reemplazar URLs hardcodeadas con `reverse()` y `{% url %}` | P2 | Pendiente | 2026-05-15 |
-| H-002-018 | Eliminar `core/urls.py` muerto | P2 | Pendiente | 2026-05-08 |
-| H-002-019 | Eliminar `asignar_tramites.html` muerto | P2 | Pendiente | 2026-05-08 |
-| H-002-020 | Corregir `queryset_count` en context de `modificar_asignacion` | P2 | Pendiente | 2026-05-08 |
-| H-002-022 | Consolidar branding en un solo lugar (`core/admin.py`) | P2 | Pendiente | 2026-05-15 |
-| H-002-023 | Agregar try/except en `CacheUserRolesMiddleware` | P2 | Pendiente | 2026-05-11 |
-| H-002-013 | Extraer `get_status_group()` a `tramites/constants.py` compartido | P2 | Pendiente | 2026-05-15 |
-| H-002-014, H-002-015 | Crear mixin `_can_execute_actions()` y `Tramite.objects.en_proceso()` | P2 | Pendiente | 2026-05-15 |
-| H-002-025 | Agregar type hints a APIs públicas (`admin_utils`, `timeline`, `admin` filters) | P3 | Pendiente | 2026-05-22 |
-| H-002-027 | Envolver strings en `gettext_lazy()` en modelos | P3 | Pendiente | 2026-05-22 |
-| H-002-029 | Extraer CSS inline a `backoffice.css` | P3 | Pendiente | 2026-05-22 |
-| H-002-038 | Migrar f-strings en logger a `%s` lazy formatting | P3 | Pendiente | 2026-05-22 |
+### Bloque 1 — Eliminación directa (sin cambio funcional, riesgo nulo)
+
+| # | Hallazgo | Acción | Estado |
+|---|----------|--------|--------|
+| 1 | H-002-018 | Eliminar archivo `core/urls.py` (nunca incluido) | Pendiente |
+| 2 | H-002-019 | Eliminar template `asignar_tramites.html` (sin vista que lo renderice) | Pendiente |
+| 3 | H-002-046 | Eliminar template `csp_example.html` (extiende `base.html` inexistente) | Pendiente |
+| 4 | H-002-044 | Eliminar `TRAMITE_ESTADOS` y `TRAMITE_PRIORIDADES` de settings (nunca usados) | Pendiente |
+| 5 | H-002-032 | Eliminar `CachedCatalogManager` de `managers.py` (52 líneas, nunca usado) | Pendiente |
+| 6 | H-002-036 | Eliminar `ERROR_TEMPLATE_MAP` de `core/views.py` (definido, nunca referenciado) | Pendiente |
+| 7 | H-002-049 | Eliminar código comentado en `core/admin.py:331` | Pendiente |
+| 8 | H-002-042 | Eliminar `ready()` vacío en `TramitesConfig` | Pendiente |
+| 9 | H-002-045 | Mover templates de test (`test_errors.html`, `test_rendering.html`) a `templates/debug/` | Pendiente |
+
+### Bloque 2 — Micro-correcciones (1-3 líneas, sin cambio de comportamiento)
+
+| # | Hallazgo | Acción | Estado |
+|---|----------|--------|--------|
+| 10 | H-002-037 | `reverse_lazy()` → `reverse()` en cuerpos de funciones (`core/views.py`) | Pendiente |
+| 11 | H-002-038 | f-strings → `%s` en logger calls (11 instancias) | Pendiente |
+| 12 | H-002-039 | `logging.error()` → `logger.error()` en `tramite.py:300` | Pendiente |
+| 13 | H-002-026 | Agregar `exc_info=True` a 3 logger calls en catch-all | Pendiente |
+| 14 | H-002-020 | Agregar `'queryset_count': queryset.count()` al context de `modificar_asignacion` | Pendiente |
+| 15 | H-002-007 | Agregar `.select_related('estatus')` a `historial_actividades` y query en `sftp.py` | Pendiente |
+| 16 | H-002-022 | Eliminar branding duplicado de `sanfelipe/apps.py` (conservar `core/admin.py`) | Pendiente |
+| 17 | H-002-041 | Agregar docstring a `delete_model` documentando omisión intencional de `super()` | Pendiente |
+| 18 | H-002-050 | Agregar `request.user.roles = set()` para usuarios anónimos en middleware | Pendiente |
+| 19 | H-002-040 | Migrar 3 admin actions de `core/admin.py` a estilo `@admin.action()` | Pendiente |
+| 20 | H-002-010 | Quitar `{% load i18n %}` no usado de templates (sitio monolingüe español) | Pendiente |
+
+### Bloque 3 — Agregar `transaction.atomic()` (cambio mínimo, alto impacto)
+
+| # | Hallazgo | Acción | Estado |
+|---|----------|--------|--------|
+| 21 | H-002-003 | `transaction.atomic()` en `asignar_rol` POST loop | Pendiente |
+| 22 | H-002-004 | `transaction.atomic()` en `modificar_asignacion` batch loop | Pendiente |
+| 23 | H-002-012 | `transaction.atomic()` en `core/admin.py:save_model` | Pendiente |
+
+### Bloque 4 — Correcciones de templates y URLs (sin lógica Python)
+
+| # | Hallazgo | Acción | Estado |
+|---|----------|--------|--------|
+| 24 | H-002-017 | Reemplazar URLs hardcodeadas: `reverse()`, `{% url %}` | Pendiente |
+| 25 | H-002-009 | Reemplazar inline `onclick` en `403_csrf.html` con nonce-based script | Pendiente |
+| 26 | H-002-029 | Extraer CSS inline a `backoffice.css` | Pendiente |
+| 27 | H-002-031 | Limpiar `base_error.html` muerto y templates de error | Pendiente |
+
+### Bloque 5 — Refactors moderados (nuevos métodos, sin cambio arquitectónico)
+
+| # | Hallazgo | Acción | Estado |
+|---|----------|--------|--------|
+| 28 | H-002-013 | Extraer `get_status_group()` a `tramites/constants.py` | Pendiente |
+| 29 | H-002-048 | Crear constantes nombradas para rangos de estatus | Pendiente |
+| 30 | H-002-014 | Crear mixin de check de roles para admin classes | Pendiente |
+| 31 | H-002-015 | Crear `Tramite.objects.en_proceso()` como manager method | Pendiente |
+| 32 | H-002-023 | Agregar try/except en `CacheUserRolesMiddleware` | Pendiente |
+| 33 | H-002-025 | Agregar type hints a APIs públicas | Pendiente |
+| 34 | H-002-028 | Agregar `clean_observacion` a `CerrarTramiteForm` | Pendiente |
+| 35 | H-002-043 | Agregar `default_auto_field` a `CoreConfig` y `TramitesConfig` | Pendiente |
+| 36 | H-002-030 | Configurar `ManifestStaticFilesStorage` en settings | Pendiente |
+
+### Bloque 6 — Refactors estructurales (cambio de métodos grandes)
+
+| # | Hallazgo | Acción | Estado |
+|---|----------|--------|--------|
+| 37 | H-002-005 | Extraer helpers de `change_view` (3 métodos) | Pendiente |
+| 38 | H-002-006 | Dividir `_create_sftp_connection` en 2 métodos | Pendiente |
+| 39 | H-002-024 | Refactor god functions restantes (`modificar_asignacion`, `_cleanup_cache`, `_list_files`, `asignar_rol`) | Pendiente |
+
+### Bloque 7 — Service layer (cambio arquitectónico mayor)
+
+| # | Hallazgo | Acción | Estado |
+|---|----------|--------|--------|
+| 40 | H-002-001 | Crear `tramites/services/workflow.py` — extraer lógica de workflow del modelo | Pendiente |
+| 41 | H-002-002 | Crear `core/services/rbac.py` — extraer asignación de roles compartida | Pendiente |
+| 42 | H-002-011 | Mover management commands de tramites de `core/` a `tramites/` | Pendiente |
+
+### No aplica (descartado)
+
+| Hallazgo | Razón |
+|----------|-------|
+| H-002-010 (i18n templates) | Sitio monolingüe español — se reemplaza por limpieza de `{% load i18n %}` (Bloque 2, item 20) |
+| H-002-027 (i18n modelos) | Sitio monolingüe español — no se requiere `gettext_lazy()` |
 
 ## 6. Métricas
 
@@ -307,7 +367,6 @@ Auditoría automatizada mediante análisis estático de 5 subagentes examinando 
 | God functions (>30 líneas) | 8 | — | Pendiente |
 | Operaciones batch sin `transaction.atomic()` | 4 | — | Pendiente |
 | Templates con código muerto | 5 | — | Pendiente |
-| Strings sin i18n (modelos + templates) | ~120+ | — | Pendiente |
 | URLs hardcodeadas | 8 | — | Pendiente |
 | Type hints ausentes en APIs públicas | ~25 funciones | — | Pendiente |
 | Líneas de código muerto | ~250+ | — | Pendiente |
@@ -318,7 +377,7 @@ Auditoría automatizada mediante análisis estático de 5 subagentes examinando 
 ## 7. Decisiones Derivadas
 
 - **ADR pendiente:** Evaluar adopción de librería de state machine (e.g., `django-fsm`) para el workflow de trámites. La complejidad del modelo `Tramite` lo justifica.
-- **ADR pendiente:** Decidir estrategia i18n — si el backoffice será solo español, eliminar `{% load i18n %}` y `gettext_lazy` para reducir ruido. Si se necesita multiidioma, aplicar consistentemente.
+- **Decisión tomada:** Sitio monolingüe español — no se implementará i18n. Se elimina `{% load i18n %}` de templates y no se agrega `gettext_lazy()` a modelos.
 
 ## 8. Documentos Relacionados
 

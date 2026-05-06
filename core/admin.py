@@ -23,14 +23,7 @@ User = get_user_model()
 
 
 # =============================================================================
-# Admin Site Configuration
-# =============================================================================
-
-admin.site.site_header = 'Backoffice San Felipe'
-admin.site.site_title = 'Backoffice San Felipe'
-admin.site.index_title = 'Panel de Administración'
-
-
+# Admin Site Registration
 # =============================================================================
 # Custom Filters
 # =============================================================================
@@ -225,8 +218,13 @@ class BackofficeUserAdmin(UserAdmin):
             if group:
                 obj.groups.add(group)
 
+    @admin.action(description='Asignar rol')
     def asignar_rol(self, request, queryset):
-        """Admin action to assign roles to selected users."""
+        """Admin action to assign a role to selected users.
+
+        Stores the selected user IDs in the session and redirects to the
+        role assignment form.
+        """
         if not request.user.is_superuser:
             queryset = queryset.exclude(is_superuser=True)
         selected_ids = list(queryset.values_list('id', flat=True))
@@ -234,8 +232,7 @@ class BackofficeUserAdmin(UserAdmin):
         request.session['user_ids_count'] = len(selected_ids)
         return HttpResponseRedirect(reverse('asignar-rol'))
 
-    asignar_rol.short_description = 'Asignar rol'
-
+    @admin.action(description='Marcar como activos')
     def marcar_como_activo(self, request, queryset):
         """Admin action to mark selected users as active."""
         if not request.user.is_superuser:
@@ -246,8 +243,7 @@ class BackofficeUserAdmin(UserAdmin):
             f'{rows_updated} usuario(s) marcado(s) como activos.',
         )
 
-    marcar_como_activo.short_description = 'Marcar como activos'
-
+    @admin.action(description='Marcar como inactivos')
     def marcar_como_inactivo(self, request, queryset):
         """Admin action to mark selected users as inactive."""
         if not request.user.is_superuser:
@@ -258,8 +254,6 @@ class BackofficeUserAdmin(UserAdmin):
             f'{rows_updated} usuario(s) marcado(s) como inactivos.',
         )
 
-    marcar_como_inactivo.short_description = 'Marcar como inactivos'
-
     def get_actions(self, request):
         """Remove default delete action — we use soft delete instead."""
         actions = super().get_actions(request)
@@ -268,7 +262,11 @@ class BackofficeUserAdmin(UserAdmin):
         return actions
 
     def delete_model(self, request, obj):
-        """Prevent hard delete — mark as inactive instead."""
+        """Soft delete: mark as inactive instead of removing from DB.
+
+        Intentionally skips ``super().delete_model()`` to preserve the
+        record for audit purposes.
+        """
         obj.is_active = False
         obj.save()
 
@@ -328,6 +326,5 @@ class BackofficeUserAdmin(UserAdmin):
             return '—'
         url = reverse('admin:core_user_password_change', args=[obj.pk])
         return render_quick_action('🔑 Cambiar contraseña', target=url)
-        # return format_html('<a href="{}">Cambiar password</a>', url)
 
     acciones.short_description = _('Acciones')

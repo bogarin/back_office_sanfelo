@@ -370,6 +370,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
             context = {
                 'analistas': analistas,
                 'queryset': queryset,
+                'queryset_count': queryset.count(),
                 'action_checkbox_name': ACTION_CHECKBOX_NAME,
                 'opts': self.model._meta,
                 'action_name': 'modificar_asignacion',
@@ -391,7 +392,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                     )
                     count += 1
                 except Exception as e:
-                    logger.error(f'Error liberando {tramite.folio}: {e}')
+                    logger.error('Error liberando %s: %s', tramite.folio, e)
                     errores.append(f'{tramite.folio}: {e!s}')
 
             if count:
@@ -422,7 +423,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                     )
                     asignados.append(tramite.folio)
                 except Exception as e:
-                    logger.error(f'Error asignando {tramite.folio} a {analista.username}: {e}')
+                    logger.error('Error asignando %s a %s: %s', tramite.folio, analista.username, e)
                     errores.append(f'{tramite.folio}: {e!s}')
 
             if asignados:
@@ -518,6 +519,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                             'Error procesando acción en trámite %s: %s',
                             tramite.folio,
                             e,
+                            exc_info=True,
                         )
                         messages.error(request, 'Error al procesar la acción')
 

@@ -15,4 +15,4 @@ def setup_roles(sender, **kwargs):
     try:
         call_command('setup_roles')
     except Exception as e:
-        logger.error(f'Error setting up roles: {e}')
+        logger.error('Error setting up roles: %s', e)

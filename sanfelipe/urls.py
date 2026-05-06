@@ -57,7 +57,6 @@ if settings.DEBUG:
 
     urlpatterns += [path('test_rendering/', test_rendering, name='test-rendering')]
     urlpatterns += [path('test_errors/', test_errors, name='test-errors')]
-
     # Static files serving in development
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

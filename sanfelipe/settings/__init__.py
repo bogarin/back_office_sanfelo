@@ -365,22 +365,6 @@ DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='noreply@sanfelipe
 # TRAMITES SETTINGS
 # =============================================================================
 
-TRAMITE_ESTADOS = (
-    ('borrador', 'Borrador'),
-    ('pendiente', 'Pendiente'),
-    ('en_proceso', 'En Proceso'),
-    ('aprobado', 'Aprobado'),
-    ('rechazado', 'Rechazado'),
-    ('completado', 'Completado'),
-)
-
-TRAMITE_PRIORIDADES = (
-    ('baja', 'Baja'),
-    ('media', 'Media'),
-    ('alta', 'Alta'),
-    ('urgente', 'Urgente'),
-)
-
 # Pagination
 DEFAULT_PAGE_SIZE = env.int('DJANGO_DEFAULT_PAGE_SIZE', default=25)
 

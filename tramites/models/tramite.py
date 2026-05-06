@@ -145,7 +145,7 @@ class Tramite(models.Model):
     @property
     def historial_actividades(self):
         """QuerySet de actividades del trámite, ordenadas por fecha descendente."""
-        return Actividades.objects.filter(tramite_id=self.pk).order_by('-timestamp')
+        return Actividades.objects.filter(tramite_id=self.pk).select_related('estatus').order_by('-timestamp')
 
     # =====================================================================
     # Permission checks
@@ -297,7 +297,7 @@ class Tramite(models.Model):
                 observacion=observacion,
             )
         except DatabaseError as e:
-            logging.error('❌ Error al crear registro de actividad: %s', e)
+            logger.error('❌ Error al crear registro de actividad: %s', e)
             raise DatabaseError(
                 f'Error de base de datos al crear registro de actividad '
                 f'{estatus_id} para el tramite {self.pk}: {e}'

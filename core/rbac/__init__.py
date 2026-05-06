@@ -122,7 +122,7 @@ def get_or_create_custom_permission(codename: str, app_label: str = 'tramites') 
     )
 
     if created:
-        logger.info(f'Created custom permission: {codename}')
+        logger.info('Created custom permission: %s', codename)
 
     return permission
 
@@ -139,7 +139,7 @@ def setup_custom_permissions() -> dict[str, Permission]:
     for codename in TRAMITES_CUSTOM_PERMISSIONS:
         permissions[codename] = get_or_create_custom_permission(codename)
 
-    logger.info(f'Set up {len(permissions)} custom permissions: {", ".join(permissions.keys())}')
+    logger.info('Set up %d custom permissions: %s', len(permissions), ', '.join(permissions.keys()))
 
     return permissions
 
@@ -155,14 +155,15 @@ def assign_role_custom_permissions(group: Group, role: BackOfficeRole) -> None:
     role_perms = ROLE_CUSTOM_PERMISSIONS.get(role, [])
 
     if not role_perms:
-        logger.info(f'No custom permissions to assign for role: {role}')
+        logger.info('No custom permissions to assign for role: %s', role)
         return
 
     permissions = [get_or_create_custom_permission(codename) for codename in role_perms]
 
     group.permissions.add(*permissions)
     logger.info(
-        f'Assigned {len(permissions)} custom permissions to {role} group: {", ".join(role_perms)}'
+        'Assigned %d custom permissions to %s group: %s',
+        len(permissions), role, ', '.join(role_perms),
     )
 
 
@@ -197,8 +198,9 @@ def setup_administrador() -> Group:
         assign_role_custom_permissions(admin_group, BackOfficeRole.ADMINISTRADOR)
 
         logger.info(
-            f'Configured {group_name} group with {len(permissions)} standard permissions '
-            f'for apps: {", ".join(ADMINISTRADOR_APPS)} and custom Jazzmin sidebar permissions'
+            'Configured %s group with %d standard permissions '
+            'for apps: %s and custom Jazzmin sidebar permissions',
+            group_name, len(permissions), ', '.join(ADMINISTRADOR_APPS),
         )
 
         return admin_group
@@ -231,12 +233,12 @@ def setup_coordinador() -> Group:
         coordinador_group.permissions.clear()
         assign_role_custom_permissions(coordinador_group, BackOfficeRole.COORDINADOR)
 
-        logger.info(f'Configured {group_name} group with custom permissions for Jazzmin sidebar')
+        logger.info('Configured %s group with custom permissions for Jazzmin sidebar', group_name)
 
         return coordinador_group
 
     except Exception as e:
-        logger.error(f'Failed to configure {group_name} group: {e}', exc_info=True)
+        logger.error('Failed to configure %s group: %s', group_name, e, exc_info=True)
         raise RuntimeError(f'Failed to configure {group_name} group: {e}') from e
 
 
@@ -263,12 +265,12 @@ def setup_analista() -> Group:
         analista_group.permissions.clear()
         assign_role_custom_permissions(analista_group, BackOfficeRole.ANALISTA)
 
-        logger.info(f'Configured {group_name} group with custom permissions for Jazzmin sidebar')
+        logger.info('Configured %s group with custom permissions for Jazzmin sidebar', group_name)
 
         return analista_group
 
     except Exception as e:
-        logger.error(f'Failed to configure {group_name} group: {e}', exc_info=True)
+        logger.error('Failed to configure %s group: %s', group_name, e, exc_info=True)
         raise RuntimeError(f'Failed to configure {group_name} group: {e}') from e
 
 
@@ -284,7 +286,8 @@ def setup_all_roles() -> tuple[Group, Group, Group]:
     analista_group = setup_analista()
 
     logger.info(
-        f'Configured all roles: {admin_group.name}, {coordinador_group.name}, {analista_group.name}'
+        'Configured all roles: %s, %s, %s',
+        admin_group.name, coordinador_group.name, analista_group.name,
     )
 
     return admin_group, coordinador_group, analista_group

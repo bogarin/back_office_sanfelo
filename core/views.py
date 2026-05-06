@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse_lazy
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from core.rbac.constants import BackOfficeRole
@@ -62,7 +62,7 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
     # If no users selected, redirect back to admin
     if not selected_user_ids:
         messages.warning(request, 'No hay usuarios seleccionados para asignar rol.')
-        return HttpResponseRedirect(reverse_lazy('admin:core_user_changelist'))
+        return HttpResponseRedirect(reverse('admin:core_user_changelist'))
 
     User = get_user_model()
 
@@ -86,7 +86,7 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
         if role_choice not in BackOfficeRole:
             messages.error(request, 'Rol inválido.')
             return HttpResponseRedirect(
-                reverse_lazy('admin:core_user_changelist')
+                reverse('admin:core_user_changelist')
             )
 
         # Assign role to selected users
@@ -112,7 +112,7 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
         request.session.pop('user_ids_count', None)
 
         messages.success(request, f'Se asignó el rol a {count} usuario(s).')
-        return HttpResponseRedirect(reverse_lazy('admin:core_user_changelist'))
+        return HttpResponseRedirect(reverse('admin:core_user_changelist'))
 
     # GET request - display form
     return render(
@@ -160,7 +160,7 @@ def invalidate_catalog_cache(request: HttpRequest) -> HttpResponse:
         model.objects.invalidate_cache()
 
     messages.success(request, 'Caché de catálogos invalidada correctamente.')
-    return HttpResponseRedirect(reverse_lazy('admin:index'))
+    return HttpResponseRedirect(reverse('admin:index'))
 
 
 @staff_member_required
@@ -177,18 +177,12 @@ def test_rendering(request: HttpRequest) -> HttpResponse:
     Returns:
         HttpResponse: Rendered test page with all design system components.
     """
-    return render(request, 'test_rendering.html')
+    return render(request, 'debug/test_rendering.html')
 
 
 # =============================================================================
 # Custom HTTP Error Handlers
 # =============================================================================
-
-ERROR_TEMPLATE_MAP = {
-    403: '403.html',
-    404: '404.html',
-    500: '500.html',
-}
 
 
 def custom_permission_denied(request: HttpRequest, exception: Exception | None = None) -> HttpResponse:
@@ -281,4 +275,4 @@ def test_errors(request: HttpRequest) -> HttpResponse:
         template_name = f'{error_type}.html'
         return render(request, template_name)
 
-    return render(request, 'test_errors.html')
+    return render(request, 'debug/test_errors.html')

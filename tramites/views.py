@@ -180,7 +180,7 @@ def cerrar_tramite_view(request: HttpRequest, pk: int) -> HttpResponse:
             except (TramiteNoAsignableError, EstadoNoPermitidoError, ValueError) as e:
                 messages.error(request, str(e))
             except Exception as e:
-                logger.error('Error cerrando trámite %s: %s', tramite.folio, e)
+                logger.error('Error cerrando trámite %s: %s', tramite.folio, e, exc_info=True)
                 messages.error(request, 'Error inesperado al cerrar el trámite.')
     else:
         form = CerrarTramiteForm()
