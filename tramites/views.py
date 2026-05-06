@@ -21,6 +21,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from tramites.exceptions import (
     EstadoNoPermitidoError,
@@ -155,7 +156,7 @@ def cerrar_tramite_view(request: HttpRequest, pk: int) -> HttpResponse:
     # Redirect back to the originating admin change page after action.
     return_url = _safe_redirect_url(
         request.GET.get('next', ''),
-        fallback=f'/admin/tramites/tramite/{pk}/change/',
+        fallback=reverse('admin:tramites_tramite_change', args=[pk]),
     )
 
     if 'cerrar' not in tramite.available_actions(request.user):
