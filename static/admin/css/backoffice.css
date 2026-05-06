@@ -864,3 +864,8 @@ th.field-folio a:focus::after {
     color: var(--bs-link-hover-color);
     text-decoration: underline;
 }
+
+.scroll-panel {
+    max-height: 400px;
+    overflow-y: auto;
+}
