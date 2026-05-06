@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils.translation import gettext_lazy as _
@@ -187,36 +188,40 @@ class BackofficeUserAdmin(UserAdmin):
         return CustomUserChangeForm
 
     def save_model(self, request, obj, form, change):
-        """Save user and manage role assignment.
+        """Save user and manage role assignment atomically.
 
         Sets is_staff and is_active BEFORE the actual save so they persist.
         Groups are managed AFTER save (M2M does not require obj.save()).
+
+        Wrapped in transaction.atomic() so that if group assignment fails,
+        the user fields (is_staff, is_active) are also rolled back.
         """
         # Defense in depth: non-superusers cannot modify superusers
         if change and obj.is_superuser and not request.user.is_superuser:
             return
 
-        role = form.cleaned_data.get('role') if hasattr(form, 'cleaned_data') else None
+        with transaction.atomic():
+            role = form.cleaned_data.get('role') if hasattr(form, 'cleaned_data') else None
 
-        # is_staff: any valid role grants admin access; no role revokes it
-        if role and role in BackOfficeRole:
-            obj.is_staff = True
-        else:
-            obj.is_staff = False
+            # is_staff: any valid role grants admin access; no role revokes it
+            if role and role in BackOfficeRole:
+                obj.is_staff = True
+            else:
+                obj.is_staff = False
 
-        # New users are always active
-        if not change:
-            obj.is_active = True
+            # New users are always active
+            if not change:
+                obj.is_active = True
 
-        super().save_model(request, obj, form, change)
+            super().save_model(request, obj, form, change)
 
-        # Manage groups AFTER save (M2M, no save needed)
-        obj.groups.remove(*obj.groups.filter(name__in=list(BackOfficeRole)))
+            # Manage groups AFTER save (M2M, no save needed)
+            obj.groups.remove(*obj.groups.filter(name__in=list(BackOfficeRole)))
 
-        if role and role in BackOfficeRole:
-            group = Group.objects.filter(name=role).first()
-            if group:
-                obj.groups.add(group)
+            if role and role in BackOfficeRole:
+                group = Group.objects.filter(name=role).first()
+                if group:
+                    obj.groups.add(group)
 
     @admin.action(description='Asignar rol')
     def asignar_rol(self, request, queryset):

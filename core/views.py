@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
@@ -89,23 +90,24 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
                 reverse('admin:core_user_changelist')
             )
 
-        # Assign role to selected users
+        # Assign role to selected users atomically
         count = 0
-        for user in users:
-            # Remove only RBAC role groups (preserve non-RBAC groups)
-            user.groups.remove(
-                *user.groups.filter(name__in=list(BackOfficeRole))
-            )
-            user.is_superuser = False
+        with transaction.atomic():
+            for user in users:
+                # Remove only RBAC role groups (preserve non-RBAC groups)
+                user.groups.remove(
+                    *user.groups.filter(name__in=list(BackOfficeRole))
+                )
+                user.is_superuser = False
 
-            # Any valid role grants admin access (consistent with save_model)
-            user.is_staff = True
-            group = Group.objects.filter(name=role_choice).first()
-            if group:
-                user.groups.add(group)
+                # Any valid role grants admin access (consistent with save_model)
+                user.is_staff = True
+                group = Group.objects.filter(name=role_choice).first()
+                if group:
+                    user.groups.add(group)
 
-            user.save()
-            count += 1
+                user.save()
+                count += 1
 
         # Clear session
         request.session.pop('selected_user_ids', None)
