@@ -276,66 +276,66 @@ Auditoría automatizada mediante análisis estático de 5 subagentes examinando 
 
 > Ordenadas por complejidad creciente. Los bloques 1-3 son de nulo/bajo riesgo y pueden ejecutarse inmediatamente.
 
-### Bloque 1 — Eliminación directa (sin cambio funcional, riesgo nulo)
+### Bloque 1 — Eliminación directa (sin cambio funcional, riesgo nulo) ✅
 
 | # | Hallazgo | Acción | Estado |
 |---|----------|--------|--------|
-| 1 | H-002-018 | Eliminar archivo `core/urls.py` (nunca incluido) | Pendiente |
-| 2 | H-002-019 | Eliminar template `asignar_tramites.html` (sin vista que lo renderice) | Pendiente |
-| 3 | H-002-046 | Eliminar template `csp_example.html` (extiende `base.html` inexistente) | Pendiente |
-| 4 | H-002-044 | Eliminar `TRAMITE_ESTADOS` y `TRAMITE_PRIORIDADES` de settings (nunca usados) | Pendiente |
-| 5 | H-002-032 | Eliminar `CachedCatalogManager` de `managers.py` (52 líneas, nunca usado) | Pendiente |
-| 6 | H-002-036 | Eliminar `ERROR_TEMPLATE_MAP` de `core/views.py` (definido, nunca referenciado) | Pendiente |
-| 7 | H-002-049 | Eliminar código comentado en `core/admin.py:331` | Pendiente |
-| 8 | H-002-042 | Eliminar `ready()` vacío en `TramitesConfig` | Pendiente |
-| 9 | H-002-045 | Mover templates de test (`test_errors.html`, `test_rendering.html`) a `templates/debug/` | Pendiente |
+| 1 | H-002-018 | Eliminar archivo `core/urls.py` (nunca incluido) | ✅ Commit `efdbbcc` |
+| 2 | H-002-019 | Eliminar template `asignar_tramites.html` (sin vista que lo renderice) | ✅ Commit `efdbbcc` |
+| 3 | H-002-046 | Eliminar template `csp_example.html` (extiende `base.html` inexistente) | ✅ Commit `efdbbcc` |
+| 4 | H-002-044 | Eliminar `TRAMITE_ESTADOS` y `TRAMITE_PRIORIDADES` de settings (nunca usados) | ✅ Commit `efdbbcc` |
+| 5 | H-002-032 | Eliminar `CachedCatalogManager` de `managers.py` (52 líneas, nunca usado) | ✅ Commit `efdbbcc` |
+| 6 | H-002-036 | Eliminar `ERROR_TEMPLATE_MAP` de `core/views.py` (definido, nunca referenciado) | ✅ Commit `efdbbcc` |
+| 7 | H-002-049 | Eliminar código comentado en `core/admin.py:331` | ✅ Commit `efdbbcc` |
+| 8 | H-002-042 | Eliminar `ready()` vacío en `TramitesConfig` | ✅ Commit `efdbbcc` |
+| 9 | H-002-045 | Mover templates de test (`test_errors.html`, `test_rendering.html`) a `templates/debug/` | ✅ Commit `efdbbcc` |
 
-### Bloque 2 — Micro-correcciones (1-3 líneas, sin cambio de comportamiento)
-
-| # | Hallazgo | Acción | Estado |
-|---|----------|--------|--------|
-| 10 | H-002-037 | `reverse_lazy()` → `reverse()` en cuerpos de funciones (`core/views.py`) | Pendiente |
-| 11 | H-002-038 | f-strings → `%s` en logger calls (11 instancias) | Pendiente |
-| 12 | H-002-039 | `logging.error()` → `logger.error()` en `tramite.py:300` | Pendiente |
-| 13 | H-002-026 | Agregar `exc_info=True` a 3 logger calls en catch-all | Pendiente |
-| 14 | H-002-020 | Agregar `'queryset_count': queryset.count()` al context de `modificar_asignacion` | Pendiente |
-| 15 | H-002-007 | Agregar `.select_related('estatus')` a `historial_actividades` y query en `sftp.py` | Pendiente |
-| 16 | H-002-022 | Eliminar branding duplicado de `sanfelipe/apps.py` (conservar `core/admin.py`) | Pendiente |
-| 17 | H-002-041 | Agregar docstring a `delete_model` documentando omisión intencional de `super()` | Pendiente |
-| 18 | H-002-050 | Agregar `request.user.roles = set()` para usuarios anónimos en middleware | Pendiente |
-| 19 | H-002-040 | Migrar 3 admin actions de `core/admin.py` a estilo `@admin.action()` | Pendiente |
-| 20 | H-002-010 | Quitar `{% load i18n %}` no usado de templates (sitio monolingüe español) | Pendiente |
-
-### Bloque 3 — Agregar `transaction.atomic()` (cambio mínimo, alto impacto)
+### Bloque 2 — Micro-correcciones (1-3 líneas, sin cambio de comportamiento) ✅
 
 | # | Hallazgo | Acción | Estado |
 |---|----------|--------|--------|
-| 21 | H-002-003 | `transaction.atomic()` en `asignar_rol` POST loop | Pendiente |
-| 22 | H-002-004 | `transaction.atomic()` en `modificar_asignacion` batch loop | Pendiente |
-| 23 | H-002-012 | `transaction.atomic()` en `core/admin.py:save_model` | Pendiente |
+| 10 | H-002-037 | `reverse_lazy()` → `reverse()` en cuerpos de funciones (`core/views.py`) | ✅ Commit `efdbbcc` |
+| 11 | H-002-038 | f-strings → `%s` en logger calls (11 instancias) | ✅ Commit `efdbbcc` |
+| 12 | H-002-039 | `logging.error()` → `logger.error()` en `tramite.py:300` | ✅ Commit `efdbbcc` |
+| 13 | H-002-026 | Agregar `exc_info=True` a 3 logger calls en catch-all | ✅ Commit `efdbbcc` |
+| 14 | H-002-020 | Agregar `'queryset_count': queryset.count()` al context de `modificar_asignacion` | ✅ Commit `efdbbcc` |
+| 15 | H-002-007 | Agregar `.select_related('estatus')` a `historial_actividades` y query en `sftp.py` | ✅ Commit `efdbbcc` |
+| 16 | H-002-022 | Eliminar branding duplicado de `sanfelipe/apps.py` (conservar `core/admin.py`) | ✅ Commit `efdbbcc` |
+| 17 | H-002-041 | Agregar docstring a `delete_model` documentando omisión intencional de `super()` | ✅ Commit `efdbbcc` |
+| 18 | H-002-050 | Agregar `request.user.roles = set()` para usuarios anónimos en middleware | ✅ Commit `efdbbcc` |
+| 19 | H-002-040 | Migrar 3 admin actions de `core/admin.py` a estilo `@admin.action()` | ✅ Commit `efdbbcc` |
+| 20 | H-002-010 | Quitar `{% load i18n %}` no usado de templates (sitio monolingüe español) | ✅ Commit `efdbbcc` |
 
-### Bloque 4 — Correcciones de templates y URLs (sin lógica Python)
+### Bloque 3 — Agregar `transaction.atomic()` (cambio mínimo, alto impacto) ✅
 
 | # | Hallazgo | Acción | Estado |
 |---|----------|--------|--------|
-| 24 | H-002-017 | Reemplazar URLs hardcodeadas: `reverse()`, `{% url %}` | Pendiente |
-| 25 | H-002-009 | Reemplazar inline `onclick` en `403_csrf.html` con nonce-based script | Pendiente |
-| 26 | H-002-029 | Extraer CSS inline a `backoffice.css` | Pendiente |
-| 27 | H-002-031 | Limpiar `base_error.html` muerto y templates de error | Pendiente |
+| 21 | H-002-003 | `transaction.atomic()` en `asignar_rol` POST loop | ✅ Commit `c5e4a2d` |
+| 22 | H-002-004 | `transaction.atomic()` en `modificar_asignacion` batch loop | ⚠️ Intencionalmente omitido — best-effort per trámite (DB backend APPEND_ONLY) |
+| 23 | H-002-012 | `transaction.atomic()` en `core/admin.py:save_model` | ✅ Commit `c5e4a2d` |
 
-### Bloque 5 — Refactors moderados (nuevos métodos, sin cambio arquitectónico)
+### Bloque 4 — Correcciones de templates y URLs (sin lógica Python) ✅
 
 | # | Hallazgo | Acción | Estado |
 |---|----------|--------|--------|
-| 28 | H-002-013 | Extraer `get_status_group()` a `tramites/constants.py` | Pendiente |
-| 29 | H-002-048 | Crear constantes nombradas para rangos de estatus | Pendiente |
-| 30 | H-002-014 | Crear mixin de check de roles para admin classes | Pendiente |
-| 31 | H-002-015 | Crear `Tramite.objects.en_proceso()` como manager method | Pendiente |
-| 32 | H-002-023 | Agregar try/except en `CacheUserRolesMiddleware` | Pendiente |
-| 33 | H-002-025 | Agregar type hints a APIs públicas | Pendiente |
-| 34 | H-002-028 | Agregar `clean_observacion` a `CerrarTramiteForm` | Pendiente |
-| 35 | H-002-043 | Agregar `default_auto_field` a `CoreConfig` y `TramitesConfig` | Pendiente |
-| 36 | H-002-030 | Configurar `ManifestStaticFilesStorage` en settings | Pendiente |
+| 24 | H-002-017 | Reemplazar URLs hardcodeadas: `reverse()`, `{% url %}` | ✅ Commit `d2c5245` |
+| 25 | H-002-009 | Reemplazar inline `onclick` en `403_csrf.html` con nonce-based script | ✅ Commit `d2c5245` |
+| 26 | H-002-029 | Extraer CSS inline a `backoffice.css` | ✅ Commit `fdee549` |
+| 27 | H-002-031 | Limpiar `base_error.html` muerto y templates de error | ✅ Commit `d2c5245` |
+
+### Bloque 5 — Refactors moderados (nuevos métodos, sin cambio arquitectónico) ✅
+
+| # | Hallazgo | Acción | Estado |
+|---|----------|--------|--------|
+| 28 | H-002-013 | Extraer `get_status_group()` a `tramites/constants.py` | ✅ Commit `77c7bda` |
+| 29 | H-002-048 | Crear constantes nombradas para rangos de estatus | ✅ Commit `77c7bda` |
+| 30 | H-002-014 | Crear mixin de check de roles para admin classes | ✅ Commit `4c8d30a` |
+| 31 | H-002-015 | Crear `Tramite.objects.en_proceso()` como manager method | ✅ Commit `4c8d30a` |
+| 32 | H-002-023 | Agregar try/except en `CacheUserRolesMiddleware` | ❌ Descartado — si la DB cae, el site cae; 500 es la respuesta correcta |
+| 33 | H-002-025 | Agregar type hints a APIs públicas | ✅ Commit pendiente — hints en `core/admin_utils.py` y `tramites/timeline.py` |
+| 34 | H-002-028 | Agregar `clean_observacion` a `CerrarTramiteForm` | ❌ Falso positivo — Django `CharField(strip=True)` ya rechaza whitespace-only; 29 tests de regresión creados |
+| 35 | H-002-043 | Agregar `default_auto_field` a `CoreConfig` y `TramitesConfig` | ❌ No aplica — `SanfelipeConfig` ya lo define como global; backoffice interno, sin impacto |
+| 36 | H-002-030 | Configurar `ManifestStaticFilesStorage` en settings | ❌ No aplica — backoffice interno sin usuarios masivos; requiere `collectstatic` por deploy |
 
 ### Bloque 6 — Refactors estructurales (cambio de métodos grandes)
 
@@ -359,20 +359,26 @@ Auditoría automatizada mediante análisis estático de 5 subagentes examinando 
 |----------|-------|
 | H-002-010 (i18n templates) | Sitio monolingüe español — se reemplaza por limpieza de `{% load i18n %}` (Bloque 2, item 20) |
 | H-002-027 (i18n modelos) | Sitio monolingüe español — no se requiere `gettext_lazy()` |
+| H-002-023 (middleware try/except) | Si la DB cae, el site entero cae. 500 es la respuesta honesta. Enmascarar como 403 es peor UX. |
+| H-002-028 (clean_observacion) | Falso positivo — Django `CharField(strip=True)` ya rechaza whitespace-only via `required=True`. |
+| H-002-043 (default_auto_field) | `SanfelipeConfig` ya lo define como `BigAutoField` global. Backoffice interno sin impacto. |
+| H-002-030 (ManifestStaticFilesStorage) | Backoffice interno sin tráfico masivo. Agrega complejidad de deploy sin beneficio real. |
 
 ## 6. Métricas
 
-| Métrica | Baseline | Post-corrección | Delta |
+| Métrica | Baseline | Post-Bloques 1-5 | Delta |
 |---------|----------|----------------|-------|
-| God functions (>30 líneas) | 8 | — | Pendiente |
-| Operaciones batch sin `transaction.atomic()` | 4 | — | Pendiente |
-| Templates con código muerto | 5 | — | Pendiente |
-| URLs hardcodeadas | 8 | — | Pendiente |
-| Type hints ausentes en APIs públicas | ~25 funciones | — | Pendiente |
-| Líneas de código muerto | ~250+ | — | Pendiente |
-| N+1 queries documentados | 3 | — | Pendiente |
-| Archivos Python con antipatrones | 15 | — | Pendiente |
-| Archivos template con antipatrones | 12 | — | Pendiente |
+| God functions (>30 líneas) | 8 | 8 | Sin cambio (Bloque 6 pendiente) |
+| Operaciones batch sin `transaction.atomic()` | 4 | 1 | -3 (1 intencionalmente omitido) |
+| Templates con código muerto | 5 | 0 | -5 |
+| URLs hardcodeadas | 8 | 0 | -8 |
+| Type hints ausentes en APIs públicas | ~25 funciones | ~20 funciones | -5 (admin_utils + timeline + constants) |
+| Líneas de código muerto | ~250+ | ~10 | -240+ |
+| N+1 queries documentados | 3 | 0 | -3 (`select_related` agregado) |
+| Archivos Python con antipatrones | 15 | 5 | -10 |
+| Archivos template con antipatrones | 12 | 2 | -10 |
+| Tests (total) | 418 | 468 | +50 (form tests + admin tests) |
+| Hallazgos falsos positivos identificados | 0 | 4 | H-002-023, H-002-028, H-002-043, H-002-030 |
 
 ## 7. Decisiones Derivadas
 

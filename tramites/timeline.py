@@ -5,16 +5,20 @@ separate from Django admin to avoid circular imports and enable
 unit testing without Django test mode.
 """
 
+from django.contrib.auth import get_user_model
+
 from tramites.models.actividades import ActividadFile, RequisitoFile, TimelineEntry
 from tramites.models.catalogos import TramiteEstatus
 
+User = get_user_model()
+
 
 def build_timeline_entries(
-    historial,
-    actividades_files,
-    requisitos,
-    users,
-):
+    historial: list,
+    actividades_files: list[ActividadFile],
+    requisitos: list[RequisitoFile],
+    users: dict[int, User],
+) -> list[TimelineEntry]:
     """Build timeline entries for tramite detail view.
 
     Groups actividad files by actividad_id, finds first PENDIENTE_PAGO

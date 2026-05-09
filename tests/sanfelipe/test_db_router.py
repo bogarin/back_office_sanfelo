@@ -14,7 +14,6 @@ from django.contrib.contenttypes.models import ContentType
 from core.db_router import ModelBasedRouter
 from core.model_config import AccessPattern, get_model_config, get_model_config_by_label
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

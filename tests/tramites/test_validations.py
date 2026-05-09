@@ -8,10 +8,10 @@ These tests complement test_models.py which focuses on workflow methods
 import pytest
 from django.contrib.auth import get_user_model
 
+from core.rbac.constants import BackOfficeRole
 from tramites.exceptions import EstadoNoPermitidoError, TramiteNoAsignableError
 from tramites.models import Tramite
 from tramites.models.catalogos import TramiteEstatus
-from core.rbac.constants import BackOfficeRole
 
 User = get_user_model()
 
@@ -221,6 +221,7 @@ class TestTramitePermissions:
     @pytest.fixture
     def coordinador(self, db):
         from django.contrib.auth.models import Group
+
         from core.rbac.constants import BackOfficeRole
 
         user = User.objects.create_user(

@@ -104,7 +104,8 @@ exclude = [
     "htmlcov", "logs", "media", "nginx", 
     "static", "staticfiles", "templates"
 ]
-venvPath = ".venv"
+venvPath = "."
+venv = ".venv"
 pythonVersion = "3.14"
 
 # =============================================================================

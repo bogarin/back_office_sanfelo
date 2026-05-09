@@ -8,7 +8,6 @@ import pytest
 from django.apps import apps
 from django.contrib import admin
 
-
 # ---------------------------------------------------------------------------
 # All models registered via @admin.register() in core/admin.py and
 # tramites/admin.py.  If a new model is added to admin, update this list.

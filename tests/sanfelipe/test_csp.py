@@ -4,11 +4,9 @@ Validates that CSP is properly configured to protect against XSS,
 plugin injection, and iframe embedding attacks.
 """
 
+import pytest
 from django.conf import settings
 from django.utils.csp import CSP
-
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

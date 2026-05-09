@@ -39,7 +39,7 @@ from .constants import (
     MAX_DOWNLOAD_FILE_SIZE_BYTES,
 )
 from .exceptions import SFTPConnectionError
-from .models import ActividadFile, Actividades, Requisito, RequisitoFile
+from .models import Actividades, ActividadFile, Requisito, RequisitoFile
 
 if TYPE_CHECKING:
     from .models import Tramite

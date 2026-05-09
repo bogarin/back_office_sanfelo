@@ -5,7 +5,6 @@ Verifies that setup_roles is robust against edge cases:
 - Re-running multiple times (idempotency)
 """
 
-import pytest
 from django.contrib.auth.models import Group, Permission
 
 from core.rbac.constants import (

@@ -74,7 +74,7 @@ class TimelineEntry:
     actividad: Actividades
     actividad_files: list[ActividadFile]
     requisito_files: list[RequisitoFile]
-    user: 'User | None' = None
+    user: User | None = None
 
 
 @register_model('backend', AccessPattern.APPEND_ONLY, False)

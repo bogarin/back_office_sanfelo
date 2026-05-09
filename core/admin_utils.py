@@ -4,11 +4,11 @@ Provides reusable functions for displaying badges and status indicators
 in Django admin with consistent styling using CSS classes.
 """
 
-from django.utils.html import format_html
+from django.utils.html import SafeString, format_html
 from django.utils.safestring import mark_safe
 
 
-def render_badge(text, badge_class):
+def render_badge(text: str, badge_class: str) -> SafeString:
     """Render a badge with given CSS class.
 
     Args:
@@ -21,7 +21,7 @@ def render_badge(text, badge_class):
     return format_html('<span class="badge {}">{}</span>', badge_class, text.replace('_', ' ').upper())
 
 
-def render_status_badge(estatus_id, estatus_text):
+def render_status_badge(estatus_id: int | None, estatus_text: str) -> SafeString:
     """Render status badge based on estatus ID.
 
     Uses specific badge classes (e.g. badge-proceso-202) when a matching
@@ -49,7 +49,7 @@ def render_status_badge(estatus_id, estatus_text):
     return render_badge(estatus_text, badge_class)
 
 
-def render_activo_badge(is_activo):
+def render_activo_badge(is_activo: bool) -> SafeString:
     """Render activo/inactivo badge.
 
     Args:

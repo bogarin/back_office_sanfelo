@@ -254,7 +254,6 @@ class TestModificarAsignacionAtomicity:
 
     def test_batch_assign_partial_failure_reports_errors(self, superuser, db):
         """When some trámites fail in batch, errors are reported via messages."""
-        from unittest.mock import MagicMock
 
         from django.contrib import admin as django_admin
 
@@ -330,6 +329,7 @@ class TestModificarAsignacionAtomicity:
     def test_batch_assign_happy_path(self, superuser, db):
         """Verify normal batch assign still works after adding atomic."""
         from django.contrib import admin as django_admin
+
         from tramites.models import Tramite
 
         model_admin = django_admin.site._registry.get(Tramite)

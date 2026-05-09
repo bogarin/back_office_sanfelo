@@ -17,11 +17,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 from django.http import HttpResponse
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 
-from core.rbac.constants import BackOfficeRole
 from tramites.exceptions import SFTPConnectionError
 from tramites.sftp import SFTPService
 from tramites.views import _get_client_ip, _safe_redirect_url
@@ -235,6 +233,7 @@ class TestAsignarRolPermissionCheck:
     def test_safe_redirect_url_is_used_in_cerrar_tramite(self):
         """Verify cerrar_tramite_view uses _safe_redirect_url for 'next' param."""
         import inspect
+
         from tramites.views import cerrar_tramite_view
 
         source = inspect.getsource(cerrar_tramite_view)
@@ -300,7 +299,6 @@ class TestModificarAsignacionErrorHandling:
     def _setup(self, db, admin_user):
         from django.contrib import admin as django_admin
 
-        from tramites.admin import TramiteBaseAdmin
         from tramites.models import Tramite
 
         # Get any registered Tramite admin
@@ -343,8 +341,9 @@ class TestProductionCookieDefaults:
 
     def test_production_session_cookie_secure_default(self):
         """When DEBUG=False and no env var, SESSION_COOKIE_SECURE defaults True."""
-        from sanfelipe.settings.security import configure_security
         from environ import Env
+
+        from sanfelipe.settings.security import configure_security
 
         # Create a mock env that simulates production defaults
         env = Env()
@@ -357,8 +356,9 @@ class TestProductionCookieDefaults:
 
     def test_production_csrf_cookie_secure_default(self):
         """When DEBUG=False and no env var, CSRF_COOKIE_SECURE defaults True."""
-        from sanfelipe.settings.security import configure_security
         from environ import Env
+
+        from sanfelipe.settings.security import configure_security
 
         env = Env()
         with patch.object(env, 'bool', side_effect=self._mock_env_bool_prod):
@@ -369,8 +369,9 @@ class TestProductionCookieDefaults:
 
     def test_debug_mode_does_not_force_secure_cookies(self):
         """When DEBUG=True, cookies are not forced secure (dev convenience)."""
-        from sanfelipe.settings.security import configure_security
         from environ import Env
+
+        from sanfelipe.settings.security import configure_security
 
         env = Env()
         with patch.object(env, 'bool', side_effect=self._mock_env_bool_debug):
