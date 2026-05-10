@@ -1,127 +1,112 @@
 # Mapa de Documentación — Backoffice de Trámites
 
 > Índice completo de la documentación del proyecto.
-> Última actualización: 23 de abril de 2026
+> Última actualización: 9 de mayo de 2026
 
 ---
 
-## Rutas por Rol
-
-| Rol | Punto de partida |
-|-----|-----------------|
-| **Desarrollador** | [Tutorial: Setup de desarrollo](02-tutorials/developers/local-dev-setup.md) |
-| **Sysadmin** | [Guía: Despliegue en producción](03-guides/sysadmins/deploy-production.md) |
-
----
-
-## Estructura de Documentación
+## Estructura
 
 ```
 docs/
-├── 00-system-design/          # Requisitos y diseño del sistema
-│   └── REQUERIMIENTOS_ALTO_NIVEL.md
-├── 01-onboarding/             # Onboarding y visión general
-│   ├── overview.md
-│   ├── glossary.md
-│   └── architecture-overview.md
-├── 02-tutorials/              # Aprendizaje paso a paso
-│   ├── developers/
-│   │   └── local-dev-setup.md
-│   └── admins/
-│       ├── manage-catalogs.md       # ⚠️ Catálogos son solo lectura — necesita reescritura
-│       ├── manage-groups.md         # ⚠️ Solo 3 grupos fijos — necesita reescritura
-│       ├── setup-users.md           # ⚠️ Describe 2 roles, el sistema tiene 3 — necesita reescritura
-│       └── seguridad-auditoria-produccion.md
-├── 03-guides/                 # Soluciones a problemas específicos
-│   ├── sysadmins/
-│   │   ├── deploy-production.md
-│   │   └── sftp-setup.md
-│   └── admins/
-│       ├── configure-costs.md       # ⚠️ Costos son solo lectura — necesita reescritura
-│       ├── manage-workflow.md       # ⚠️ Describe flujo incorrecto
-│       ├── add-peritos.md           # ⚠️ Peritos son solo lectura — necesita reescritura
-│       ├── change-status.md         # ⚠️ Usa estados incorrectos
-│       └── manage-tramites.md
-├── 05-reference/              # Referencia técnica (SSOT)
-│   ├── commands.md
-│   ├── environment-vars.md    # ← TODAS las variables de entorno
-│   ├── models.md              # ⚠️ Documenta modelos que no existen — necesita reescritura
-│   ├── admin-setup.md         # ⚠️ Documenta clases que no existen — necesita reescritura
-│   ├── sftp.md
-│   ├── estados-tramites.md
-│   └── rbac.md                # ⚠️ Falta info de ADR-014
-├── 06-decisions/              # ADRs (Architecture Decision Records)
+├── 01-ARQUITECTURA/         # Requisitos, arquitectura, modelo de datos
+│   ├── 00-REQUERIMIENTOS.md
+│   ├── 01-ARQUITECTURA.md
+│   ├── 02-HISTORIAS-USUARIO.md
+│   ├── 03-MODELO-DE-DATOS.md
+│   └── glosario.md
+├── 02-DECISIONES/            # ADRs (Architecture Decision Records)
 │   ├── README.md
-│   ├── 001 a 014              # 14 ADRs (algunos numerados 009a/010a)
+│   ├── 001 a 016             # 18 ADRs
 │   └── adr-template.md
-├── COMANDOS_DJANGO.md         # Redirect → 05-reference/commands.md
-└── _templates/                # Plantillas para nuevos documentos
+├── 03-AUDITORIAS/            # Auditorías técnicas
+│   ├── README.md
+│   ├── 001 a 003             # 3 auditorías
+│   └── audit-template.md
+├── 04-DISEÑO-Y-UX/           # Design system e interfaz admin
+│   ├── design-system.md
+│   └── admin-interface.md
+├── 05-DEVELOPERS/            # Guías y referencia para desarrolladores
+│   ├── local-dev-setup.md
+│   ├── deploy-production.md
+│   ├── setup-users.md
+│   ├── workflow.md
+│   ├── environment-vars.md
+│   ├── commands.md
+│   ├── models.md
+│   ├── rbac.md
+│   ├── sftp.md
+│   ├── sftp-setup.md
+│   └── seguridad-pre-release.md
+└── _templates/               # Plantillas para nuevos documentos
 ```
 
 ---
 
-## Por Categoría
+## Por Sección
 
-### Onboarding (Conocer el sistema)
-
-| Documento | Descripción |
-|-----------|-------------|
-| [Overview](01-onboarding/overview.md) | ¿Qué es este sistema? |
-| [Arquitectura](01-onboarding/architecture-overview.md) | Cómo funciona por dentro |
-| [Glosario](01-onboarding/glossary.md) | Términos de negocio y técnicos |
-
-### Tutoriales (Aprender haciendo)
-
-| Documento | Rol | Descripción |
-|-----------|-----|-------------|
-| [Setup de desarrollo](02-tutorials/developers/local-dev-setup.md) | Dev | Entorno local paso a paso |
-
-### Guías (Resolver problemas)
-
-| Documento | Rol | Descripción |
-|-----------|-----|-------------|
-| [Despliegue en producción](03-guides/sysadmins/deploy-production.md) | Sysadmin | Instalación completa en servidor |
-| [Configuración SFTP](03-guides/sysadmins/sftp-setup.md) | Sysadmin | Host keys y conectividad SFTP |
-| [Auditoría de Seguridad en Producción](02-tutorials/admins/seguridad-auditoria-produccion.md) | **Sysadmin / Admin** | **OBLIGATORIO** antes de primer deploy en producción. Checklist de validación de todas las correcciones de seguridad críticas y de alta prioridad implementadas en Fases 1-2. |
-
-### Referencia (Detalles técnicos)
+### 01-ARQUITECTURA — Qué es el sistema
 
 | Documento | Descripción |
 |-----------|-------------|
-| [Variables de entorno](05-reference/environment-vars.md) | **TODAS** las ~45 variables documentadas |
-| [Comandos](05-reference/commands.md) | Management commands + justfile |
-| [Modelos](05-reference/models.md) | Modelos Django → tablas PostgreSQL |
-| [Admin setup](05-reference/admin-setup.md) | Configuración del Django Admin |
-| [SFTP](05-reference/sftp.md) | Arquitectura de serving de PDFs |
-| [Estados de trámites](05-reference/estados-tramites.md) | Códigos de estatus (1xx, 2xx, 3xx) |
-| [RBAC](05-reference/rbac.md) | Roles y permisos detallados |
+| [Requerimientos](01-ARQUITECTURA/00-REQUERIMIENTOS.md) | Requerimientos de negocio (PRD) |
+| [Arquitectura](01-ARQUITECTURA/01-ARQUITECTURA.md) | Arquitectura técnica de alto nivel |
+| [Historias de Usuario](01-ARQUITECTURA/02-HISTORIAS-USUARIO.md) | 28 HUs por rol |
+| [Modelo de Datos](01-ARQUITECTURA/03-MODELO-DE-DATOS.md) | Modelo de datos con diagramas ERD |
+| [Glosario](01-ARQUITECTURA/glosario.md) | Términos de negocio y técnicos |
 
-### Decisiones de Arquitectura (ADRs)
+### 02-DECISIONES — Por qué decidimos lo que decidimos
 
 | # | Título | Estado |
 |---|--------|--------|
-| [001](06-decisions/001-seleccion-stack-base.md) | Stack base original | Superseded by 012 |
-| [002](06-decisions/002-configuracion-multiples-bases-de-datos.md) | Multi-db original | Superseded by 008 |
-| [003](06-decisions/003-estrategia-caching-rendimiento.md) | Caching | Current |
-| [004](06-decisions/004-logging-monitoreo.md) | Logging | Current |
-| [005](06-decisions/005-despliegue-docker-gunicorn.md) | Deploy Docker | Current |
-| [006](06-decisions/006-permisos-admin-operador.md) | Permisos 2 roles | Superseded by 007 |
-| [007](06-decisions/007-implementacion-rbac-django-60.md) | RBAC 2 roles | Superseded by 013 |
-| [008](06-decisions/008-postgresql-schema-separation.md) | PostgreSQL schema separation | **Current** |
-| [009](06-decisions/009-vista-postgresql-para-tramites.md) | Vista unificada | Current |
-| [009b](06-decisions/009-remove-schema-validator.md) | Remover schema validator | Accepted |
-| [010](06-decisions/010-integracion-con-sftp.md) | Integración SFTP | Current |
-| [010b](06-decisions/010-remove-asignacion-tramite.md) | Remover AsignacionTramite | Accepted |
-| [011](06-decisions/011-docs-cleanup.md) | Cleanup de documentación | Current |
-| [012](06-decisions/012-stack-base-actualizado.md) | Stack actualizado | **Current** |
-| [013](06-decisions/013-rbac-tres-roles.md) | RBAC 3 roles | Superseded by 014 |
-| [014](06-decisions/014-custom-user-workflow.md) | Custom User + Workflow | **Current** |
+| [001](02-DECISIONES/001-seleccion-stack-base.md) | Stack base original | Superseded by 012 |
+| [002](02-DECISIONES/002-configuracion-multiples-bases-de-datos.md) | Multi-db original | Superseded by 008 |
+| [003](02-DECISIONES/003-estrategia-caching-rendimiento.md) | Caching | Current |
+| [004](02-DECISIONES/004-logging-monitoreo.md) | Logging | Current |
+| [005](02-DECISIONES/005-despliegue-docker-gunicorn.md) | Deploy Docker | Current |
+| [006](02-DECISIONES/006-permisos-admin-operador.md) | Permisos 2 roles | Superseded by 007 |
+| [007](02-DECISIONES/007-implementacion-rbac-django-60.md) | RBAC 2 roles | Superseded by 013 |
+| [008](02-DECISIONES/008-postgresql-schema-separation.md) | PostgreSQL schema separation | **Current** |
+| [009](02-DECISIONES/009-vista-postgresql-para-tramites.md) | Vista unificada | Current |
+| [009b](02-DECISIONES/009-remove-schema-validator.md) | Remover schema validator | Accepted |
+| [010](02-DECISIONES/010-integracion-con-sftp.md) | Integración SFTP | Current |
+| [010b](02-DECISIONES/010-remove-asignacion-tramite.md) | Remover AsignacionTramite | Accepted |
+| [011](02-DECISIONES/011-docs-cleanup.md) | Cleanup de documentación | Current |
+| [012](02-DECISIONES/012-stack-base-actualizado.md) | Stack actualizado | **Current** |
+| [013](02-DECISIONES/013-rbac-tres-roles.md) | RBAC 3 roles | Superseded by 014 |
+| [014](02-DECISIONES/014-custom-user-workflow-permissions.md) | Custom User + Workflow | **Current** |
+| [015](02-DECISIONES/015-timestamps-timezone-america-tijuana.md) | Timestamps y timezone | Current |
+| [016](02-DECISIONES/016-timeline-integrado-dtos-archivos.md) | Timeline integrado | Current |
 
-### Diseño del Sistema
+### 03-AUDITORIAS — Cómo está el sistema
+
+| Fecha | Auditoría | Tipo | Resumen |
+|-------|-----------|------|---------|
+| 2026-05-05 | [AUDIT-003](03-AUDITORIAS/003-seguridad-pre-release.md) | Seguridad | 9 hallazgos, 6 resueltos, 30 tests de regresión |
+| 2026-05-04 | [AUDIT-002](03-AUDITORIAS/002-limpieza-de-codigo.md) | Calidad | 50 hallazgos, 4 críticos, 8 altos |
+| 2026-05-04 | [AUDIT-001](03-AUDITORIAS/001-calidad-de-pruebas.md) | Calidad | 12 hallazgos, 344 tests, 100% pass rate |
+
+### 04-DISEÑO-Y-UX — Cómo se ve y cómo se usa
 
 | Documento | Descripción |
 |-----------|-------------|
-| [Requerimientos de alto nivel](00-system-design/REQUERIMIENTOS_ALTO_NIVEL.md) | Requisitos de negocio (los técnicos están desactualizados) |
+| [Design System](04-DISEÑO-Y-UX/design-system.md) | Paleta, tipografía, componentes, modo oscuro |
+| [Interfaz Admin](04-DISEÑO-Y-UX/admin-interface.md) | Clases Admin, acciones, templates, Jazzmin |
+
+### 05-DEVELOPERS — Cómo construirlo y operarlo
+
+| Documento | Descripción |
+|-----------|-------------|
+| [Setup desarrollo](05-DEVELOPERS/local-dev-setup.md) | Entorno local paso a paso |
+| [Deploy producción](05-DEVELOPERS/deploy-production.md) | Instalación completa en servidor |
+| [Seguridad pre-release](05-DEVELOPERS/seguridad-pre-release.md) | Checklist obligatorio antes de deploy |
+| [Configurar usuarios](05-DEVELOPERS/setup-users.md) | Crear usuarios y asignar roles |
+| [Workflow de trámites](05-DEVELOPERS/workflow.md) | Estados, transiciones y permisos |
+| [Variables de entorno](05-DEVELOPERS/environment-vars.md) | Todas las variables documentadas |
+| [Comandos](05-DEVELOPERS/commands.md) | Management commands y justfile |
+| [Modelos](05-DEVELOPERS/models.md) | Modelos Django → tablas PostgreSQL |
+| [RBAC](05-DEVELOPERS/rbac.md) | Roles, permisos y Custom User Model |
+| [SFTP](05-DEVELOPERS/sftp.md) | Arquitectura de serving de PDFs |
 
 ---
 
@@ -131,3 +116,4 @@ docs/
 - **SSOT:** Cada pieza de información vive en un solo lugar
 - **Links relativos:** Los links entre documentos son relativos
 - **ADRs:** Nunca se borran, solo se marcan como superseded
+- **Métricas siempre:** Toda auditoría incluye al menos una métrica cuantitativa

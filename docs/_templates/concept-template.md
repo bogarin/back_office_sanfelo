@@ -1,7 +1,7 @@
 ---
 Title: [Concepto]
 Category: [architecture|data|security|performance]
-Related ADR: [ADR-XXX](../06-decisions/XXX.md)
+Related ADR: [ADR-XXX](../02-DECISIONES/XXX.md)
 ---
 
 ## ¿Qué es [Concepto]?
@@ -33,7 +33,7 @@ Related ADR: [ADR-XXX](../06-decisions/XXX.md)
 
 ## Referencias
 
-- [ADR relacionado](../06-decisions/XXX.md)
+- [ADR relacionado](../02-DECISIONES/XXX.md)
 - [Enlaces a documentación externa]
 - [Enlaces a conceptos relacionados]
 
