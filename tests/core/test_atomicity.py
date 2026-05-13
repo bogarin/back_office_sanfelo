@@ -323,7 +323,10 @@ class TestModificarAsignacionAtomicity:
 
         # Error should be in messages
         messages_list = list(request._messages)
-        error_msgs = [str(m) for m in messages_list if 'Error' in str(m) or 'BATCH' in str(m)]
+        error_msgs = [
+            str(m) for m in messages_list
+            if 'No se pudieron asignar' in str(m)
+        ]
         assert len(error_msgs) > 0, 'Batch failure should be reported in messages'
 
     def test_batch_assign_happy_path(self, superuser, db):

@@ -22,27 +22,23 @@ from .relaciones import (
 from .tramite import Buzon, Cerrado, Disponible, Tramite
 
 __all__ = [
-    # Core
-    'Tramite',
-    'Buzon',
-    'Disponible',
-    'Cerrado',
-    # Catálogos
-    'TramiteCatalogo',
-    'TramiteEstatus',
-    'Perito',
     'Actividad',
+    'ActividadFile',
+    'Actividades',
+    'Buzon',
     'Categoria',
+    'Cerrado',
+    'Disponible',
+    'Perito',
     'Requisito',
     'RequisitoFile',
-    'ActividadFile',
-    'Tipo',
-    # Transaccional
-    'Actividades',
     'TimelineEntry',
-    # Relaciones (pivotes)
+    'Tipo',
+    'Tramite',
+    'TramiteCatalogo',
+    'TramiteCatalogoActividad',
     'TramiteCatalogoCategoria',
     'TramiteCatalogoRequisito',
     'TramiteCatalogoTipoRequisito',
-    'TramiteCatalogoActividad',
+    'TramiteEstatus',
 ]

@@ -12,3 +12,10 @@ def image_tag(request):
     return {
         'IMAGE_TAG_BACKOFFICE': getattr(settings, 'IMAGE_TAG_BACKOFFICE', 'dev'),
     }
+
+
+def active_department(request):
+    """Expose ACTIVE_DEPARTMENT to all templates for conditional rendering."""
+    return {
+        'ACTIVE_DEPARTMENT': getattr(settings, 'ACTIVE_DEPARTMENT', 'DAU'),
+    }

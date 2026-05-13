@@ -71,8 +71,8 @@ ignore = [
 "sanfelipe/settings.py" = ["E501"]
 # Tests can have long lines
 "tests/**/*.py" = ["E501", "B011"]
-# Allow _ in migrations
-"migrations/**/*.py" = ["B008", "C4"]
+# Migrations are auto-generated — skip all lint checks
+"*/migrations/**/*.py" = ["E501", "B008", "C4", "RUF012"]
 # Allow unused imports in __init__.py
 "__init__.py" = ["F401", "UP035"]
 

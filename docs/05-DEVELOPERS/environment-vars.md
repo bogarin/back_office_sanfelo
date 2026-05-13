@@ -21,6 +21,9 @@
 | [Docker](#dockerdeployment) | 1 | No |
 | [PostgreSQL (Docker Compose)](#postgresql-service-docker-compose) | 4 | Solo Docker |
 | [Tenancy](#tenancymulti-departamento) | 6 | No |
+| [Department](#department) | 1 | No |
+| [Workflow](#workflow) | 1 | No |
+| [Session Isolation](#session-isolation-multi-instance) | 2 | No |
 | [SFTP](#sftp-storage) | 13 | En producción |
 | [Gunicorn](#gunicorn-contenedor) | 4 | No |
 
@@ -324,6 +327,59 @@ BACKOFFICE_SITE_LOGO=logo_municipio.png
 
 ---
 
+## Department
+
+| Variable | Tipo | Default | Requerida |
+|----------|------|---------|-----------|
+| `ACTIVE_DEPARTMENT` | string | `DAU` | No |
+
+### `ACTIVE_DEPARTMENT`
+
+Código del departamento activo. Determina qué campos se muestran en las plantillas y el comportamiento departamental.
+
+- Valores válidos: `DAU`, `SEC`, `TES`
+- Expuesta a plantillas via context processor `sanfelipe.context_processors.active_department`
+- Uso en templates: `{% if ACTIVE_DEPARTMENT == 'DAU' %}`
+
+---
+
+## Workflow
+
+| Variable | Tipo | Default | Requerida |
+|----------|------|---------|-----------|
+| `DISABLED_TRANSITIONS` | lista coma | (vacío) | No |
+
+### `DISABLED_TRANSITIONS`
+
+Lista separada por comas de IDs de estatus *destino* a deshabilitar. Los valores se convierten a `int` al cargar settings.
+
+- **SEC example:** `DISABLED_TRANSITIONS=205` deshabilita EN_DILIGENCIA
+- **Default:** vacío (todas las transiciones habilitadas)
+- Los IDs corresponden a `TramiteEstatus.Estatus` en `tramites/models/catalogos.py`
+
+---
+
+## Session Isolation (Multi-Instance)
+
+Cuando múltiples instancias corren en el mismo dominio, cada una debe tener cookies con nombre único.
+
+| Variable | Tipo | Default | Requerida |
+|----------|------|---------|-----------|
+| `SESSION_COOKIE_NAME` | string | `sessionid` | No |
+| `CSRF_COOKIE_NAME` | string | `csrftoken` | No |
+
+### Nombres recomendados por departamento
+
+| Departamento | Session Cookie | CSRF Cookie |
+|---|---|---|
+| DAU | `sessionid` (default) | `csrftoken` (default) |
+| SEC | `sec_sessionid` | `sec_csrftoken` |
+| TES | `tes_sessionid` | `tes_csrftoken` |
+
+> **⚠️ Seguridad:** Sin nombres únicos, un admin autenticado en DAU sería interpretado como usuario diferente en SEC (user ID collision entre DBs separadas).
+
+---
+
 ## SFTP Storage
 
 Configuración para acceder a archivos PDF almacenados en un servidor SFTP remoto.
@@ -472,6 +528,12 @@ DJANGO_LOG_LEVEL=INFO
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 POSTGRES_PASSWORD=STRONG_DB_PASSWORD
 HTTP_PORT=8090
+
+# === MULTI-DEPARTAMENTO ===
+# ACTIVE_DEPARTMENT=DAU
+# DISABLED_TRANSITIONS=
+# SESSION_COOKIE_NAME=sessionid
+# CSRF_COOKIE_NAME=csrftoken
 ```
 
 ---

@@ -27,11 +27,11 @@ db/*.sqlite3-journal
 
 # Environment files
 .env
-.env.*.local
-# Keep example in git
+.env.*
+# Keep examples in git
 !.env.example
-# Keep docker example in git
 !.env.docker.example
+!.env.sec.example
 
 # IDEs
 .vscode/

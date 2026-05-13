@@ -33,6 +33,8 @@ Un **ADR (Architecture Decision Record)** es un documento corto que captura una 
 | [ADR-014](014-custom-user-workflow-permissions.md) | Custom User Model, Workflow Refactoring y Permission Methods |
 | [ADR-015](015-timestamps-timezone-america-tijuana.md) | Estrategia unificada de timestamps y zona horaria (America/Tijuana) |
 | [ADR-016](016-timeline-integrado-dtos-archivos.md) | Timeline integrado con DTOs y doble schema de archivos PDF |
+| [ADR-017](017-migraciones-django-prohibidas-produccion.md) | Migraciones Django prohibidas en producción |
+| [ADR-018](018-backoffice-multi-departamento.md) | Backoffice multi-departamento (instancias independientes) |
 
 ## Cómo crear un nuevo ADR
 

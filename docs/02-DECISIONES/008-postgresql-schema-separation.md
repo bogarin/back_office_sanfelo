@@ -3,6 +3,7 @@
 **Date:** 2026-04-14
 **Status:** Accepted
 **Supersedes:** 002-configuracion-multiples-bases-de-datos.md
+**Partially superseded by:** [017-migraciones-django-prohibidas-produccion.md](017-migraciones-django-prohibidas-produccion.md) (migraciones del schema backoffice prohibidas en producción), [018-backoffice-multi-departamento.md](018-backoffice-multi-departamento.md) (arquitectura multi-instancia)
 
 ## Context
 

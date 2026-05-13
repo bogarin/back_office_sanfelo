@@ -8,9 +8,11 @@ Uses PostgreSQL with schema separation:
 """
 
 import importlib.util
+import warnings
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 from .jazzmin import configure_jazzmin
 from .logging import configure_logging
@@ -33,8 +35,6 @@ env_file = BASE_DIR / '.env'
 if env_file.exists():
     environ.Env.read_env(env_file)
 else:
-    import warnings
-
     warnings.warn(
         f'Environment file not found: {env_file}. '
         f'Using environment variables directly. '
@@ -126,6 +126,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'core.middleware.CacheUserRolesMiddleware',
+    'core.middleware.ErrorLoggingMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -150,6 +151,7 @@ TEMPLATES = [
                 'django.template.context_processors.csp',
                 # Custom context processors
                 'sanfelipe.context_processors.image_tag',
+                'sanfelipe.context_processors.active_department',
             ],
         },
     },
@@ -346,6 +348,8 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 SESSION_COOKIE_AGE = env.int('DJANGO_SESSION_COOKIE_AGE', default=3600)  # 1 hour
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_NAME = env('SESSION_COOKIE_NAME', default='sessionid')
+CSRF_COOKIE_NAME = env('CSRF_COOKIE_NAME', default='csrftoken')
 
 # =============================================================================
 # EMAIL SETTINGS (for notifications)
@@ -362,6 +366,19 @@ EMAIL_HOST_PASSWORD = env('DJANGO_EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='noreply@sanfelipe.gob.ar')
 
 # =============================================================================
+# DEPARTMENT SETTINGS
+# =============================================================================
+
+# Active department code (DAU, SEC, TES).
+# Used for conditional template rendering and department-specific behavior.
+ACTIVE_DEPARTMENT = env('ACTIVE_DEPARTMENT', default='DAU').strip().upper()
+if ACTIVE_DEPARTMENT not in {'DAU', 'SEC', 'TES'}:
+    raise ImproperlyConfigured(
+        f"ACTIVE_DEPARTMENT must be one of {{'DAU', 'SEC', 'TES'}}, "
+        f"got '{ACTIVE_DEPARTMENT}'"
+    )
+
+# =============================================================================
 # TRAMITES SETTINGS
 # =============================================================================
 
@@ -376,26 +393,25 @@ TRAMITE_STATS_CACHE_TIMEOUT = env.int(
     default=300,  # 5 minutes
 )
 
+# Transitions disabled per department (comma-separated estatus IDs).
+# SEC example: DISABLED_TRANSITIONS=205 (disables EN_DILIGENCIA).
+# Values are converted to int at load time for correct comparison with TRANSITIONS keys.
+DISABLED_TRANSITIONS: list[int] = [
+    int(x) for x in env.list('DISABLED_TRANSITIONS', default=[]) if x.strip()
+]
+
 # =============================================================================
 # SANITY CHECK
 # =============================================================================
 
-from sanfelipe.settings.security import validate_secret_key
-
 is_valid, reason = validate_secret_key(SECRET_KEY)
 if not is_valid:
     if not DEBUG:
-        from django.core.exceptions import ImproperlyConfigured
-
         raise ImproperlyConfigured(reason)
-    import warnings
-
-    warnings.warn(f'INSECURE SECRET_KEY: {reason}', RuntimeWarning)
+    warnings.warn(f'INSECURE SECRET_KEY: {reason}', RuntimeWarning, stacklevel=2)
 
 # Validate ALLOWED_HOSTS in production
 if not DEBUG and (not ALLOWED_HOSTS or ALLOWED_HOSTS == ['*']):
-    from django.core.exceptions import ImproperlyConfigured
-
     raise ImproperlyConfigured(
         'ALLOWED_HOSTS must be explicitly set in production. '
         'Wildcard "*" or empty list is not allowed.'

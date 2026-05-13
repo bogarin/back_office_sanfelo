@@ -1209,7 +1209,7 @@ class TestTramiteCerrar:
         """
         tramite = tramite_en_revision_asignado
 
-        with pytest.raises(ValueError, match='Estatus de cierre inválido'):
+        with pytest.raises(ValueError, match='estatus de cierre seleccionado no es válido'):
             tramite.cerrar(
                 analista=analista,
                 estatus_cierre=TramiteEstatus.Estatus.FINALIZADO,

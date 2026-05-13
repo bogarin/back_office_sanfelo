@@ -398,8 +398,10 @@ class SFTPService:
             try:
                 sftp.listdir(settings.SFTP_BASE_DIR)
             except FileNotFoundError:
+                logger.error('El directorio base SFTP no existe: %s', settings.SFTP_BASE_DIR)
                 raise SFTPConnectionError(
-                    f'El directorio base {settings.SFTP_BASE_DIR} no existe en el servidor.'
+                    'Error de configuración del servidor de archivos. '
+                    'Contacta al administrador del sistema.'
                 ) from None
             except (OSError, paramiko.SSHException, EOFError) as exc:
                 logger.error('Error en ping SFTP al listar %s: %s', settings.SFTP_BASE_DIR, exc)
@@ -486,9 +488,8 @@ class SFTPService:
             client.set_missing_host_key_policy(paramiko.WarningPolicy())
         else:
             raise SFTPConnectionError(
-                'SFTP_HOST_KEY no está configurado. '
-                'La verificación de host key es obligatoria en producción. '
-                'Obtén la llave con: ssh-keyscan -t rsa,ed25519 <host>'
+                'Error de configuración del servidor de archivos. '
+                'Contacta al administrador del sistema.'
             )
 
     @staticmethod
@@ -507,8 +508,8 @@ class SFTPService:
         if len(parts) != 2:
             logger.error('SFTP_HOST_KEY formato inválido (esperado: "ssh-rsa AAAA...")')
             raise SFTPConnectionError(
-                'SFTP_HOST_KEY tiene formato inválido. '
-                'Formato esperado: "ssh-rsa AAAA..." o "ssh-ed25519 AAAA..."'
+                'Error de configuración del servidor de archivos. '
+                'Contacta al administrador del sistema.'
             )
 
         key_type_raw, key_data = parts
@@ -533,15 +534,15 @@ class SFTPService:
         except Exception as exc:
             logger.error('SFTP_HOST_KEY parse error: %s', exc)
             raise SFTPConnectionError(
-                'SFTP_HOST_KEY contiene datos inválidos. '
-                'Verifica que el formato sea correcto (ej: "ssh-rsa AAAA...")'
+                'Error de configuración del servidor de archivos. '
+                'Contacta al administrador del sistema.'
             ) from exc
 
         if host_key is None:
             logger.error('SFTP_HOST_KEY tipo no soportado: %s', key_type_raw)
             raise SFTPConnectionError(
-                f'Tipo de host key no soportado: {key_type_raw}. '
-                'Tipos soportados: ssh-rsa, ssh-ed25519, ecdsa-sha2-nistp256'
+                'Error de configuración del servidor de archivos. '
+                'Contacta al administrador del sistema.'
             )
 
         client.get_host_keys().add(
@@ -572,12 +573,19 @@ class SFTPService:
 
             # Fail fast with a clear message if the key file doesn't exist
             if not key_path.exists():
-                raise SFTPConnectionError(f'Archivo de llave privada no encontrado: {key_path}')
+                logger.error('Archivo de llave privada SFTP no encontrado: %s', key_path)
+                raise SFTPConnectionError(
+                    'Error de configuración del servidor de archivos. '
+                    'Contacta al administrador del sistema.'
+                )
 
             # Reject relative paths BEFORE resolve (resolve always produces absolute)
             if not key_path.is_absolute():
                 logger.error('SFTP_PRIVATE_KEY_PATH no es absoluta: %s', key_path)
-                raise SFTPConnectionError('La ruta de la llave privada debe ser absoluta.')
+                raise SFTPConnectionError(
+                    'Error de configuración del servidor de archivos. '
+                    'Contacta al administrador del sistema.'
+                )
 
             # Canonicalize .. and symlinks, then check forbidden dirs
             key_path = key_path.resolve()
@@ -586,7 +594,8 @@ class SFTPService:
             if len(key_path.parts) > 1 and key_path.parts[1] in ('etc', 'root', 'sys'):
                 logger.error('SFTP_PRIVATE_KEY_PATH en ubicación no permitida: %s', key_path)
                 raise SFTPConnectionError(
-                    'La ruta de la llave privada no está en una ubicación permitida.'
+                    'Error de configuración del servidor de archivos. '
+                    'Contacta al administrador del sistema.'
                 )
 
             # Try without passphrase first, then with (only if passphrase configured)
@@ -595,8 +604,8 @@ class SFTPService:
                 key_result = _try_load_key(key_path_str, key_passphrase)
             if key_result is None:
                 raise SFTPConnectionError(
-                    'No se pudo cargar la llave privada SSH. '
-                    'Verifica el tipo (RSA, Ed25519, ECDSA) y passphrase.'
+                    'Error de configuración del servidor de archivos. '
+                    'Contacta al administrador del sistema.'
                 )
 
             key, _auth_label = key_result
@@ -611,18 +620,21 @@ class SFTPService:
                     timeout=timeout,
                 )
             except paramiko.AuthenticationException as exc:
+                logger.error('Autenticación fallida por llave SSH: %s', exc)
                 raise SFTPConnectionError(
-                    'Autenticación fallida. Verifica la llave privada SSH.'
+                    'Error de autenticación del servidor de archivos. '
+                    'Contacta al administrador del sistema.'
                 ) from exc
             except OSError as exc:
                 logger.error('Error de red al conectar por llave SSH: %s', exc)
                 raise SFTPConnectionError(
-                    'No se pudo conectar al servidor SFTP. '
-                    'Verifica la dirección y la conexión de red.'
+                    'No se pudo conectar al servidor de archivos. '
+                    'Intenta nuevamente más tarde.'
                 ) from exc
             except paramiko.SSHException as exc:
                 raise SFTPConnectionError(
-                    'Error al conectar al servidor SFTP. Intenta nuevamente más tarde.'
+                    'Error al conectar al servidor de archivos. '
+                    'Intenta nuevamente más tarde.'
                 ) from exc
             return client
 
@@ -639,23 +651,27 @@ class SFTPService:
                     timeout=timeout,
                 )
             except paramiko.AuthenticationException as exc:
+                logger.error('Autenticación fallida por password: %s', exc)
                 raise SFTPConnectionError(
-                    'Autenticación fallida. Verifica usuario y contraseña.'
+                    'Error de autenticación del servidor de archivos. '
+                    'Contacta al administrador del sistema.'
                 ) from exc
             except OSError as exc:
                 logger.error('Error de red al conectar por password: %s', exc)
                 raise SFTPConnectionError(
-                    'No se pudo conectar al servidor SFTP. '
-                    'Verifica la dirección y la conexión de red.'
+                    'No se pudo conectar al servidor de archivos. '
+                    'Intenta nuevamente más tarde.'
                 ) from exc
             except paramiko.SSHException as exc:
                 raise SFTPConnectionError(
-                    'Error al conectar al servidor SFTP. Intenta nuevamente más tarde.'
+                    'Error al conectar al servidor de archivos. '
+                    'Intenta nuevamente más tarde.'
                 ) from exc
             return client
 
         raise SFTPConnectionError(
-            'No hay método de autenticación disponible (password o llave privada)'
+            'Error de configuración del servidor de archivos. '
+            'Contacta al administrador del sistema.'
         )
 
     # ------------------------------------------------------------------

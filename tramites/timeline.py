@@ -45,19 +45,16 @@ def build_timeline_entries(
 
     file_estados = {TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.SUBSANADO}
 
-    timeline_entries = []
-    for act in historial:
-        timeline_entries.append(
-            TimelineEntry(
-                actividad=act,
-                actividad_files=(
-                    files_by_act.get(act.id, []) if act.estatus_id in file_estados else []
-                ),
-                requisito_files=(
-                    requisitos if first_pendiente_pago and act.id == first_pendiente_pago.id else []
-                ),
-                user=users.get(act.backoffice_user_id),
-            )
+    return [
+        TimelineEntry(
+            actividad=act,
+            actividad_files=(
+                files_by_act.get(act.id, []) if act.estatus_id in file_estados else []
+            ),
+            requisito_files=(
+                requisitos if first_pendiente_pago and act.id == first_pendiente_pago.id else []
+            ),
+            user=users.get(act.backoffice_user_id),
         )
-
-    return timeline_entries
+        for act in historial
+    ]

@@ -6,6 +6,7 @@ Maps to the view v_tramites_unificado in the backoffice schema.
 
 import logging
 
+from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import DatabaseError, models
@@ -48,6 +49,31 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
     (TramiteEstatus.Estatus.EN_DILIGENCIA, TramiteEstatus.Estatus.RECHAZADO): True,
     (TramiteEstatus.Estatus.EN_DILIGENCIA, TramiteEstatus.Estatus.CANCELADO): True,
 }
+
+
+def _get_disabled_transitions() -> set[int]:
+    """Return disabled destination status IDs from settings (read at call time).
+
+    Values are coerced to ``int`` as defense-in-depth: settings converts
+    at load time, but ``override_settings()`` in tests may pass raw strings.
+    """
+    return {int(x) for x in getattr(django_settings, 'DISABLED_TRANSITIONS', [])}
+
+
+_CERRAR_DESTINATIONS = frozenset({
+    TramiteEstatus.Estatus.POR_RECOGER,
+    TramiteEstatus.Estatus.RECHAZADO,
+    TramiteEstatus.Estatus.CANCELADO,
+})
+
+
+def _append_cerrar_if_available(
+    disabled: set[int],
+    actions: list[str],
+) -> None:
+    """Append ``'cerrar'`` to *actions* if at least one close destination is enabled."""
+    if any(dest not in disabled for dest in _CERRAR_DESTINATIONS):
+        actions.append('cerrar')
 
 
 @register_model('default', AccessPattern.READ_ONLY, False)
@@ -148,7 +174,11 @@ class Tramite(models.Model):
     @property
     def historial_actividades(self):
         """QuerySet de actividades del trámite, ordenadas por fecha descendente."""
-        return Actividades.objects.filter(tramite_id=self.pk).select_related('estatus').order_by('-timestamp')
+        return (
+            Actividades.objects.filter(tramite_id=self.pk)
+            .select_related('estatus')
+            .order_by('-timestamp')
+        )
 
     # =====================================================================
     # Permission checks
@@ -214,8 +244,9 @@ class Tramite(models.Model):
     def available_actions(self, user: User) -> list[str]:
         """Return the list of workflow action names *user* can perform right now.
 
-        The returned list depends on both the user's role AND the current
-        trámite status.  Useful for template rendering.
+        The returned list depends on the user's role, the current trámite
+        status, and the active department's disabled transitions.  Useful
+        for template rendering.
 
         Returns:
             List of action strings: ``'requerir_documentos'``,
@@ -224,16 +255,21 @@ class Tramite(models.Model):
         if not self.can_execute_action(user):
             return []
 
-        status = self.ultima_actividad_estatus_id
+        status = self.ultima_actividad_estatus_id  # type: ignore[assignment]
+        disabled = _get_disabled_transitions()
         actions: list[str] = []
 
         if status == TramiteEstatus.Estatus.EN_REVISION:
-            actions.extend(['requerir_documentos', 'en_diligencia', 'cerrar'])
+            if TramiteEstatus.Estatus.REQUERIMIENTO not in disabled:
+                actions.append('requerir_documentos')
+            if TramiteEstatus.Estatus.EN_DILIGENCIA not in disabled:
+                actions.append('en_diligencia')
+            _append_cerrar_if_available(disabled, actions)
         elif status in (
             TramiteEstatus.Estatus.REQUERIMIENTO,
             TramiteEstatus.Estatus.EN_DILIGENCIA,
         ):
-            actions.append('cerrar')
+            _append_cerrar_if_available(disabled, actions)
 
         return actions
 
@@ -264,9 +300,12 @@ class Tramite(models.Model):
     def _validate_transition(self, to_status: int) -> None:
         """Validate that the current status can transition to *to_status*.
 
-        Raises ``EstadoNoPermitidoError`` if the transition is not in TRANSITIONS.
+        Raises ``EstadoNoPermitidoError`` if the transition is not in
+        TRANSITIONS or if the destination status is disabled for the
+        active department.
         """
-        from_status = self.ultima_actividad_estatus_id
+        from_status = self.ultima_actividad_estatus_id  # type: ignore[assignment]
+
         if (from_status, to_status) not in TRANSITIONS:
             logger.warning(
                 'Transición inválida: tramite %s estatus %s → %s',
@@ -275,8 +314,24 @@ class Tramite(models.Model):
                 to_status,
             )
             raise EstadoNoPermitidoError(
-                f'No es posible realizar esta acción en el estatus actual '
-                f'del trámite {self.folio} (estatus actual: {from_status}).'
+                user_message=(
+                    'No es posible realizar esta acción en el estatus '
+                    f'actual del trámite {self.folio}.'
+                ),
+            )
+
+        if to_status in _get_disabled_transitions():
+            logger.warning(
+                'Transición deshabilitada: tramite %s estatus %s → %s',
+                self.folio,
+                from_status,
+                to_status,
+            )
+            raise EstadoNoPermitidoError(
+                user_message=(
+                    'Esta acción está deshabilitada para el departamento '
+                    f'activo del trámite {self.folio}.'
+                ),
             )
 
     def registrar_actividad(
@@ -300,10 +355,19 @@ class Tramite(models.Model):
                 observacion=observacion,
             )
         except DatabaseError as e:
-            logger.error('❌ Error al crear registro de actividad: %s', e)
+            logger.error(
+                'Error al crear registro de actividad: tramite=%s estatus=%s error=%s',
+                self.pk,
+                estatus_id,
+                e,
+                exc_info=True,
+            )
+            # Intentionally raises DatabaseError (not BackofficeError) so callers
+            # catch it via generic Exception and show "Error inesperado...".
+            # The user-friendly message here is only for log context.
             raise DatabaseError(
-                f'Error de base de datos al crear registro de actividad '
-                f'{estatus_id} para el tramite {self.pk}: {e}'
+                'Ocurrió un error al registrar la actividad. '
+                'Por favor intenta nuevamente más tarde.'
             ) from e
 
         logger.info('Actividad agregada al trámite %s: %s', self.folio, act.estatus.estatus)
@@ -383,10 +447,12 @@ class Tramite(models.Model):
             TramiteEstatus.Estatus.CANCELADO,
         )
         if estatus_cierre not in estatus_validos:
-            raise ValueError(
-                f'Estatus de cierre inválido: {estatus_cierre}. '
-                f'Debe ser uno de: {estatus_validos}'
+            logger.warning(
+                'Estatus de cierre inválido: %s (esperados: %s)',
+                estatus_cierre,
+                estatus_validos,
             )
+            raise ValueError('El estatus de cierre seleccionado no es válido.')
 
         self._assert_activo()
         self._validate_transition(estatus_cierre)

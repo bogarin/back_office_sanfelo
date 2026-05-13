@@ -24,9 +24,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from tramites.exceptions import (
-    EstadoNoPermitidoError,
+    BackofficeError,
     SFTPConnectionError,
-    TramiteNoAsignableError,
 )
 from tramites.forms import ESTATUS_CIERRE_CHOICES, CerrarTramiteForm
 from tramites.models import Tramite
@@ -178,8 +177,15 @@ def cerrar_tramite_view(request: HttpRequest, pk: int) -> HttpResponse:
                 messages.success(request, f'Trámite {tramite.folio} cerrado exitosamente.')
                 return redirect(return_url)
 
-            except (TramiteNoAsignableError, EstadoNoPermitidoError, ValueError) as e:
-                messages.error(request, str(e))
+            except BackofficeError as e:
+                messages.error(request, e.user_message)
+            except ValueError as e:
+                logger.warning('ValueError en cerrar_tramite %s: %s', tramite.folio, e)
+                messages.error(
+                    request,
+                    'Los datos proporcionados no son válidos. '
+                    'Verifica la información e intenta de nuevo.',
+                )
             except Exception as e:
                 logger.error('Error cerrando trámite %s: %s', tramite.folio, e, exc_info=True)
                 messages.error(request, 'Error inesperado al cerrar el trámite.')

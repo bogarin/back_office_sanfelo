@@ -853,7 +853,7 @@ def test_load_known_host_key_invalid_format_no_space():
     """Host key without space separator raises SFTPConnectionError."""
     client = paramiko.SSHClient()
 
-    with pytest.raises(SFTPConnectionError, match='formato inválido'):
+    with pytest.raises(SFTPConnectionError, match='configuración del servidor de archivos'):
         SFTPService._load_known_host_key(client, 'invalid-no-space')
 
 
@@ -862,7 +862,7 @@ def test_load_known_host_key_invalid_base64():
     """Host key with invalid base64 data raises SFTPConnectionError."""
     client = paramiko.SSHClient()
 
-    with pytest.raises(SFTPConnectionError, match='datos inválidos'):
+    with pytest.raises(SFTPConnectionError, match='configuración del servidor de archivos'):
         SFTPService._load_known_host_key(client, 'ssh-rsa not-valid-base64!!!')
 
 
@@ -871,7 +871,7 @@ def test_load_known_host_key_unsupported_type():
     """Unsupported key type (ssh-dss) raises SFTPConnectionError."""
     client = paramiko.SSHClient()
 
-    with pytest.raises(SFTPConnectionError, match='Tipo de host key no soportado'):
+    with pytest.raises(SFTPConnectionError, match='configuración del servidor de archivos'):
         SFTPService._load_known_host_key(client, 'ssh-dss AAAAB3NzaC1kZW1v')
 
 
@@ -926,7 +926,7 @@ def test_configure_host_key_policy_prod_without_key_raises():
     service = SFTPService()
     client = paramiko.SSHClient()
 
-    with pytest.raises(SFTPConnectionError, match='SFTP_HOST_KEY no está configurado'):
+    with pytest.raises(SFTPConnectionError, match='configuración del servidor de archivos'):
         service._configure_host_key_policy(client)
 
 
@@ -1002,7 +1002,7 @@ def test_create_sftp_connection_no_auth_method():
     """No password and no key raises SFTPConnectionError."""
     service = SFTPService()
 
-    with pytest.raises(SFTPConnectionError, match='No hay método de autenticación'):
+    with pytest.raises(SFTPConnectionError, match='configuración del servidor de archivos'):
         service._create_sftp_connection()
 
 
@@ -1016,7 +1016,7 @@ def test_create_sftp_connection_auth_failure_password(mock_connect, mock_policy)
     service = SFTPService()
 
     with override_settings(**_sftp_settings()):
-        with pytest.raises(SFTPConnectionError, match='Autenticación fallida'):
+        with pytest.raises(SFTPConnectionError, match='autenticación del servidor de archivos'):
             service._create_sftp_connection()
 
 
@@ -1206,7 +1206,7 @@ def test_ping_dir_not_found(mock_get_client, mock_close):
     mock_get_client.return_value = mock_client
 
     with override_settings(SFTP_BASE_DIR='/remote/pdfs'):
-        with pytest.raises(SFTPConnectionError, match='no existe'):
+        with pytest.raises(SFTPConnectionError, match='configuración del servidor de archivos'):
             SFTPService.ping()
 
     mock_close.assert_called_once()

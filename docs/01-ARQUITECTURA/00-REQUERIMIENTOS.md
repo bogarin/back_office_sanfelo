@@ -389,6 +389,29 @@ Estos valores serán **ajustados y refinados** después de:
 - Cache de catálogos para reducir carga de base de datos
 - Consultas optimizadas para grandes volúmenes de datos
 
+### RNF-06: Mensajes de Error
+
+Los mensajes de error mostrados a los usuarios no deben contener detalles internos del sistema. Los detalles técnicos se registran exclusivamente en la bitácora del servidor.
+
+**Prohibido en mensajes al usuario:**
+- IDs internos (estatus, primary keys, códigos numéricos)
+- Rutas de archivos, IPs, puertos
+- Excepciones Python, tracebacks, SQL
+- Términos de framework (Django, SFTP, SSH, ORM)
+- Nombres de tablas, columnas, constraints
+
+**Permitido en mensajes al usuario:**
+- El folio del trámite (dato que el usuario ya conoce)
+- Instrucciones claras en español ("Intenta nuevamente más tarde")
+
+**Obligatorio:**
+- Cuando ocurre un error, el detalle técnico se registra en bitácora vía `logger.error()` con `exc_info=True` **antes** de mostrar el mensaje genérico al usuario
+- Las operaciones exitosas siguen el flujo de auditoría normal (RF-05)
+- Excepciones custom exponen un atributo `user_message` separado del mensaje interno
+- Vistas y admin actions usan `e.user_message`, nunca `str(e)`
+
+**Referencia:** [ADR-020 Mensajes de Error Orientados al Usuario](../02-DECISIONES/020-mensajes-error-user-facing.md)
+
 ## 6. Requerimientos de Datos
 
 ### RD-01: Unidad de Trámite
@@ -429,7 +452,7 @@ Los catálogos de referencia son inmutables desde el backoffice:
 | Prioridad | Requerimientos |
 |-----------|----------------|
 | **P1 - Crítico** | RF-01 (Ciclo de vida), RF-02 (Asignación), RF-05 (Auditoría) |
-| **P2 - Alto** | RF-03 (Documentos SFTP), RF-04.1 (Tipos de trámite), RF-04.2 (Estatus), RF-04.3 (Peritos), RNF-01 (Tiempos de respuesta) |
+| **P2 - Alto** | RF-03 (Documentos SFTP), RF-04.1 (Tipos de trámite), RF-04.2 (Estatus), RF-04.3 (Peritos), RNF-01 (Tiempos de respuesta), RNF-06 (Mensajes de error) |
 | **P3 - Medio** | RF-04.4 (Usuarios sistema), RF-04.5 (Catálogos complementarios), RF-06 (Búsquedas), RF-07 (Estadísticas), RNF-03 (Usabilidad) |
 | **P4 - Bajo** | RF-08 (Vistas por rol), RNF-02 (Disponibilidad), RNF-05 (Escalabilidad) |
 

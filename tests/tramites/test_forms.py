@@ -9,7 +9,6 @@ import pytest
 from tramites.forms import CerrarTramiteForm, TramiteDetailForm
 from tramites.models.catalogos import TramiteEstatus
 
-
 # ---------------------------------------------------------------------------
 # ESTATUS_CIERRE_CHOICES module constant
 # ---------------------------------------------------------------------------

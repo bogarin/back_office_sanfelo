@@ -38,14 +38,17 @@
                                 <td>Trámite</td>
                                 <td>{{ tramite.tramite_nombre }}</td>
                             </tr>
+                            {% if ACTIVE_DEPARTMENT == 'DAU' %}
                             <tr>
                                 <td>Categoría</td>
                                 <td>{{ tramite.tramite_categoria_nombre|default:"—" }}</td>
                             </tr>
+                            {% endif %}
                             <tr>
                                 <td>Tipo de Cobro</td>
                                 <td>{{ tramite.tramite_tipo_cobro_nombre|default:"—" }}</td>
                             </tr>
+                            {% if ACTIVE_DEPARTMENT == 'DAU' %}
                             <tr>
                                 <td>Clave Catastral</td>
                                 <td>{{ tramite.clave_catastral|default:"—" }}</td>
@@ -60,6 +63,7 @@
                                     {% endif %}
                                 </td>
                             </tr>
+                            {% endif %}
                             <tr>
                                 <td>Urgente</td>
                                 <td>

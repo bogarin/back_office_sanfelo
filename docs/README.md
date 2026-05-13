@@ -77,6 +77,8 @@ docs/
 | [014](02-DECISIONES/014-custom-user-workflow-permissions.md) | Custom User + Workflow | **Current** |
 | [015](02-DECISIONES/015-timestamps-timezone-america-tijuana.md) | Timestamps y timezone | Current |
 | [016](02-DECISIONES/016-timeline-integrado-dtos-archivos.md) | Timeline integrado | Current |
+| [017](02-DECISIONES/017-migraciones-django-prohibidas-produccion.md) | Migraciones Django prohibidas en producción | **Current** |
+| [018](02-DECISIONES/018-backoffice-multi-departamento.md) | Backoffice multi-departamento | **Current** |
 
 ### 03-AUDITORIAS — Cómo está el sistema
 

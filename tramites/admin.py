@@ -24,9 +24,8 @@ from core.admin_utils import (
 )
 from core.rbac.constants import VALID_ROLE_PROPERTIES
 from tramites.exceptions import (
-    EstadoNoPermitidoError,
+    BackofficeError,
     SFTPConnectionError,
-    TramiteNoAsignableError,
 )
 from tramites.forms import TramiteDetailForm
 from tramites.models import (
@@ -426,14 +425,28 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                         observacion=observacion,
                     )
                     count += 1
+                except BackofficeError as e:
+                    logger.warning('Error liberando %s: %s', tramite.folio, e)
+                    errores.append(f'{tramite.folio}: {e.user_message}')
                 except Exception as e:
-                    logger.error('Error liberando %s: %s', tramite.folio, e)
-                    errores.append(f'{tramite.folio}: {e!s}')
+                    logger.error(
+                        'Error liberando %s: %s',
+                        tramite.folio,
+                        e,
+                        exc_info=True,
+                    )
+                    errores.append(f'{tramite.folio}: Error inesperado.')
 
             if count:
                 messages.success(request, f'{count} trámites liberados')
             if errores:
-                messages.warning(request, f'Errores: {"; ".join(errores[:5])}')
+                folios = ', '.join(e.split(':')[0] for e in errores[:5])
+                suffix = '...' if len(errores) > 5 else ''
+                messages.warning(
+                    request,
+                    f'No se pudieron liberar {len(errores)} trámite(s): '
+                    f'{folios}{suffix}',
+                )
 
         # Acción: Asignar o Reasignar (analista seleccionado)
         else:
@@ -457,9 +470,23 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                         observacion=observacion,
                     )
                     asignados.append(tramite.folio)
+                except BackofficeError as e:
+                    logger.warning(
+                        'Error asignando %s a %s: %s',
+                        tramite.folio,
+                        analista.username,
+                        e,
+                    )
+                    errores.append(f'{tramite.folio}: {e.user_message}')
                 except Exception as e:
-                    logger.error('Error asignando %s a %s: %s', tramite.folio, analista.username, e)
-                    errores.append(f'{tramite.folio}: {e!s}')
+                    logger.error(
+                        'Error asignando %s a %s: %s',
+                        tramite.folio,
+                        analista.username,
+                        e,
+                        exc_info=True,
+                    )
+                    errores.append(f'{tramite.folio}: Error inesperado.')
 
             if asignados:
                 nombre_analista = analista.get_full_name() or analista.username
@@ -468,7 +495,13 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                     f'{len(asignados)} trámites asignados a {nombre_analista}',
                 )
             if errores:
-                messages.warning(request, f'Errores: {"; ".join(errores[:5])}')
+                folios = ', '.join(e.split(':')[0] for e in errores[:5])
+                suffix = '...' if len(errores) > 5 else ''
+                messages.warning(
+                    request,
+                    f'No se pudieron asignar {len(errores)} trámite(s): '
+                    f'{folios}{suffix}',
+                )
 
         return redirect(request.get_full_path())
 
@@ -495,9 +528,12 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                 observacion='Trámite liberado',
             )
             messages.success(request, f'Trámite {tramite.folio} liberado')
+        except BackofficeError as e:
+            logger.warning('Error liberando %s: %s', tramite.folio, e)
+            messages.error(request, e.user_message)
         except Exception as e:
-            logger.error('Error liberando %s: %s', tramite.folio, e)
-            messages.error(request, 'Error inesperado al liberar el trámite')
+            logger.error('Error liberando %s: %s', tramite.folio, e, exc_info=True)
+            messages.error(request, 'Error inesperado al liberar el trámite.')
         return redirect(request.get_full_path())
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
@@ -547,8 +583,15 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                             tramite.en_diligencia(analista=request.user, observacion=observacion)
                             messages.success(request, 'Trámite puesto en diligencia')
 
-                    except (TramiteNoAsignableError, EstadoNoPermitidoError, ValueError) as e:
-                        messages.error(request, f'{e}')
+                    except BackofficeError as e:
+                        messages.error(request, e.user_message)
+                    except ValueError as e:
+                        logger.warning('ValueError en cerrar_tramite %s: %s', tramite.folio, e)
+                        messages.error(
+                            request,
+                            'Los datos proporcionados no son válidos. '
+                            'Verifica la información e intenta de nuevo.',
+                        )
                     except Exception as e:
                         logger.error(
                             'Error procesando acción en trámite %s: %s',
