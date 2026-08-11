@@ -9,12 +9,14 @@ Integrates with Buzón de Trámites system for analyst assignment.
 import logging
 from datetime import datetime
 
+from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
+from django.utils import timezone as _tz
 from django.utils.safestring import mark_safe
 
 from core.admin_utils import (
@@ -57,7 +59,6 @@ def _display_timestamp(dt: datetime | None) -> str:
     """
     if dt is None:
         return '—'
-    from django.utils import timezone as _tz
 
     if _tz.is_naive(dt):
         dt = _tz.make_aware(dt)
@@ -260,12 +261,26 @@ class TramiteBaseAdmin(admin.ModelAdmin):
     )
     ordering = ('-urgente', '-creado', '-actualizado')
 
-    # Filtros en la barra lateral
-    list_filter = (
+    search_fields = ('folio', 'solicitante_nombre')
+    search_help_text = 'Buscar por folio o nombre del solicitante'
+
+    # Filtros base heredados por todas las subclases
+    base_list_filters = (
         TramiteTipoFilter,
         TramiteEstatusFilter,
         *DEFAULT_FILTERS,
     )
+    # Filtros extra específicos por subclase (se anteponen a los base)
+    extra_list_filters: tuple = ()
+
+    def get_list_filter(self, request):
+        return [*self.extra_list_filters, *self.base_list_filters]
+
+    def get_search_fields(self, request):
+        fields = list(super().get_search_fields(request))
+        if settings.ACTIVE_DEPARTMENT == 'DAU':
+            fields.append('clave_catastral')
+        return tuple(fields)
 
     # Acciones disponibles (solo modificar_asignacion)
     actions = ('modificar_asignacion',)
@@ -291,7 +306,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
             case (None, _, _):
                 return '📦 Sin Asignar'
             # Un user id que no tiene username ni nombre
-            case (_, None, None) | (_, '', '') | (_, None, '')|(_, '', None):
+            case (_, None, None) | (_, '', '') | (_, None, '') | (_, '', None):
                 return f'📦 ID: {obj.asignado_user_id}'
             # El nombre no existe
             case (_, _, None) | (_, _, ''):
@@ -444,8 +459,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                 suffix = '...' if len(errores) > 5 else ''
                 messages.warning(
                     request,
-                    f'No se pudieron liberar {len(errores)} trámite(s): '
-                    f'{folios}{suffix}',
+                    f'No se pudieron liberar {len(errores)} trámite(s): {folios}{suffix}',
                 )
 
         # Acción: Asignar o Reasignar (analista seleccionado)
@@ -456,7 +470,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
 
             try:
                 analista = User.objects.get(id=analista_id)
-            except (User.DoesNotExist, ValueError):
+            except User.DoesNotExist, ValueError:
                 messages.error(request, 'Analista no encontrado.')
                 return redirect(request.get_full_path())
             asignados = []
@@ -499,8 +513,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                 suffix = '...' if len(errores) > 5 else ''
                 messages.warning(
                     request,
-                    f'No se pudieron asignar {len(errores)} trámite(s): '
-                    f'{folios}{suffix}',
+                    f'No se pudieron asignar {len(errores)} trámite(s): {folios}{suffix}',
                 )
 
         return redirect(request.get_full_path())
@@ -621,9 +634,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
 
         requisitos = []
         try:
-            requisitos, _ = SFTPService.fetch_requisito_files(
-                tramite.folio, files=all_files
-            )
+            requisitos, _ = SFTPService.fetch_requisito_files(tramite.folio, files=all_files)
         except SFTPConnectionError as e:
             logger.warning('SFTP error parsing requisitos for tramite %s: %s', tramite.folio, e)
             messages.error(
@@ -632,14 +643,15 @@ class TramiteBaseAdmin(admin.ModelAdmin):
 
         actividades_files = []
         try:
-            actividades_files, _ = SFTPService.fetch_actividad_files(
-                tramite.folio, files=all_files
-            )
+            actividades_files, _ = SFTPService.fetch_actividad_files(tramite.folio, files=all_files)
         except SFTPConnectionError as e:
-            logger.warning('SFTP error parsing actividad files for tramite %s: %s', tramite.folio, e)
+            logger.warning(
+                'SFTP error parsing actividad files for tramite %s: %s', tramite.folio, e
+            )
             messages.warning(
-                request, 'No se pudieron cargar los archivos de actividades. '
-                'El trámite se mostrará sin los archivos de sistema.'
+                request,
+                'No se pudieron cargar los archivos de actividades. '
+                'El trámite se mostrará sin los archivos de sistema.',
             )
 
         # --- Build timeline entries ---
@@ -680,26 +692,15 @@ class BuzonTramitesAdmin(RoleCheckMixin, TramiteBaseAdmin):
 
     allowed_roles = ('is_analista', 'is_coordinador', 'is_administrador')
 
-    list_filter = (
-        TramiteTipoFilter,
-        TramiteEstatusFilter,
-        *DEFAULT_FILTERS,
-    )
-
     def get_list_display(self, request: HttpRequest) -> list[str]:
         """
         Elimina la columna "asignado" ya que no tiene sentido en este admin
         """
         cols = super().get_list_display(request)
-        return [z for z in cols if not z.startswith("asignado")]
+        return [z for z in cols if not z.startswith('asignado')]
 
     def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .en_proceso()
-            .asignados_a(request.user.id)
-        )
+        return super().get_queryset(request).en_proceso().asignados_a(request.user.id)
 
 
 @admin.register(Disponible)
@@ -708,12 +709,6 @@ class TramitesDisponiblesAdmin(RoleCheckMixin, TramiteBaseAdmin):
 
     allowed_roles = ('is_analista', 'is_coordinador', 'is_administrador')
 
-    list_filter = (
-        TramiteTipoFilter,
-        TramiteEstatusFilter,
-        *DEFAULT_FILTERS,
-    )
-
     actions = ('tomar_asignacion',)
 
     def get_list_display(self, request: HttpRequest) -> list[str]:
@@ -721,7 +716,7 @@ class TramitesDisponiblesAdmin(RoleCheckMixin, TramiteBaseAdmin):
         Elimina la columna "asignado" ya que no tiene sentido en este admin
         """
         cols = super().get_list_display(request)
-        return [z for z in cols if not z.startswith("asignado")]
+        return [z for z in cols if not z.startswith('asignado')]
 
     def get_actions(self, request: HttpRequest):
         """
@@ -735,12 +730,7 @@ class TramitesDisponiblesAdmin(RoleCheckMixin, TramiteBaseAdmin):
         return {k: v for k, v in actions.items() if k == 'tomar_asignacion'}
 
     def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .en_proceso()
-            .sin_asignar()
-        )
+        return super().get_queryset(request).en_proceso().sin_asignar()
 
     @admin.display(description='Acciones Rápidas')
     def acciones_disponibles(self, obj):
@@ -758,14 +748,7 @@ class TramitesAdmin(RoleCheckMixin, TramiteBaseAdmin):
 
     allowed_roles = ('is_coordinador', 'is_administrador')
 
-    def get_list_filter(self, request):
-        """
-        Conditionally include AsignadoUserFilter based on user role.
-
-        - Coordinadores y Admins ven el filtro para gestionar asignaciones
-        - Analistas no ven el filtro, solo su listado personalizado (Buzon)
-        """
-        return [AsignadoUserFilter, *super().get_list_filter(request)]
+    extra_list_filters = (AsignadoUserFilter,)
 
     def get_queryset(self, request):
         return super().get_queryset(request).en_proceso()
@@ -781,20 +764,14 @@ class TramitesAdmin(RoleCheckMixin, TramiteBaseAdmin):
             'Modificar Asignación', attrs={'action': 'modificar_asignacion', 'pk': obj.pk}
         )
 
+
 @admin.register(Cerrado)
 class TramitesCerradosAdmin(RoleCheckMixin, TramiteBaseAdmin):
     """Trámites para Coordinadores y Administradores — Solo tramites finalizados."""
 
     allowed_roles = ('is_coordinador', 'is_administrador')
 
-    def get_list_filter(self, request):
-        """
-        Conditionally include AsignadoUserFilter based on user role.
-
-        - Coordinadores y Admins ven el filtro para gestionar asignaciones
-        - Analistas no ven el filtro, solo su listado personalizado (Buzon)
-        """
-        return [AsignadoUserFilter, *super().get_list_filter(request)]
+    extra_list_filters = (AsignadoUserFilter,)
 
     def get_queryset(self, request):
         return super().get_queryset(request).finalizados()
@@ -809,4 +786,3 @@ class TramitesCerradosAdmin(RoleCheckMixin, TramiteBaseAdmin):
         return render_quick_action(
             'Modificar Asignación', attrs={'action': 'modificar_asignacion', 'pk': obj.pk}
         )
-

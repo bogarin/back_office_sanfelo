@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.contrib import admin
 from django.core.exceptions import ImproperlyConfigured
+from django.test import override_settings
 
 from core.rbac.constants import BackOfficeRole
 from tramites.models import Buzon, Cerrado, Disponible, Tramite
@@ -215,9 +216,13 @@ def test_invalid_allowed_roles_raises_improperly_configured():
     from tramites.admin import RoleCheckMixin, TramiteBaseAdmin
 
     with pytest.raises(ImproperlyConfigured, match='is_staff'):
-        type('BadAdmin', (RoleCheckMixin, TramiteBaseAdmin), {
-            'allowed_roles': ('is_staff',),
-        })
+        type(
+            'BadAdmin',
+            (RoleCheckMixin, TramiteBaseAdmin),
+            {
+                'allowed_roles': ('is_staff',),
+            },
+        )
 
 
 # =============================================================================
@@ -241,7 +246,9 @@ class TestBuzonTramitesAdminQueryset:
     def setup(self):
         self.admin = _get_admin_instance(Buzon)
         self.base_qs = _mock_base_queryset()
-        self.request = _make_request(_make_user(user_id=42, roles=frozenset({BackOfficeRole.ANALISTA})))
+        self.request = _make_request(
+            _make_user(user_id=42, roles=frozenset({BackOfficeRole.ANALISTA}))
+        )
 
     @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
     def test_calls_en_proceso(self, mock_super_qs):
@@ -327,3 +334,33 @@ class TestTramitesCerradosAdminQueryset:
         mock_super_qs.return_value = self.base_qs
         self.admin.get_queryset(self.request)
         self.base_qs.en_proceso.assert_not_called()
+
+
+# =============================================================================
+# get_search_fields — dynamic by ACTIVE_DEPARTMENT
+# =============================================================================
+
+
+class TestTramitesBaseAdminSearchFields:
+    """get_search_fields returns folio + solicitante_nombre, plus clave_catastral
+    only when ACTIVE_DEPARTMENT == 'DAU'."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.admin = _get_admin_instance(Tramite)
+        self.request = _make_request()
+
+    @override_settings(ACTIVE_DEPARTMENT='DAU')
+    def test_dau_includes_clave_catastral(self):
+        fields = self.admin.get_search_fields(self.request)
+        assert 'folio' in fields
+        assert 'solicitante_nombre' in fields
+        assert 'clave_catastral' in fields
+
+    @pytest.mark.parametrize('dept', ['SEC', 'TES'])
+    def test_non_dau_excludes_clave_catastral(self, dept):
+        with override_settings(ACTIVE_DEPARTMENT=dept):
+            fields = self.admin.get_search_fields(self.request)
+        assert 'folio' in fields
+        assert 'solicitante_nombre' in fields
+        assert 'clave_catastral' not in fields

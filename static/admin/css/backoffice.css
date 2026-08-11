@@ -869,3 +869,29 @@ th.field-folio a:focus::after {
     max-height: 400px;
     overflow-y: auto;
 }
+
+/* =============================================================================
+ * Changelist Search Bar (#searchbar)
+ *
+ * Jazzmin renderiza el input con inline style `min-width: 250px`.
+ * Lo hacemos más prominente: ancho cómodo para folios largos
+ * (DAU-260420-AAAE-B = 17 chars), foco con el color primario del design
+ * system, y layout flexible en pantallas pequeñas.
+ * ============================================================================= */
+
+#searchbar {
+    min-width: 320px !important;
+    flex: 1 1 auto;
+    max-width: 480px;
+}
+
+#searchbar:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem var(--bs-focus-ring-color);
+}
+
+@media (max-width: 576px) {
+    #searchbar {
+        min-width: 100% !important;
+    }
+}
