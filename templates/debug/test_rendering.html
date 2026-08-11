@@ -4,381 +4,437 @@
 {% block title %}Test Rendering | {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-3">
-    <h3>Design System — Test Rendering</h3>
-    <p class="text-muted">Muestra todos los componentes estilados del proyecto. Solo visible en modo DEBUG.</p>
+    <div class="container-fluid mt-3">
+        <h3>Design System — Test Rendering</h3>
+        <p class="text-muted">Muestra todos los componentes estilados del proyecto. Solo visible en modo DEBUG.</p>
 
-    <hr>
+        <hr>
 
-    {# ================================================================== #}
-    {# 1. Botones Solid                                                    #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Botones Solid</h5>
-        </div>
-        <div class="card-body">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <button type="button" class="btn btn-primary">Primary</button>
-                <button type="button" class="btn btn-secondary">Secondary</button>
-                <button type="button" class="btn btn-success">Success</button>
-                <button type="button" class="btn btn-info">Info</button>
-                <button type="button" class="btn btn-warning">Warning</button>
-                <button type="button" class="btn btn-danger">Danger</button>
-                <button type="button" class="btn btn-light">Light</button>
-                <button type="button" class="btn btn-dark">Dark</button>
+        {# ================================================================== #}
+        {# 1. Botones Solid                                                    #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Botones Solid</h5>
             </div>
-        </div>
-    </section>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button type="button" class="btn btn-primary">Primary</button>
+                    <button type="button" class="btn btn-secondary">Secondary</button>
+                    <button type="button" class="btn btn-success">Success</button>
+                    <button type="button" class="btn btn-info">Info</button>
+                    <button type="button" class="btn btn-warning">Warning</button>
+                    <button type="button" class="btn btn-danger">Danger</button>
+                    <button type="button" class="btn btn-light">Light</button>
+                    <button type="button" class="btn btn-dark">Dark</button>
+                </div>
+            </div>
+        </section>
 
-    {# ================================================================== #}
-    {# 2. Botones Outline                                                  #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Botones Outline</h5>
-        </div>
-        <div class="card-body">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <button type="button" class="btn btn-outline-primary">Primary</button>
-                <button type="button" class="btn btn-outline-secondary">Secondary</button>
-                <button type="button" class="btn btn-outline-success">Success</button>
-                <button type="button" class="btn btn-outline-info">Info</button>
-                <button type="button" class="btn btn-outline-warning">Warning</button>
-                <button type="button" class="btn btn-outline-danger">Danger</button>
-                <button type="button" class="btn btn-outline-light">Light</button>
-                <button type="button" class="btn btn-outline-dark">Dark</button>
+        {# ================================================================== #}
+        {# 2. Botones Outline                                                  #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Botones Outline</h5>
             </div>
-        </div>
-    </section>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button type="button" class="btn btn-outline-primary">Primary</button>
+                    <button type="button" class="btn btn-outline-secondary">Secondary</button>
+                    <button type="button" class="btn btn-outline-success">Success</button>
+                    <button type="button" class="btn btn-outline-info">Info</button>
+                    <button type="button" class="btn btn-outline-warning">Warning</button>
+                    <button type="button" class="btn btn-outline-danger">Danger</button>
+                    <button type="button" class="btn btn-outline-light">Light</button>
+                    <button type="button" class="btn btn-outline-dark">Dark</button>
+                </div>
+            </div>
+        </section>
 
-    {# ================================================================== #}
-    {# 3. Botones Tamaños                                                  #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Botones Tamaños</h5>
-        </div>
-        <div class="card-body">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <button type="button" class="btn btn-primary btn-sm">Pequeño (btn-sm)</button>
-                <button type="button" class="btn btn-primary">Normal</button>
-                <button type="button" class="btn btn-primary btn-lg">Grande (btn-lg)</button>
+        {# ================================================================== #}
+        {# 3. Botones Tamaños                                                  #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Botones Tamaños</h5>
             </div>
-        </div>
-    </section>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button type="button" class="btn btn-primary btn-sm">Pequeño (btn-sm)</button>
+                    <button type="button" class="btn btn-primary">Normal</button>
+                    <button type="button" class="btn btn-primary btn-lg">Grande (btn-lg)</button>
+                </div>
+            </div>
+        </section>
 
-    {# ================================================================== #}
-    {# 4. Quick Actions                                                    #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Quick Actions</h5>
-        </div>
-        <div class="card-body">
-            <p class="text-muted">Botones de acción rápida usados en changelists.</p>
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <button type="button" class="btn btn-sm btn-outline-primary quick-action" data-action="test" data-pk="1">📝 Modificar</button>
-                <button type="button" class="btn btn-sm btn-outline-primary quick-action" data-action="test" data-pk="2">📌 Tomar</button>
-                <a href="#" role="button" class="btn btn-sm btn-outline-primary quick-action">🔑 Cambiar contraseña</a>
+        {# ================================================================== #}
+        {# 4. Quick Actions                                                    #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Quick Actions</h5>
             </div>
-        </div>
-    </section>
+            <div class="card-body">
+                <p class="text-muted">Botones de acción rápida usados en changelists.</p>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary quick-action"
+                        data-action="test"
+                        data-pk="1"
+                    >
+                        📝 Modificar
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary quick-action"
+                        data-action="test"
+                        data-pk="2"
+                    >
+                        📌 Tomar
+                    </button>
+                    <a href="#" role="button" class="btn btn-sm btn-outline-primary quick-action"
+                    >🔑 Cambiar contraseña</a>
+                </div>
+            </div>
+        </section>
 
-    {# ================================================================== #}
-    {# 5. Badges Bootstrap                                                 #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Badges Bootstrap</h5>
-        </div>
-        <div class="card-body">
-            <p class="text-muted">Estilo Pastel + Pill. Fondo tintado + texto oscuro + border-radius pill.</p>
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <span class="badge badge-primary">Primary</span>
-                <span class="badge badge-secondary">Secondary</span>
-                <span class="badge badge-success">Success</span>
-                <span class="badge badge-info">Info</span>
-                <span class="badge badge-warning">Warning</span>
-                <span class="badge badge-danger">Danger</span>
-                <span class="badge badge-light">Light</span>
-                <span class="badge badge-dark">Dark</span>
+        {# ================================================================== #}
+        {# 5. Badges Bootstrap                                                 #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Badges Bootstrap</h5>
             </div>
-        </div>
-    </section>
+            <div class="card-body">
+                <p class="text-muted">Estilo Pastel + Pill. Fondo tintado + texto oscuro + border-radius pill.</p>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="badge badge-primary">Primary</span>
+                    <span class="badge badge-secondary">Secondary</span>
+                    <span class="badge badge-success">Success</span>
+                    <span class="badge badge-info">Info</span>
+                    <span class="badge badge-warning">Warning</span>
+                    <span class="badge badge-danger">Danger</span>
+                    <span class="badge badge-light">Light</span>
+                    <span class="badge badge-dark">Dark</span>
+                </div>
+            </div>
+        </section>
 
-    {# ================================================================== #}
-    {# 6. Badges Custom (estatus / estado)                                 #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Badges Custom — Estatus &amp; Estado</h5>
-        </div>
-        <div class="card-body">
-            <h6>Estatus de Trámite — Grupos</h6>
-            <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                <span class="badge badge-inicio">INICIO (genérico)</span>
-                <span class="badge badge-proceso">PROCESO (genérico)</span>
-                <span class="badge badge-finalizado">FINALIZADO (genérico)</span>
-                <span class="badge badge-otro">OTRO</span>
+        {# ================================================================== #}
+        {# 6. Badges Custom (estatus / estado)                                 #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Badges Custom — Estatus &amp; Estado</h5>
             </div>
-            <h6>Estatus INICIO — Gradiente por estatus específico</h6>
-            <p class="text-muted">Intensidad creciente: BORRADOR → PAGO_EXPIRADO</p>
-            <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                <span class="badge badge-inicio-101">BORRADOR</span>
-                <span class="badge badge-inicio-102">PENDIENTE_PAGO</span>
-                <span class="badge badge-inicio-103">PAGO_EXPIRADO</span>
+            <div class="card-body">
+                <h6>Estatus de Trámite — Grupos</h6>
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <span class="badge badge-inicio">INICIO (genérico)</span>
+                    <span class="badge badge-proceso">PROCESO (genérico)</span>
+                    <span class="badge badge-finalizado">FINALIZADO (genérico)</span>
+                    <span class="badge badge-otro">OTRO</span>
+                </div>
+                <h6>Estatus INICIO — Gradiente por estatus específico</h6>
+                <p class="text-muted">Intensidad creciente: BORRADOR → PAGO_EXPIRADO</p>
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <span class="badge badge-inicio-101">BORRADOR</span>
+                    <span class="badge badge-inicio-102">PENDIENTE_PAGO</span>
+                    <span class="badge badge-inicio-103">PAGO_EXPIRADO</span>
+                </div>
+                <h6>Estatus PROCESO — Gradiente verde</h6>
+                <p class="text-muted">Intensidad creciente: PRESENTADO → EN_DILIGENCIA</p>
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <span class="badge badge-proceso-201">PRESENTADO</span>
+                    <span class="badge badge-proceso-202">EN_REVISION</span>
+                    <span class="badge badge-proceso-203">REQUERIMIENTO</span>
+                    <span class="badge badge-proceso-204">SUBSANADO</span>
+                    <span class="badge badge-proceso-205">EN_DILIGENCIA</span>
+                </div>
+                <h6>Estatus FINALIZADO — Gradiente azul</h6>
+                <p class="text-muted">Intensidad creciente: POR_RECOGER → CANCELADO</p>
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <span class="badge badge-finalizado-301">POR_RECOGER</span>
+                    <span class="badge badge-finalizado-302">RECHAZADO</span>
+                    <span class="badge badge-finalizado-303">FINALIZADO</span>
+                    <span class="badge badge-finalizado-304">CANCELADO</span>
+                </div>
+                <h6>Estado Activo/Inactivo</h6>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="badge badge-activo">Activo</span>
+                    <span class="badge badge-inactivo">Inactivo</span>
+                </div>
             </div>
-            <h6>Estatus PROCESO — Gradiente verde</h6>
-            <p class="text-muted">Intensidad creciente: PRESENTADO → EN_DILIGENCIA</p>
-            <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                <span class="badge badge-proceso-201">PRESENTADO</span>
-                <span class="badge badge-proceso-202">EN_REVISION</span>
-                <span class="badge badge-proceso-203">REQUERIMIENTO</span>
-                <span class="badge badge-proceso-204">SUBSANADO</span>
-                <span class="badge badge-proceso-205">EN_DILIGENCIA</span>
-            </div>
-            <h6>Estatus FINALIZADO — Gradiente azul</h6>
-            <p class="text-muted">Intensidad creciente: POR_RECOGER → CANCELADO</p>
-            <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                <span class="badge badge-finalizado-301">POR_RECOGER</span>
-                <span class="badge badge-finalizado-302">RECHAZADO</span>
-                <span class="badge badge-finalizado-303">FINALIZADO</span>
-                <span class="badge badge-finalizado-304">CANCELADO</span>
-            </div>
-            <h6>Estado Activo/Inactivo</h6>
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <span class="badge badge-activo">Activo</span>
-                <span class="badge badge-inactivo">Inactivo</span>
-            </div>
-        </div>
-    </section>
+        </section>
 
-    {# ================================================================== #}
-    {# 7. Badges en contexto (tabla)                                       #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Badges en Tabla (contexto real)</h5>
-        </div>
-        <div class="card-body">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>DAU</th>
-                        <th>Estatus</th>
-                        <th>Prioridad</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>DAU-260420-AAAE-B</td>
-                        <td><span class="badge badge-proceso-202">EN_REVISION</span></td>
-                        <td><span class="badge badge-danger">Urgente</span></td>
-                        <td><button type="button" class="btn btn-sm btn-outline-primary quick-action">📝 Modificar</button></td>
-                    </tr>
-                    <tr>
-                        <td>DAU-260405-AAAB-Z</td>
-                        <td><span class="badge badge-proceso-201">PRESENTADO</span></td>
-                        <td><span class="badge badge-success">Normal</span></td>
-                        <td><button type="button" class="btn btn-sm btn-outline-primary quick-action">📝 Modificar</button></td>
-                    </tr>
-                    <tr>
-                        <td>DAU-260410-AAAC-M</td>
-                        <td><span class="badge badge-proceso-203">REQUERIMIENTO</span></td>
-                        <td><span class="badge badge-success">Normal</span></td>
-                        <td><button type="button" class="btn btn-sm btn-outline-primary quick-action">📝 Modificar</button></td>
-                    </tr>
-                    <tr>
-                        <td>DAU-260412-AAAD-K</td>
-                        <td><span class="badge badge-proceso-205">EN_DILIGENCIA</span></td>
-                        <td><span class="badge badge-success">Normal</span></td>
-                        <td>—</td>
-                    </tr>
-                    <tr>
-                        <td>DAU-260401-AAAF-R</td>
-                        <td><span class="badge badge-inicio-101">BORRADOR</span></td>
-                        <td><span class="badge badge-success">Normal</span></td>
-                        <td><button type="button" class="btn btn-sm btn-outline-primary quick-action">📝 Modificar</button></td>
-                    </tr>
-                    <tr>
-                        <td>DAU-260402-AAAG-S</td>
-                        <td><span class="badge badge-inicio-102">PENDIENTE_PAGO</span></td>
-                        <td><span class="badge badge-warning">Alta</span></td>
-                        <td><button type="button" class="btn btn-sm btn-outline-primary quick-action">📝 Modificar</button></td>
-                    </tr>
-                    <tr>
-                        <td>DAU-260415-AAAH-T</td>
-                        <td><span class="badge badge-finalizado-301">POR_RECOGER</span></td>
-                        <td><span class="badge badge-success">Normal</span></td>
-                        <td>—</td>
-                    </tr>
-                    <tr>
-                        <td>DAU-260418-AAAJ-V</td>
-                        <td><span class="badge badge-finalizado-303">FINALIZADO</span></td>
-                        <td><span class="badge badge-success">Normal</span></td>
-                        <td>—</td>
-                    </tr>
-                    <tr>
-                        <td>DAU-260420-AAAK-W</td>
-                        <td><span class="badge badge-finalizado-304">CANCELADO</span></td>
-                        <td><span class="badge badge-danger">Urgente</span></td>
-                        <td>—</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
+        {# ================================================================== #}
+        {# 7. Badges en contexto (tabla)                                       #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Badges en Tabla (contexto real)</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>DAU</th>
+                            <th>Estatus</th>
+                            <th>Prioridad</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>DAU-260420-AAAE-B</td>
+                            <td><span class="badge badge-proceso-202">EN_REVISION</span></td>
+                            <td><span class="badge badge-danger">Urgente</span></td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-action">
+                                    📝 Modificar
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>DAU-260405-AAAB-Z</td>
+                            <td><span class="badge badge-proceso-201">PRESENTADO</span></td>
+                            <td><span class="badge badge-success">Normal</span></td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-action">
+                                    📝 Modificar
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>DAU-260410-AAAC-M</td>
+                            <td><span class="badge badge-proceso-203">REQUERIMIENTO</span></td>
+                            <td><span class="badge badge-success">Normal</span></td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-action">
+                                    📝 Modificar
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>DAU-260412-AAAD-K</td>
+                            <td><span class="badge badge-proceso-205">EN_DILIGENCIA</span></td>
+                            <td><span class="badge badge-success">Normal</span></td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>DAU-260401-AAAF-R</td>
+                            <td><span class="badge badge-inicio-101">BORRADOR</span></td>
+                            <td><span class="badge badge-success">Normal</span></td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-action">
+                                    📝 Modificar
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>DAU-260402-AAAG-S</td>
+                            <td><span class="badge badge-inicio-102">PENDIENTE_PAGO</span></td>
+                            <td><span class="badge badge-warning">Alta</span></td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-action">
+                                    📝 Modificar
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>DAU-260415-AAAH-T</td>
+                            <td><span class="badge badge-finalizado-301">POR_RECOGER</span></td>
+                            <td><span class="badge badge-success">Normal</span></td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>DAU-260418-AAAJ-V</td>
+                            <td><span class="badge badge-finalizado-303">FINALIZADO</span></td>
+                            <td><span class="badge badge-success">Normal</span></td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>DAU-260420-AAAK-W</td>
+                            <td><span class="badge badge-finalizado-304">CANCELADO</span></td>
+                            <td><span class="badge badge-danger">Urgente</span></td>
+                            <td>—</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-    {# ================================================================== #}
-    {# 8. Cards                                                            #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Cards</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="card shadow-sm mb-3">
-                        <div class="card-header bg-secondary text-white">
-                            Card con bg-secondary
+        {# ================================================================== #}
+        {# 8. Cards                                                            #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Cards</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header bg-secondary text-white">
+                                Card con bg-secondary
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Contenido de la card con header secondary.</p>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <p class="card-text">Contenido de la card con header secondary.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header bg-primary text-white">
+                                Card con bg-primary
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Contenido de la card con header primary.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Card sin header</h5>
+                                <p class="card-text">Card simple con solo body.</p>
+                                <a href="#" class="btn btn-primary btn-sm">Acción</a>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm mb-3">
-                        <div class="card-header bg-primary text-white">
-                            Card con bg-primary
+            </div>
+        </section>
+
+        {# ================================================================== #}
+        {# 9. Alerts                                                           #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Alerts</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <strong>Info:</strong> Este es un mensaje informativo (alert-info).
+                </div>
+                <div class="alert alert-success" role="alert">
+                    <strong>Éxito:</strong> Operación completada correctamente (alert-success).
+                </div>
+                <div class="alert alert-warning" role="alert">
+                    <strong>Atención:</strong> Revisa los datos antes de continuar (alert-warning).
+                </div>
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> No se pudo completar la operación (alert-danger).
+                </div>
+            </div>
+        </section>
+
+        {# ================================================================== #}
+        {# 10. Formularios                                                     #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Formularios</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="input-normal" class="form-label">Input Normal</label>
+                            <input type="text" class="form-control" id="input-normal" placeholder="Texto normal">
                         </div>
-                        <div class="card-body">
-                            <p class="card-text">Contenido de la card con header primary.</p>
+                        <div class="mb-3">
+                            <label for="input-valid" class="form-label">Input Válido</label>
+                            <input type="text" class="form-control is-valid" id="input-valid" value="Datos correctos">
+                            <div class="valid-feedback">Campo válido.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="input-invalid" class="form-label">Input Inválido</label>
+                            <input
+                                type="text"
+                                class="form-control is-invalid"
+                                id="input-invalid"
+                                value="Datos incorrectos"
+                            >
+                            <div class="invalid-feedback">Campo inválido.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="select-normal" class="form-label">Select</label>
+                            <select class="form-select" id="select-normal">
+                                <option>Opción 1</option>
+                                <option>Opción 2</option>
+                                <option>Opción 3</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="textarea-normal" class="form-label">Textarea</label>
+                            <textarea
+                                class="form-control"
+                                id="textarea-normal"
+                                rows="3"
+                                placeholder="Escribe aquí..."
+                            ></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="input-disabled" class="form-label">Input Deshabilitado</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="input-disabled"
+                                placeholder="No editable"
+                                disabled
+                            >
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title">Card sin header</h5>
-                            <p class="card-text">Card simple con solo body.</p>
-                            <a href="#" class="btn btn-primary btn-sm">Acción</a>
-                        </div>
-                    </div>
-                </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    {# ================================================================== #}
-    {# 9. Alerts                                                           #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Alerts</h5>
-        </div>
-        <div class="card-body">
-            <div class="alert alert-info" role="alert">
-                <strong>Info:</strong> Este es un mensaje informativo (alert-info).
+        {# ================================================================== #}
+        {# 11. Links                                                           #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Links</h5>
             </div>
-            <div class="alert alert-success" role="alert">
-                <strong>Éxito:</strong> Operación completada correctamente (alert-success).
+            <div class="card-body">
+                <p>
+                    <a href="#">Link normal</a> — Usa <code>--bs-link-color</code> (<code>#9d2638</code> light / <code
+                    >#c47d88</code> dark).
+                </p>
+                <p>Texto normal con <a href="#">link inline</a> dentro del párrafo.</p>
             </div>
-            <div class="alert alert-warning" role="alert">
-                <strong>Atención:</strong> Revisa los datos antes de continuar (alert-warning).
+        </section>
+
+        {# ================================================================== #}
+        {# 12. Tipografía                                                      #}
+        {# ================================================================== #}
+        <section class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Tipografía</h5>
             </div>
-            <div class="alert alert-danger" role="alert">
-                <strong>Error:</strong> No se pudo completar la operación (alert-danger).
+            <div class="card-body">
+                <h1>h1. Heading</h1>
+                <h2>h2. Heading</h2>
+                <h3>h3. Heading</h3>
+                <h4>h4. Heading</h4>
+                <h5>h5. Heading</h5>
+                <h6>h6. Heading</h6>
+                <p class="lead">Texto lead — párrafo destacado.</p>
+                <p>
+                    Texto normal — <code>--bs-body-color</code>: <code>#1a1a1a</code> (light) / <code>#dee2e6</code>
+                    (dark).
+                </p>
+                <p class="text-muted">Texto muted — secondary color.</p>
+                <p><mark>Texto resaltado</mark> con <code>&lt;mark&gt;</code>.</p>
             </div>
-        </div>
-    </section>
+        </section>
 
-    {# ================================================================== #}
-    {# 10. Formularios                                                     #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Formularios</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="input-normal" class="form-label">Input Normal</label>
-                        <input type="text" class="form-control" id="input-normal" placeholder="Texto normal">
-                    </div>
-                    <div class="mb-3">
-                        <label for="input-valid" class="form-label">Input Válido</label>
-                        <input type="text" class="form-control is-valid" id="input-valid" value="Datos correctos">
-                        <div class="valid-feedback">Campo válido.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="input-invalid" class="form-label">Input Inválido</label>
-                        <input type="text" class="form-control is-invalid" id="input-invalid" value="Datos incorrectos">
-                        <div class="invalid-feedback">Campo inválido.</div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="select-normal" class="form-label">Select</label>
-                        <select class="form-select" id="select-normal">
-                            <option>Opción 1</option>
-                            <option>Opción 2</option>
-                            <option>Opción 3</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="textarea-normal" class="form-label">Textarea</label>
-                        <textarea class="form-control" id="textarea-normal" rows="3" placeholder="Escribe aquí..."></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="input-disabled" class="form-label">Input Deshabilitado</label>
-                        <input type="text" class="form-control" id="input-disabled" placeholder="No editable" disabled>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    {# ================================================================== #}
-    {# 11. Links                                                           #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Links</h5>
-        </div>
-        <div class="card-body">
-            <p><a href="#">Link normal</a> — Usa <code>--bs-link-color</code> (<code>#9d2638</code> light / <code>#c47d88</code> dark).</p>
-            <p>Texto normal con <a href="#">link inline</a> dentro del párrafo.</p>
-        </div>
-    </section>
-
-    {# ================================================================== #}
-    {# 12. Tipografía                                                      #}
-    {# ================================================================== #}
-    <section class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Tipografía</h5>
-        </div>
-        <div class="card-body">
-            <h1>h1. Heading</h1>
-            <h2>h2. Heading</h2>
-            <h3>h3. Heading</h3>
-            <h4>h4. Heading</h4>
-            <h5>h5. Heading</h5>
-            <h6>h6. Heading</h6>
-            <p class="lead">Texto lead — párrafo destacado.</p>
-            <p>Texto normal — <code>--bs-body-color</code>: <code>#1a1a1a</code> (light) / <code>#dee2e6</code> (dark).</p>
-            <p class="text-muted">Texto muted — secondary color.</p>
-            <p><mark>Texto resaltado</mark> con <code>&lt;mark&gt;</code>.</p>
-        </div>
-    </section>
-
-    <hr class="mb-4">
-    <p class="text-muted text-center mb-5">Fin del test rendering.</p>
-
-</div>
+        <hr class="mb-4">
+        <p class="text-muted text-center mb-5">Fin del test rendering.</p>
+    </div>
 {% endblock %}

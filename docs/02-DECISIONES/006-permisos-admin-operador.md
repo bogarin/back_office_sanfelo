@@ -7,7 +7,7 @@
 ---
 
 # 006: Permisos de admin y operador
-**Fecha:** 26 de febrero de 2026  
+**Fecha:** 26 de febrero de 2026
 **Estado:** Propuesto
 
 ## Contexto

@@ -236,9 +236,14 @@ class Command(BaseCommand):
                     usuario = '—'
                     if f.backoffice_user_id:
                         username = user_lookup.get(f.backoffice_user_id)
-                        usuario = f'{f.backoffice_user_id}/{username}' if username else f'{f.backoffice_user_id}/—'
+                        usuario = (
+                            f'{f.backoffice_user_id}/{username}'
+                            if username
+                            else f'{f.backoffice_user_id}/—'
+                        )
                     observacion = (
-                        (f.observacion[:27] + '...') if f.observacion and len(f.observacion) > 30
+                        (f.observacion[:27] + '...')
+                        if f.observacion and len(f.observacion) > 30
                         else (f.observacion or '—')
                     )
                     self.stdout.write(

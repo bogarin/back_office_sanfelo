@@ -1,344 +1,352 @@
 {% extends "admin/base_site.html" %}
 {% load i18n admin_urls static admin_extras %}
 {% block extrastyle %}
-{{ block.super }}
-<style>
-    .info-table {
-        margin-bottom:1rem;
-    }
-    .info-table td:first-child {
-        font-weight: bold;
-        width: 30%;
-        background-color: #f8f9fa;
-    }
-</style>
+    {{ block.super }}
+    <style>
+        .info-table {
+            margin-bottom: 1rem;
+        }
+        .info-table td:first-child {
+            width: 30%;
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row">
-        <!-- Columna principal: Información del trámite -->
-        <div class="col-12 col-lg-9">
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Columna principal: Información del trámite -->
+            <div class="col-12 col-lg-9">
+                <!-- Sección: Información General -->
+                <section class="card shadow-sm mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-alt px-2"></i>Información del Trámite
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered info-table">
+                            <tbody>
+                                <tr>
+                                    <td>Folio</td>
+                                    <td><strong>{{ tramite.folio }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Trámite</td>
+                                    <td>{{ tramite.tramite_nombre }}</td>
+                                </tr>
+                                {% if ACTIVE_DEPARTMENT == 'DAU' %}
+                                    <tr>
+                                        <td>Categoría</td>
+                                        <td>{{ tramite.tramite_categoria_nombre|default:"—" }}</td>
+                                    </tr>
+                                {% endif %}
+                                <tr>
+                                    <td>Tipo de Cobro</td>
+                                    <td>{{ tramite.tramite_tipo_cobro_nombre|default:"—" }}</td>
+                                </tr>
+                                {% if ACTIVE_DEPARTMENT == 'DAU' %}
+                                    <tr>
+                                        <td>Clave Catastral</td>
+                                        <td>{{ tramite.clave_catastral|default:"—" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Es Propietario</td>
+                                        <td>
+                                            {% if tramite.es_propietario %}
+                                                <span class="badge badge-success">SÍ</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">NO</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                                <tr>
+                                    <td>Urgente</td>
+                                    <td>
+                                        {% if tramite.urgente %}
+                                            <span class="badge badge-danger">URGENTE</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">NORMAL</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-            <!-- Sección: Información General -->
-            <section class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-file-alt px-2"></i>Información del Trámite
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <table class="table table-bordered info-table">
-                        <tbody>
-                            <tr>
-                                <td>Folio</td>
-                                <td><strong>{{ tramite.folio }}</strong></td>
-                            </tr>
-                            <tr>
-                                <td>Trámite</td>
-                                <td>{{ tramite.tramite_nombre }}</td>
-                            </tr>
-                            {% if ACTIVE_DEPARTMENT == 'DAU' %}
-                            <tr>
-                                <td>Categoría</td>
-                                <td>{{ tramite.tramite_categoria_nombre|default:"—" }}</td>
-                            </tr>
-                            {% endif %}
-                            <tr>
-                                <td>Tipo de Cobro</td>
-                                <td>{{ tramite.tramite_tipo_cobro_nombre|default:"—" }}</td>
-                            </tr>
-                            {% if ACTIVE_DEPARTMENT == 'DAU' %}
-                            <tr>
-                                <td>Clave Catastral</td>
-                                <td>{{ tramite.clave_catastral|default:"—" }}</td>
-                            </tr>
-                            <tr>
-                                <td>Es Propietario</td>
-                                <td>
-                                    {% if tramite.es_propietario %}
-                                        <span class="badge badge-success">SÍ</span>
-                                    {% else %}
-                                        <span class="badge badge-secondary">NO</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endif %}
-                            <tr>
-                                <td>Urgente</td>
-                                <td>
-                                    {% if tramite.urgente %}
-                                        <span class="badge badge-danger">URGENTE</span>
-                                    {% else %}
-                                        <span class="badge badge-secondary">NORMAL</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                <!-- Sección: Estatus Actual -->
+                <section class="card shadow-sm mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle px-2"></i>Estatus Actual
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered info-table">
+                            <tbody>
+                                <tr>
+                                    <td>Estatus</td>
+                                    <td>
+                                        <span
+                                            class="badge badge-{{ tramite.ultima_actividad_estatus_id|status_badge_class }}"
+                                        >
+                                            {{ tramite.ultima_actividad_estatus }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Acción Esperada De</td>
+                                    <td>{{ tramite.ultima_actividad_responsable|default:"—" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Descripción de Estatus</td>
+                                    <td>{{ tramite.ultima_actividad_descripcion|default:"—" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Observaciones</td>
+                                    <td>{{ tramite.ultima_actividad_observacion|default:"—" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Asignado a</td>
+                                    <td>
+                                        {% if tramite.asignado_user_id %}
+                                            <i class="fas fa-user mr-1"></i>
+                                            {{ tramite.asignado_nombre|default:"—" }} (ID:
+                                            {{ tramite.asignado_user_id }})
+                                        {% else %}
+                                            <span class="text-muted">Sin asignar</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Creado</td>
+                                    <td>{{ tramite.creado|date:"Y-m-d H:i:s" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Última Actualización</td>
+                                    <td>{{ tramite.actualizado|date:"Y-m-d H:i:s"|default:"—" }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-            <!-- Sección: Estatus Actual -->
-            <section class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-info-circle px-2"></i>Estatus Actual
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <table class="table table-bordered info-table">
-                        <tbody>
-                            <tr>
-                                <td>Estatus</td>
-                                <td>
-                                    <span class="badge badge-{{ tramite.ultima_actividad_estatus_id|status_badge_class }}">
-                                        {{ tramite.ultima_actividad_estatus }}
+                <!-- Sección: Solicitante -->
+                <section class="card shadow-sm mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user px-2"></i>Información del Solicitante
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered info-table">
+                            <tbody>
+                                <tr>
+                                    <td>Nombre</td>
+                                    <td>{{ tramite.solicitante_nombre|default:"—" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Teléfono</td>
+                                    <td>{{ tramite.solicitante_telefono|default:"—" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Correo</td>
+                                    <td>{{ tramite.solicitante_correo|default:"—" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Comentario</td>
+                                    <td>{{ tramite.solicitante_comentario|default:"—" }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Sección: Perito (si aplica) -->
+                {% if tramite.perito_nombre %}
+                    <section class="card shadow-sm mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user-tie px-2"></i>Perito
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-bordered info-table">
+                                <tbody>
+                                    <tr>
+                                        <td>Nombre del Perito</td>
+                                        <td>{{ tramite.perito_nombre }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                {% endif %}
+
+                <!-- Sección: Historial del Trámite (Timeline integrado) -->
+                <section class="card shadow-sm mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history px-2"></i>Historial del Trámite
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% for entry in timeline_entries %}
+                            <div class="timeline-item" data-status="{{ entry.actividad.estatus_id|status_group }}">
+                                <!-- Header: estatus badge + timestamp -->
+                                <div class="d-flex align-items-center mb-1">
+                                    <span class="badge badge-{{ entry.actividad.estatus_id|status_badge_class }} me-2">
+                                        {{ entry.actividad.estatus.estatus }}
                                     </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Acción Esperada De</td>
-                                <td>{{ tramite.ultima_actividad_responsable|default:"—" }}</td>
-                            </tr>
-                            <tr>
-                                <td>Descripción de Estatus</td>
-                                <td>{{ tramite.ultima_actividad_descripcion|default:"—" }}</td>
-                            </tr>
-                            <tr>
-                                <td>Observaciones</td>
-                                <td>{{ tramite.ultima_actividad_observacion|default:"—" }}</td>
-                            </tr>
-                            <tr>
-                                <td>Asignado a</td>
-                                <td>
-                                    {% if tramite.asignado_user_id %}
-                                        <i class="fas fa-user mr-1"></i>
-                                        {{ tramite.asignado_nombre|default:"—" }} (ID: {{ tramite.asignado_user_id }})
-                                    {% else %}
-                                        <span class="text-muted">Sin asignar</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Creado</td>
-                                <td>{{ tramite.creado|date:"Y-m-d H:i:s" }}</td>
-                            </tr>
-                            <tr>
-                                <td>Última Actualización</td>
-                                <td>{{ tramite.actualizado|date:"Y-m-d H:i:s"|default:"—" }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                                    <small class="text-muted">{{ entry.actividad.timestamp|date:"Y-m-d H:i:s" }}</small>
+                                </div>
 
-            <!-- Sección: Solicitante -->
-            <section class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-user px-2"></i>Información del Solicitante
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <table class="table table-bordered info-table">
-                        <tbody>
-                            <tr>
-                                <td>Nombre</td>
-                                <td>{{ tramite.solicitante_nombre|default:"—" }}</td>
-                            </tr>
-                            <tr>
-                                <td>Teléfono</td>
-                                <td>{{ tramite.solicitante_telefono|default:"—" }}</td>
-                            </tr>
-                            <tr>
-                                <td>Correo</td>
-                                <td>{{ tramite.solicitante_correo|default:"—" }}</td>
-                            </tr>
-                            <tr>
-                                <td>Comentario</td>
-                                <td>{{ tramite.solicitante_comentario|default:"—" }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                                <!-- Usuario -->
+                                {% if entry.user %}
+                                    <div class="mb-1">
+                                        <i class="fas fa-user px-1"></i>{{ entry.user.get_full_name }}
+                                    </div>
+                                {% endif %}
 
-            <!-- Sección: Perito (si aplica) -->
-            {% if tramite.perito_nombre %}
-            <section class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-user-tie px-2"></i>Perito
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <table class="table table-bordered info-table">
-                        <tbody>
-                            <tr>
-                                <td>Nombre del Perito</td>
-                                <td>{{ tramite.perito_nombre }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-            {% endif %}
+                                <!-- Observación -->
+                                {% if entry.actividad.observacion %}
+                                    <div class="text-muted mb-2">{{ entry.actividad.observacion }}</div>
+                                {% endif %}
 
-            <!-- Sección: Historial del Trámite (Timeline integrado) -->
-            <section class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history px-2"></i>Historial del Trámite
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% for entry in timeline_entries %}
-                    <div class="timeline-item" data-status="{{ entry.actividad.estatus_id|status_group }}">
-                        <!-- Header: estatus badge + timestamp -->
-                        <div class="d-flex align-items-center mb-1">
-                            <span class="badge badge-{{ entry.actividad.estatus_id|status_badge_class }} me-2">
-                                {{ entry.actividad.estatus.estatus }}
-                            </span>
-                            <small class="text-muted">{{ entry.actividad.timestamp|date:"Y-m-d H:i:s" }}</small>
-                        </div>
+                                <!-- Requisitos (solo en PENDIENTE_PAGO) -->
+                                {% if entry.requisito_files %}
+                                    <div class="timeline-files mb-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-paperclip"></i> Documentos del ciudadano
+                                            ({{ entry.requisito_files|length }})
+                                        </small>
+                                        {% for f in entry.requisito_files %}
+                                            <div class="file-item">
+                                                <a
+                                                    href="{% url 'tramites:download-pdf' pk=tramite.pk filename=f.file_name %}"
+                                                    class="me-2"
+                                                >
+                                                    <i class="fas fa-file-pdf"></i> {{ f.file_name }}
+                                                </a>
+                                                <small>({{ f.size_mb|floatformat:2 }} MB)</small>
+                                                {% if f.requisito_nombre %}
+                                                    <small class="text-muted">
+                                                        — {{ f.requisito_nombre|truncatechars:60 }}</small>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
 
-                        <!-- Usuario -->
-                        {% if entry.user %}
-                        <div class="mb-1">
-                            <i class="fas fa-user px-1"></i>{{ entry.user.get_full_name }}
-                        </div>
-                        {% endif %}
-
-                        <!-- Observación -->
-                        {% if entry.actividad.observacion %}
-                        <div class="text-muted mb-2">{{ entry.actividad.observacion }}</div>
-                        {% endif %}
-
-                        <!-- Requisitos (solo en PENDIENTE_PAGO) -->
-                        {% if entry.requisito_files %}
-                        <div class="timeline-files mb-2">
-                            <small class="text-muted">
-                                <i class="fas fa-paperclip"></i> Documentos del ciudadano ({{ entry.requisito_files|length }})
-                            </small>
-                            {% for f in entry.requisito_files %}
-                            <div class="file-item">
-                                <a href="{% url 'tramites:download-pdf' pk=tramite.pk filename=f.file_name %}" class="me-2">
-                                    <i class="fas fa-file-pdf"></i> {{ f.file_name }}
-                                </a>
-                                <small>({{ f.size_mb|floatformat:2 }} MB)</small>
-                                {% if f.requisito_nombre %}
-                                <small class="text-muted"> — {{ f.requisito_nombre|truncatechars:60 }}</small>
+                                <!-- Actividad files (REQUERIMIENTO / SUBSANADO) -->
+                                {% if entry.actividad_files %}
+                                    <div class="timeline-files mb-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-paperclip"></i> Archivos adjuntos
+                                            ({{ entry.actividad_files|length }})
+                                        </small>
+                                        {% for f in entry.actividad_files %}
+                                            <div class="file-item">
+                                                <a
+                                                    href="{% url 'tramites:download-pdf' pk=tramite.pk filename=f.file_name %}"
+                                                    class="me-2"
+                                                >
+                                                    <i class="fas fa-file-pdf"></i> {{ f.file_name }}
+                                                </a>
+                                                <small>({{ f.size_mb|floatformat:2 }} MB)</small>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
                                 {% endif %}
                             </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-
-                        <!-- Actividad files (REQUERIMIENTO / SUBSANADO) -->
-                        {% if entry.actividad_files %}
-                        <div class="timeline-files mb-2">
-                            <small class="text-muted">
-                                <i class="fas fa-paperclip"></i> Archivos adjuntos ({{ entry.actividad_files|length }})
-                            </small>
-                            {% for f in entry.actividad_files %}
-                            <div class="file-item">
-                                <a href="{% url 'tramites:download-pdf' pk=tramite.pk filename=f.file_name %}" class="me-2">
-                                    <i class="fas fa-file-pdf"></i> {{ f.file_name }}
-                                </a>
-                                <small>({{ f.size_mb|floatformat:2 }} MB)</small>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
+                        {% empty %}
+                            <p class="text-muted">No hay actividades registradas para este trámite.</p>
+                        {% endfor %}
                     </div>
-                    {% empty %}
-                    <p class="text-muted">No hay actividades registradas para este trámite.</p>
-                    {% endfor %}
-                </div>
-            </section>
+                </section>
+            </div>
 
-        </div>
+            <!-- Columna lateral: Acciones -->
+            <div class="col-12 col-lg-3">
+                <a href="../.." class="btn btn-secondary mb-4">
+                    <i class="fas fa-arrow-left px-2"></i>Regresar a Listado
+                </a>
 
-        <!-- Columna lateral: Acciones -->
-        <div class="col-12 col-lg-3">
-
-            <a href="../.." class="btn btn-secondary mb-4">
-                <i class="fas fa-arrow-left px-2"></i>Regresar a Listado
-            </a>
-
-            {% if available_actions %}
-            <!-- Sección: Acciones Disponibles -->
-            <section class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-tasks px-2"></i>Acciones Disponibles
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <form method="post" id="accion-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" id="action-input">
-
-                        <div class="d-grid gap-2">
-                            {% if 'requerir_documentos' in available_actions %}
-                            <button
-                                type="submit"
-                                class="btn btn-warning"
-                                data-action="requerir_documentos"
-                            >
-                                <i class="fas fa-file-alt px-2"></i>Requerir Documentos
-                            </button>
-                            {% endif %}
-
-                            {% if 'en_diligencia' in available_actions %}
-                            <button
-                                type="submit"
-                                class="btn btn-info"
-                                data-action="en_diligencia"
-                            >
-                                <i class="fas fa-clock px-2"></i>Poner en Diligencia
-                            </button>
-                            {% endif %}
-
-                            {% if 'cerrar' in available_actions %}
-                            <a
-                                href="{% url 'tramites:cerrar-tramite' pk=tramite.pk %}?next={{ request.path }}"
-                                class="btn btn-danger"
-                            >
-                                <i class="fas fa-times-circle px-2"></i>Cerrar Trámite
-                            </a>
-                            {% endif %}
+                {% if available_actions %}
+                    <!-- Sección: Acciones Disponibles -->
+                    <section class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tasks px-2"></i>Acciones Disponibles
+                            </h5>
                         </div>
+                        <div class="card-body">
+                            <form method="post" id="accion-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" id="action-input">
 
-                        {% if 'requerir_documentos' in available_actions or 'en_diligencia' in available_actions %}
-                        <div class="form-group mt-3">
-                            <label for="id_observacion" class="font-weight-bold">
-                                <i class="fas fa-comment mr-1"></i>Observación:
-                            </label>
-                            {{ form.observacion }}
-                            <small class="form-text text-muted">
-                                {{ form.observacion.help_text }}
-                            </small>
-                            {% if form.observacion.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.observacion.errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
+                                <div class="d-grid gap-2">
+                                    {% if 'requerir_documentos' in available_actions %}
+                                        <button
+                                            type="submit"
+                                            class="btn btn-warning"
+                                            data-action="requerir_documentos"
+                                        >
+                                            <i class="fas fa-file-alt px-2"></i>Requerir Documentos
+                                        </button>
+                                    {% endif %}
+
+                                    {% if 'en_diligencia' in available_actions %}
+                                        <button
+                                            type="submit"
+                                            class="btn btn-info"
+                                            data-action="en_diligencia"
+                                        >
+                                            <i class="fas fa-clock px-2"></i>Poner en Diligencia
+                                        </button>
+                                    {% endif %}
+
+                                    {% if 'cerrar' in available_actions %}
+                                        <a
+                                            href="{% url 'tramites:cerrar-tramite' pk=tramite.pk %}?next={{ request.path }}"
+                                            class="btn btn-danger"
+                                        >
+                                            <i class="fas fa-times-circle px-2"></i>Cerrar Trámite
+                                        </a>
+                                    {% endif %}
+                                </div>
+
+                                {% if 'requerir_documentos' in available_actions or 'en_diligencia' in available_actions %}
+                                    <div class="form-group mt-3">
+                                        <label for="id_observacion" class="font-weight-bold">
+                                            <i class="fas fa-comment mr-1"></i>Observación:
+                                        </label>
+                                        {{ form.observacion }}
+                                        <small class="form-text text-muted">
+                                            {{ form.observacion.help_text }}
+                                        </small>
+                                        {% if form.observacion.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {% for error in form.observacion.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </form>
                         </div>
-                        {% endif %}
-                    </form>
-                </div>
-            </section>
-            {% endif %}
-
+                    </section>
+                {% endif %}
+            </div>
         </div>
     </div>
-</div>
 {% endblock %}
 
 {% block extrajs %}
-<script src="{% static 'admin/js/tramite_actions.js' %}" defer></script>
+    <script src="{% static 'admin/js/tramite_actions.js' %}" defer></script>
 {% endblock %}

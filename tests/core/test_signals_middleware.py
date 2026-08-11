@@ -42,7 +42,9 @@ class TestCacheUserRolesMiddleware:
     def test_authenticated_user_gets_roles_cached(self, middleware, factory, db):
         """Authenticated user: request.user.roles is a set of group names."""
         user = User.objects.create_user(
-            username='mw_user', password='testpass123', is_staff=True,
+            username='mw_user',
+            password='testpass123',
+            is_staff=True,
         )
         group = Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0]
         user.groups.add(group)
@@ -60,7 +62,9 @@ class TestCacheUserRolesMiddleware:
     def test_user_with_multiple_roles(self, middleware, factory, db):
         """User in multiple groups: all group names appear in roles."""
         user = User.objects.create_user(
-            username='mw_multi', password='testpass123', is_staff=True,
+            username='mw_multi',
+            password='testpass123',
+            is_staff=True,
         )
         g1 = Group.objects.get_or_create(name=BackOfficeRole.COORDINADOR)[0]
         g2 = Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0]
@@ -79,7 +83,8 @@ class TestCacheUserRolesMiddleware:
     def test_user_with_no_groups_gets_empty_set(self, middleware, factory, db):
         """User with no groups: roles is an empty set."""
         user = User.objects.create_user(
-            username='mw_nogroup', password='testpass123',
+            username='mw_nogroup',
+            password='testpass123',
         )
 
         request = factory.get('/')
@@ -114,7 +119,8 @@ class TestCacheUserRolesMiddleware:
     def test_middleware_calls_get_response(self, middleware, factory, db):
         """Middleware always calls get_response and returns its result."""
         user = User.objects.create_user(
-            username='mw_simple', password='testpass123',
+            username='mw_simple',
+            password='testpass123',
         )
         request = factory.get('/')
         request.user = user

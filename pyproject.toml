@@ -23,47 +23,53 @@ dev = [
     "pytest-factoryboy>=2.8.1",
     "pytest-cov>=6.0.0",
     "ruff>=0.15.2",
+    "django-stubs[compatible-mypy]>=6.0.9",
+    "ty>=0.0.69",
 ]
 
 # =============================================================================
-# Ruff Configuration
+# Tooling configuration
 # =============================================================================
 [tool.ruff]
 target-version = "py314"
 line-length = 100
+src = ["sanfelipe", "core", "tests", "tramites"]
+exclude = ["**/migrations/*.py"]
 
 [tool.ruff.lint]
 # Enable these rule sets for Django projects
 select = [
+    "ARG",   # flake8-unused-arguments
+    "ASYNC", # flake8-async
+    "B",     # flake8-bugbear
+    "BLE",   # flake8-blind-except
+    "C4",    # flake8-comprehensions
+    "DJ",    # flake8-django
+    "DTZ",   # flake8-datetimez (Timezone safety)
     "E",     # pycodestyle errors
-    "W",     # pycodestyle warnings
     "F",     # pyflakes
     "I",     # isort
-    "B",     # flake8-bugbear
-    "C4",    # flake8-comprehensions
-    "UP",    # pyupgrade
-    "ASYNC", # flake8-async
-    "PIE",   # flake8-pie
-    "T20",   # flake8-print
-    "RSE",   # flake8-raise
-    "RET",   # flake8-return
-    "SIM",   # flake8-simplify
-    "PTH",   #7 flake8-use-pathlib
-    "PGH",   # pygrep-hooks
-    "PL",    # pylint
     "PERF",  # perflint
+    "PGH",   # pygrep-hooks
+    "PT",    # flake8-pytest-style-pt specific for pytest
+    "PIE",   # flake8-pie
+    "PL",    # pylint
+    "PTH",   # flake8-use-pathlib
+    "RET",   # flake8-return
+    "RSE",   # flake8-raise
     "RUF",   # ruff-specific rules
+    "S",     # flake8-bandit (Security)
+    "SIM",   # flake8-simplify
+    "T20",   # flake8-print
+    "TID",   # flake8-tidy-imports (Absolute imports)
+    "UP",    # pyupgrade
+    "W",     # pycodestyle warnings
 ]
 
 ignore = [
-    # Django often uses lowercase models
     "PLR2004",  # Magic value comparison
-    # Allow _ in __init__.py for imports
-    "RUF100",   # Unused noqa directive
-    # Allow __init__.py to be empty sometimes
-    "PLR2004",
-    # Complex comprehensions can be readable
-    "C416",
+    "C416",     # Complex comprehensions can be readable
+    "PT003"
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -96,17 +102,62 @@ root = [
     "./tests"
 ]
 
+[tool.ty.analysis]
+replace-imports-with-any = [
+    "allauth.**",
+    "unfold.**",
+    "import_export.**",
+    "django_ratelimit.**",
+    "environ.**",
+    "tablib.**",
+]
 
 [tool.pyright]
 exclude = [
-    "**/node_modules", "**/__pycache__", "**/.*", 
+    "**/node_modules", "**/__pycache__", "**/.*",
     "db/", "docker/", "fixtures/",
-    "htmlcov", "logs", "media", "nginx", 
+    "htmlcov", "logs", "media", "nginx",
     "static", "staticfiles", "templates"
 ]
 venvPath = "."
 venv = ".venv"
 pythonVersion = "3.14"
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "sanfelipe.settings"
+
+[tool.djangofmt]
+# Django template formatter (https://github.com/UnknownPlatypus/djangofmt)
+line-length = 120
+indent-width = 4
+profile = "django"
+html-void-self-closing = "never"
+
+[tool.mdformat]
+wrap = 80
+number = true
+end_of_line = "lf"
+exclude = [
+    ".venv/**",
+    ".agents/**",
+    ".claude/**",
+    ".github/**",
+    ".opencode/**",
+    ".pi/**",
+    ".pytest_cache/**",
+    ".ruff_cache/**",
+    "__pycache__/**",
+    "**/node_modules/**",
+
+    # exclude all .txt files
+    "**/*.txt",
+
+    # exclude all files that are not suffixed .md
+    "**/?", "**/??", "**/???", "**/*[!.]??", "**/*[!m]?", "**/*[!d]",
+]
 
 # =============================================================================
 # Pytest Configuration

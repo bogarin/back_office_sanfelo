@@ -163,7 +163,9 @@ def assign_role_custom_permissions(group: Group, role: BackOfficeRole) -> None:
     group.permissions.add(*permissions)
     logger.info(
         'Assigned %d custom permissions to %s group: %s',
-        len(permissions), role, ', '.join(role_perms),
+        len(permissions),
+        role,
+        ', '.join(role_perms),
     )
 
 
@@ -200,7 +202,9 @@ def setup_administrador() -> Group:
         logger.info(
             'Configured %s group with %d standard permissions '
             'for apps: %s and custom Jazzmin sidebar permissions',
-            group_name, len(permissions), ', '.join(ADMINISTRADOR_APPS),
+            group_name,
+            len(permissions),
+            ', '.join(ADMINISTRADOR_APPS),
         )
 
         return admin_group
@@ -287,7 +291,9 @@ def setup_all_roles() -> tuple[Group, Group, Group]:
 
     logger.info(
         'Configured all roles: %s, %s, %s',
-        admin_group.name, coordinador_group.name, analista_group.name,
+        admin_group.name,
+        coordinador_group.name,
+        analista_group.name,
     )
 
     return admin_group, coordinador_group, analista_group

@@ -651,9 +651,7 @@ def test_download_view_returns_404_for_missing_tramite(mock_log, mock_serve, adm
     mock get_object_or_404 to avoid the missing table error.
     """
     with patch('tramites.views.get_object_or_404', side_effect=Http404):
-        url = reverse(
-            'tramites:download-pdf', kwargs={'pk': 99999, 'filename': VALID_FILENAME}
-        )
+        url = reverse('tramites:download-pdf', kwargs={'pk': 99999, 'filename': VALID_FILENAME})
         response = admin_client.get(url)
 
     mock_serve.assert_not_called()

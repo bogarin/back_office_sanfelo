@@ -109,82 +109,102 @@ class TestCerrarTramiteForm:
     # -- estatus_cierre field --
 
     def test_valid_with_por_recoger(self):
-        form = CerrarTramiteForm(data={
-            'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
-            'observacion': 'Trámite listo para entrega',
-        })
+        form = CerrarTramiteForm(
+            data={
+                'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
+                'observacion': 'Trámite listo para entrega',
+            }
+        )
         assert form.is_valid()
 
     def test_valid_with_rechazado(self):
-        form = CerrarTramiteForm(data={
-            'estatus_cierre': TramiteEstatus.Estatus.RECHAZADO,
-            'observacion': 'Documentación incompleta',
-        })
+        form = CerrarTramiteForm(
+            data={
+                'estatus_cierre': TramiteEstatus.Estatus.RECHAZADO,
+                'observacion': 'Documentación incompleta',
+            }
+        )
         assert form.is_valid()
 
     def test_valid_with_cancelado(self):
-        form = CerrarTramiteForm(data={
-            'estatus_cierre': TramiteEstatus.Estatus.CANCELADO,
-            'observacion': 'Solicitante desistió',
-        })
+        form = CerrarTramiteForm(
+            data={
+                'estatus_cierre': TramiteEstatus.Estatus.CANCELADO,
+                'observacion': 'Solicitante desistió',
+            }
+        )
         assert form.is_valid()
 
     def test_estatus_cierre_required(self):
-        form = CerrarTramiteForm(data={
-            'observacion': 'Motivo válido',
-        })
+        form = CerrarTramiteForm(
+            data={
+                'observacion': 'Motivo válido',
+            }
+        )
         assert not form.is_valid()
         assert 'estatus_cierre' in form.errors
 
     def test_estatus_cierre_invalid_value_rejected(self):
-        form = CerrarTramiteForm(data={
-            'estatus_cierre': 9999,
-            'observacion': 'Motivo válido',
-        })
+        form = CerrarTramiteForm(
+            data={
+                'estatus_cierre': 9999,
+                'observacion': 'Motivo válido',
+            }
+        )
         assert not form.is_valid()
         assert 'estatus_cierre' in form.errors
 
     def test_estatus_cierre_active_status_rejected(self):
         """Active statuses (e.g. EN_REVISION) must not be accepted as cierre."""
-        form = CerrarTramiteForm(data={
-            'estatus_cierre': TramiteEstatus.Estatus.EN_REVISION,
-            'observacion': 'Motivo válido',
-        })
+        form = CerrarTramiteForm(
+            data={
+                'estatus_cierre': TramiteEstatus.Estatus.EN_REVISION,
+                'observacion': 'Motivo válido',
+            }
+        )
         assert not form.is_valid()
         assert 'estatus_cierre' in form.errors
 
     # -- observacion field --
 
     def test_observacion_required(self):
-        form = CerrarTramiteForm(data={
-            'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
-        })
+        form = CerrarTramiteForm(
+            data={
+                'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
+            }
+        )
         assert not form.is_valid()
         assert 'observacion' in form.errors
 
     def test_observacion_empty_string_rejected(self):
-        form = CerrarTramiteForm(data={
-            'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
-            'observacion': '',
-        })
+        form = CerrarTramiteForm(
+            data={
+                'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
+                'observacion': '',
+            }
+        )
         assert not form.is_valid()
         assert 'observacion' in form.errors
 
     def test_observacion_whitespace_only_rejected(self):
         """Whitespace-only observacion must be rejected (H-002-028)."""
-        form = CerrarTramiteForm(data={
-            'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
-            'observacion': '  \n\t  ',
-        })
+        form = CerrarTramiteForm(
+            data={
+                'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
+                'observacion': '  \n\t  ',
+            }
+        )
         assert not form.is_valid()
         assert 'observacion' in form.errors
 
     def test_observacion_strips_whitespace(self):
         """Valid content surrounded by whitespace is accepted and stripped."""
-        form = CerrarTramiteForm(data={
-            'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
-            'observacion': '  motivo válido  ',
-        })
+        form = CerrarTramiteForm(
+            data={
+                'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
+                'observacion': '  motivo válido  ',
+            }
+        )
         assert form.is_valid()
         assert form.cleaned_data['observacion'] == 'motivo válido'
 

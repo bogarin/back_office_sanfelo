@@ -78,51 +78,61 @@ class TestCustomUserAddForm:
     @pytest.mark.django_db
     def test_valid_data(self, db):
         """Form is valid with all required fields + role."""
-        form = CustomUserAddForm(data={
-            'username': 'newuser',
-            'password1': 'SecurePass123!',
-            'password2': 'SecurePass123!',
-            'role': BackOfficeRole.ANALISTA,
-        })
+        form = CustomUserAddForm(
+            data={
+                'username': 'newuser',
+                'password1': 'SecurePass123!',
+                'password2': 'SecurePass123!',
+                'role': BackOfficeRole.ANALISTA,
+            }
+        )
         assert form.is_valid(), form.errors
 
     @pytest.mark.django_db
     def test_duplicate_email_rejected(self, db):
         """clean_email rejects emails already in use."""
         User.objects.create_user(
-            username='existing', email='taken@example.com', password='pass123',
+            username='existing',
+            email='taken@example.com',
+            password='pass123',
         )
-        form = CustomUserAddForm(data={
-            'username': 'newuser',
-            'password1': 'SecurePass123!',
-            'password2': 'SecurePass123!',
-            'email': 'taken@example.com',
-            'role': BackOfficeRole.ANALISTA,
-        })
+        form = CustomUserAddForm(
+            data={
+                'username': 'newuser',
+                'password1': 'SecurePass123!',
+                'password2': 'SecurePass123!',
+                'email': 'taken@example.com',
+                'role': BackOfficeRole.ANALISTA,
+            }
+        )
         assert not form.is_valid()
         assert 'email' in form.errors
 
     @pytest.mark.django_db
     def test_unique_email_accepted(self, db):
         """clean_email accepts emails not yet in use."""
-        form = CustomUserAddForm(data={
-            'username': 'newuser',
-            'password1': 'SecurePass123!',
-            'password2': 'SecurePass123!',
-            'email': 'unique@example.com',
-            'role': BackOfficeRole.ANALISTA,
-        })
+        form = CustomUserAddForm(
+            data={
+                'username': 'newuser',
+                'password1': 'SecurePass123!',
+                'password2': 'SecurePass123!',
+                'email': 'unique@example.com',
+                'role': BackOfficeRole.ANALISTA,
+            }
+        )
         assert form.is_valid(), form.errors
 
     @pytest.mark.django_db
     def test_save_returns_user_without_commit(self, db):
         """save(commit=False) returns user without persisting."""
-        form = CustomUserAddForm(data={
-            'username': 'newuser',
-            'password1': 'SecurePass123!',
-            'password2': 'SecurePass123!',
-            'role': BackOfficeRole.ANALISTA,
-        })
+        form = CustomUserAddForm(
+            data={
+                'username': 'newuser',
+                'password1': 'SecurePass123!',
+                'password2': 'SecurePass123!',
+                'role': BackOfficeRole.ANALISTA,
+            }
+        )
         assert form.is_valid(), form.errors
         user = form.save(commit=False)
         assert isinstance(user, User)
@@ -141,7 +151,9 @@ class TestCustomUserChangeForm:
     def test_role_choices_include_empty(self, db):
         """Role field has 'Sin rol' empty option."""
         user = User.objects.create_user(
-            username='edituser', password='testpass123', is_staff=True,
+            username='edituser',
+            password='testpass123',
+            is_staff=True,
         )
         form = CustomUserChangeForm(instance=user)
         assert form.fields['role'].choices[0] == ('', 'Sin rol')
@@ -150,7 +162,9 @@ class TestCustomUserChangeForm:
     def test_role_choices_include_all_roles(self, db):
         """Role field includes all BackOfficeRole options."""
         user = User.objects.create_user(
-            username='edituser', password='testpass123', is_staff=True,
+            username='edituser',
+            password='testpass123',
+            is_staff=True,
         )
         form = CustomUserChangeForm(instance=user)
         role_values = [choice[0] for choice in form.fields['role'].choices]
@@ -161,7 +175,9 @@ class TestCustomUserChangeForm:
     def test_role_field_not_required(self, db):
         """Role field is optional on change form."""
         user = User.objects.create_user(
-            username='edituser', password='testpass123', is_staff=True,
+            username='edituser',
+            password='testpass123',
+            is_staff=True,
         )
         form = CustomUserChangeForm(instance=user)
         assert form.fields['role'].required is False
@@ -170,7 +186,9 @@ class TestCustomUserChangeForm:
     def test_username_disabled_on_existing_user(self, db):
         """Username field is disabled when editing existing user."""
         user = User.objects.create_user(
-            username='edituser', password='testpass123', is_staff=True,
+            username='edituser',
+            password='testpass123',
+            is_staff=True,
         )
         form = CustomUserChangeForm(instance=user)
         assert form.fields['username'].disabled is True
@@ -179,20 +197,26 @@ class TestCustomUserChangeForm:
     def test_password_uses_custom_widget(self, db):
         """Password field uses CustomReadOnlyPasswordHashWidget."""
         user = User.objects.create_user(
-            username='edituser', password='testpass123', is_staff=True,
+            username='edituser',
+            password='testpass123',
+            is_staff=True,
         )
         form = CustomUserChangeForm(instance=user)
         assert isinstance(
-            form.fields['password'].widget, CustomReadOnlyPasswordHashWidget,
+            form.fields['password'].widget,
+            CustomReadOnlyPasswordHashWidget,
         )
 
     @pytest.mark.django_db
     def test_analista_initial_role(self, db):
         """Analista user gets ANALISTA as initial role value."""
         user = User.objects.create_user(
-            username='edituser', password='testpass123', is_staff=True,
+            username='edituser',
+            password='testpass123',
+            is_staff=True,
         )
         from django.contrib.auth.models import Group
+
         user.groups.add(Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0])
 
         form = CustomUserChangeForm(instance=user)
@@ -202,9 +226,12 @@ class TestCustomUserChangeForm:
     def test_coordinador_initial_role(self, db):
         """Coordinador user gets COORDINADOR as initial role value."""
         user = User.objects.create_user(
-            username='edituser', password='testpass123', is_staff=True,
+            username='edituser',
+            password='testpass123',
+            is_staff=True,
         )
         from django.contrib.auth.models import Group
+
         user.groups.add(
             Group.objects.get_or_create(name=BackOfficeRole.COORDINADOR)[0],
         )
@@ -216,9 +243,12 @@ class TestCustomUserChangeForm:
     def test_administrador_initial_role(self, db):
         """Administrador user gets ADMINISTRADOR as initial role value."""
         user = User.objects.create_user(
-            username='edituser', password='testpass123', is_staff=True,
+            username='edituser',
+            password='testpass123',
+            is_staff=True,
         )
         from django.contrib.auth.models import Group
+
         user.groups.add(
             Group.objects.get_or_create(name=BackOfficeRole.ADMINISTRADOR)[0],
         )
@@ -230,7 +260,9 @@ class TestCustomUserChangeForm:
     def test_superuser_shows_superusuario_choice(self, db):
         """Superuser gets 'superusuario' as first role choice."""
         user = User.objects.create_superuser(
-            username='superuser', email='su@example.com', password='testpass123',
+            username='superuser',
+            email='su@example.com',
+            password='testpass123',
         )
         form = CustomUserChangeForm(instance=user)
         first_choice_value = form.fields['role'].choices[0][0]
@@ -240,7 +272,9 @@ class TestCustomUserChangeForm:
     def test_no_role_user_initial_empty(self, db):
         """User without role gets empty string as initial role."""
         user = User.objects.create_user(
-            username='norole', password='testpass123', is_staff=True,
+            username='norole',
+            password='testpass123',
+            is_staff=True,
         )
         form = CustomUserChangeForm(instance=user)
         assert form.fields['role'].initial == ''

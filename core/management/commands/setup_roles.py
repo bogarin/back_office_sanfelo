@@ -94,18 +94,12 @@ class Command(BaseCommand):
             user.save(update_fields=['is_staff'])
             fixed_count += 1
             self.stdout.write(
-                self.style.WARNING(
-                    f'  - Repaired is_staff for user: {user.username}'
-                )
+                self.style.WARNING(f'  - Repaired is_staff for user: {user.username}')
             )
 
         if fixed_count:
             self.stdout.write(
-                self.style.SUCCESS(
-                    f'  Repaired {fixed_count} user(s) with is_staff inconsistency.'
-                )
+                self.style.SUCCESS(f'  Repaired {fixed_count} user(s) with is_staff inconsistency.')
             )
         else:
-            self.stdout.write(
-                self.style.SUCCESS('  No is_staff inconsistencies found.')
-            )
+            self.stdout.write(self.style.SUCCESS('  No is_staff inconsistencies found.'))

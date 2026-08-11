@@ -28,9 +28,7 @@ class BackofficeError(Exception):
     argumentos originales para la bitácora.
     """
 
-    user_message: str = (
-        'Ocurrió un error inesperado. Por favor intenta nuevamente más tarde.'
-    )
+    user_message: str = 'Ocurrió un error inesperado. Por favor intenta nuevamente más tarde.'
 
     def __init__(self, *args: object, user_message: str | None = None) -> None:
         super().__init__(*args)
@@ -58,17 +56,14 @@ class TramiteNoAsignableError(BackofficeError):
 class EstadoNoPermitidoError(BackofficeError):
     """El trámite está en un estado que no permite la acción solicitada."""
 
-    user_message = (
-        'No es posible realizar esta acción en el estatus actual del trámite.'
-    )
+    user_message = 'No es posible realizar esta acción en el estatus actual del trámite.'
 
 
 class SFTPConnectionError(BackofficeError):
     """Error de conexión con el servidor de archivos."""
 
     user_message = (
-        'Error de conexión al servidor de archivos. '
-        'Contacta al administrador del sistema.'
+        'Error de conexión al servidor de archivos. Contacta al administrador del sistema.'
     )
 
     # TODO: __init__ acopla positional args a user_message, inconsistente con

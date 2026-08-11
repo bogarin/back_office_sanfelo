@@ -905,7 +905,9 @@ class TestTramiteRequerirDocumentos:
     """Test suite for Tramite.requerir_documentos() method."""
 
     @patch('tramites.models.Tramite.registrar_actividad')
-    def test_requerir_documentos_exitoso(self, mock_registrar, analista, tramite_en_revision_asignado):
+    def test_requerir_documentos_exitoso(
+        self, mock_registrar, analista, tramite_en_revision_asignado
+    ):
         """
         Happy path: Request documents successfully.
 

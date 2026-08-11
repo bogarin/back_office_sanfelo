@@ -3,19 +3,19 @@
 {% block title %}404 — Página no encontrada{% endblock %}
 
 {% block content %}
-<div class="error-page error-404">
-    <div class="error-code">404</div>
-    <div class="error-icon">
-        <i class="fas fa-search"></i>
+    <div class="error-page error-404">
+        <div class="error-code">404</div>
+        <div class="error-icon">
+            <i class="fas fa-search"></i>
+        </div>
+        <div class="error-title">Página no encontrada</div>
+        <div class="error-message">
+            La página que buscas no existe o fue movida.
+        </div>
+        <div class="error-action">
+            <a href="{% url 'admin:index' %}" class="btn btn-primary">
+                <i class="fas fa-home me-1"></i>Volver al inicio
+            </a>
+        </div>
     </div>
-    <div class="error-title">Página no encontrada</div>
-    <div class="error-message">
-        La página que buscas no existe o fue movida.
-    </div>
-    <div class="error-action">
-        <a href="{% url 'admin:index' %}" class="btn btn-primary">
-            <i class="fas fa-home me-1"></i>Volver al inicio
-        </a>
-    </div>
-</div>
 {% endblock %}

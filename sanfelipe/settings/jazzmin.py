@@ -100,11 +100,11 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
             },
         },
         'JAZZMIN_UI_TWEAKS': {
-            "theme": "united",
-            "default_theme_mode": "light",
-            "footer_small_text": True,
-            "brand_small_text": True,
-            "sidebar_nav_flat_style": True,
-            'brand_colour': 'green'
-        }
+            'theme': 'united',
+            'default_theme_mode': 'light',
+            'footer_small_text': True,
+            'brand_small_text': True,
+            'sidebar_nav_flat_style': True,
+            'brand_colour': 'green',
+        },
     }

@@ -228,4 +228,3 @@ def test_remove_role_cannot_login(superuser, admin_user, db):
     assert admin_user.is_active is True
 
     _assert_cannot_login('test_admin')
-

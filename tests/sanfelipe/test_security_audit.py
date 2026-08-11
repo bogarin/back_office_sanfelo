@@ -39,7 +39,9 @@ class TestSafeRedirectUrl:
         assert _safe_redirect_url('', '/safe/') == '/safe/'
 
     def test_returns_valid_relative_path(self):
-        assert _safe_redirect_url('/admin/tramites/1/change/', '/safe/') == '/admin/tramites/1/change/'
+        assert (
+            _safe_redirect_url('/admin/tramites/1/change/', '/safe/') == '/admin/tramites/1/change/'
+        )
 
     def test_returns_fallback_for_https_url(self):
         assert _safe_redirect_url('https://evil.com', '/safe/') == '/safe/'
@@ -209,9 +211,7 @@ class TestPathTraversalDefenseInDepth:
         # The fix replaced assert with if/raise
         # Make sure 'assert' is not present for the path traversal check
         lines_with_assert = [
-            line.strip()
-            for line in source.split('\n')
-            if 'assert' in line and '..' in line
+            line.strip() for line in source.split('\n') if 'assert' in line and '..' in line
         ]
         assert lines_with_assert == [], (
             f'Found assert in path traversal check (SEC-003 regression): {lines_with_assert}'
@@ -323,6 +323,7 @@ class TestModificarAsignacionErrorHandling:
         model_admin, request = _setup
 
         from tramites.models import Tramite
+
         queryset = Tramite.objects.none()
 
         response = model_admin.modificar_asignacion(request, queryset)

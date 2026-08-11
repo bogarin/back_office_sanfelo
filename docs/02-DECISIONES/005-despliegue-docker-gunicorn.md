@@ -1,6 +1,6 @@
 # 005: Despliegue con Docker y gunicorn
 
-**Fecha:** 26 de febrero de 2026  
+**Fecha:** 26 de febrero de 2026
 **Estado:** Accepted
 
 ## Contexto

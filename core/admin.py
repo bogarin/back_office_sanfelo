@@ -286,7 +286,7 @@ class BackofficeUserAdmin(UserAdmin):
 
     usuario.short_description = _('Usuario')
 
-    def usuario_estatus(self, obj:User) -> str:
+    def usuario_estatus(self, obj: User) -> str:
         return render_activo_badge(obj.is_active)
 
     def rol(self, obj) -> str:
@@ -320,14 +320,16 @@ class BackofficeUserAdmin(UserAdmin):
             raise PermissionDenied
         return super().user_change_password(request, id, form_url)
 
-    def acciones(self, obj:User) -> str:
+    def acciones(self, obj: User) -> str:
         """Quick action links for the user list.
 
         Only shows password change link for superusers if current user
         is also a superuser.
         """
         # Don't show password change link for superusers unless current user is also superuser
-        if obj.is_superuser and (not hasattr(self, '_request') or not self._request.user.is_superuser):
+        if obj.is_superuser and (
+            not hasattr(self, '_request') or not self._request.user.is_superuser
+        ):
             return '—'
         url = reverse('admin:core_user_password_change', args=[obj.pk])
         return render_quick_action('🔑 Cambiar contraseña', target=url)

@@ -81,9 +81,13 @@ class TestSaveModelAtomicity:
         )
         assert user.is_staff is False
 
-        form = type('MockForm', (), {
-            'cleaned_data': {'role': BackOfficeRole.ANALISTA},
-        })()
+        form = type(
+            'MockForm',
+            (),
+            {
+                'cleaned_data': {'role': BackOfficeRole.ANALISTA},
+            },
+        )()
         model_admin = _get_model_admin()
         request = _build_post_request(superuser)
 
@@ -119,9 +123,13 @@ class TestSaveModelAtomicity:
             is_staff=False,
         )
 
-        form = type('MockForm', (), {
-            'cleaned_data': {'role': BackOfficeRole.ANALISTA},
-        })()
+        form = type(
+            'MockForm',
+            (),
+            {
+                'cleaned_data': {'role': BackOfficeRole.ANALISTA},
+            },
+        )()
         model_admin = _get_model_admin()
         request = _build_post_request(superuser)
 
@@ -175,9 +183,12 @@ class TestAsignarRolAtomicity:
         original_user1_groups = set(user1.groups.values_list('name', flat=True))
 
         # Prepare request simulating the view's POST path
-        request = _build_post_request(superuser, data={
-            'role': BackOfficeRole.ANALISTA,
-        })
+        request = _build_post_request(
+            superuser,
+            data={
+                'role': BackOfficeRole.ANALISTA,
+            },
+        )
         request.session['selected_user_ids'] = [user1.pk, user2.pk]
 
         # Mock user.save() to fail on second call
@@ -193,6 +204,7 @@ class TestAsignarRolAtomicity:
 
         with patch.object(User, 'save', failing_save):
             from core.views import asignar_rol
+
             try:
                 asignar_rol(request)
             except Exception:
@@ -222,12 +234,16 @@ class TestAsignarRolAtomicity:
             is_staff=False,
         )
 
-        request = _build_post_request(superuser, data={
-            'role': BackOfficeRole.ANALISTA,
-        })
+        request = _build_post_request(
+            superuser,
+            data={
+                'role': BackOfficeRole.ANALISTA,
+            },
+        )
         request.session['selected_user_ids'] = [user.pk]
 
         from core.views import asignar_rol
+
         asignar_rol(request)
 
         user.refresh_from_db()
@@ -310,10 +326,13 @@ class TestModificarAsignacionAtomicity:
 
         queryset = [tramite1, tramite2]
 
-        request = _build_post_request(superuser, data={
-            'analista': str(analista.pk),
-            'observacion': 'Batch test',
-        })
+        request = _build_post_request(
+            superuser,
+            data={
+                'analista': str(analista.pk),
+                'observacion': 'Batch test',
+            },
+        )
 
         with patch.object(Tramite, 'asignar', asignar_with_failure):
             response = model_admin.modificar_asignacion(request, queryset)
@@ -323,10 +342,7 @@ class TestModificarAsignacionAtomicity:
 
         # Error should be in messages
         messages_list = list(request._messages)
-        error_msgs = [
-            str(m) for m in messages_list
-            if 'No se pudieron asignar' in str(m)
-        ]
+        error_msgs = [str(m) for m in messages_list if 'No se pudieron asignar' in str(m)]
         assert len(error_msgs) > 0, 'Batch failure should be reported in messages'
 
     def test_batch_assign_happy_path(self, superuser, db):
@@ -347,10 +363,13 @@ class TestModificarAsignacionAtomicity:
         # Use empty queryset — just verify no crash
         queryset = Tramite.objects.none()
 
-        request = _build_post_request(superuser, data={
-            'analista': str(analista.pk),
-            'observacion': 'Happy path test',
-        })
+        request = _build_post_request(
+            superuser,
+            data={
+                'analista': str(analista.pk),
+                'observacion': 'Happy path test',
+            },
+        )
 
         response = model_admin.modificar_asignacion(request, queryset)
         assert response.status_code == 302, 'Should redirect after successful batch'

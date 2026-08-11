@@ -18,7 +18,9 @@ def render_badge(text: str, badge_class: str) -> SafeString:
     Returns:
         Safe HTML string for the badge
     """
-    return format_html('<span class="badge {}">{}</span>', badge_class, text.replace('_', ' ').upper())
+    return format_html(
+        '<span class="badge {}">{}</span>', badge_class, text.replace('_', ' ').upper()
+    )
 
 
 def render_status_badge(estatus_id: int | None, estatus_text: str) -> SafeString:

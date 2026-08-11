@@ -86,18 +86,14 @@ def asignar_rol(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
 
         if role_choice not in BackOfficeRole:
             messages.error(request, 'Rol inválido.')
-            return HttpResponseRedirect(
-                reverse('admin:core_user_changelist')
-            )
+            return HttpResponseRedirect(reverse('admin:core_user_changelist'))
 
         # Assign role to selected users atomically
         count = 0
         with transaction.atomic():
             for user in users:
                 # Remove only RBAC role groups (preserve non-RBAC groups)
-                user.groups.remove(
-                    *user.groups.filter(name__in=list(BackOfficeRole))
-                )
+                user.groups.remove(*user.groups.filter(name__in=list(BackOfficeRole)))
                 user.is_superuser = False
 
                 # Any valid role grants admin access (consistent with save_model)
@@ -187,7 +183,9 @@ def test_rendering(request: HttpRequest) -> HttpResponse:
 # =============================================================================
 
 
-def custom_permission_denied(request: HttpRequest, exception: Exception | None = None) -> HttpResponse:
+def custom_permission_denied(
+    request: HttpRequest, exception: Exception | None = None
+) -> HttpResponse:
     """Custom 403 Permission Denied handler.
 
     Renders a styled error page instead of Django's default.

@@ -570,4 +570,3 @@ class CreateOnlyManager(models.Manager.from_queryset(CreateOnlyQuerySet)):  # ty
         >>> TransactionLog.objects.update(amount=200.00)
         RuntimeError: Cannot perform update operation...
     """
-

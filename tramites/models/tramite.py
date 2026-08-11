@@ -60,11 +60,13 @@ def _get_disabled_transitions() -> set[int]:
     return {int(x) for x in getattr(django_settings, 'DISABLED_TRANSITIONS', [])}
 
 
-_CERRAR_DESTINATIONS = frozenset({
-    TramiteEstatus.Estatus.POR_RECOGER,
-    TramiteEstatus.Estatus.RECHAZADO,
-    TramiteEstatus.Estatus.CANCELADO,
-})
+_CERRAR_DESTINATIONS = frozenset(
+    {
+        TramiteEstatus.Estatus.POR_RECOGER,
+        TramiteEstatus.Estatus.RECHAZADO,
+        TramiteEstatus.Estatus.CANCELADO,
+    }
+)
 
 
 def _append_cerrar_if_available(

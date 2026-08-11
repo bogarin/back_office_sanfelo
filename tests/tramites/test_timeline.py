@@ -45,11 +45,11 @@ def test_validate_filename_act_pattern_accepted(filename):
 @pytest.mark.parametrize(
     'filename',
     [
-        'ACT-abc-2026-04-30T02-54-49.pdf',      # non-numeric actividad_id
-        'ACT-145-2026-04-30.pdf',                # missing timestamp
-        'ACT--145-2026-04-30T02-54-49.pdf',      # negative actividad_id
-        'ACT-145-2026-04-30T02-54-49',           # missing .pdf extension
-        'ACT-145-2026-04-30T02-54-49.txt',       # wrong extension
+        'ACT-abc-2026-04-30T02-54-49.pdf',  # non-numeric actividad_id
+        'ACT-145-2026-04-30.pdf',  # missing timestamp
+        'ACT--145-2026-04-30T02-54-49.pdf',  # negative actividad_id
+        'ACT-145-2026-04-30T02-54-49',  # missing .pdf extension
+        'ACT-145-2026-04-30T02-54-49.txt',  # wrong extension
     ],
 )
 def test_validate_filename_act_pattern_rejected_invalid(filename):
@@ -80,8 +80,8 @@ def test_validate_filename_act_backslash_rejected():
 @pytest.mark.parametrize(
     'filename',
     [
-        'DAU-260420-AAAE-B-19.pdf',          # requisito file
-        'ACT-145-2026-04-30T02-54-49.pdf',   # actividad file
+        'DAU-260420-AAAE-B-19.pdf',  # requisito file
+        'ACT-145-2026-04-30T02-54-49.pdf',  # actividad file
     ],
 )
 def test_validate_filename_both_schemas_accepted(filename):
@@ -105,11 +105,11 @@ def test_actividad_regex_parses_valid_filename():
 @pytest.mark.parametrize(
     'filename',
     [
-        'DAU-260420-AAAE-B-19.pdf',       # requisito pattern, not ACT
-        'ACT-145.pdf',                     # missing timestamp
-        'act-145-2026-04-30T02-54-49.pdf', # lowercase
-        '',                                 # empty
-        'random-file.pdf',                  # unrelated
+        'DAU-260420-AAAE-B-19.pdf',  # requisito pattern, not ACT
+        'ACT-145.pdf',  # missing timestamp
+        'act-145-2026-04-30T02-54-49.pdf',  # lowercase
+        '',  # empty
+        'random-file.pdf',  # unrelated
     ],
 )
 def test_actividad_regex_rejects_non_matching(filename):
@@ -143,9 +143,13 @@ def test_fetch_actividad_files_returns_files(mock_get_client, mock_close):
     mock_get_client.return_value = mock_client
 
     with (
-        patch.object(SFTPService, '_list_files_for_tramite', return_value=[
-            ('ACT-145-2026-04-30T02-54-49.pdf', 1.0),
-        ]),
+        patch.object(
+            SFTPService,
+            '_list_files_for_tramite',
+            return_value=[
+                ('ACT-145-2026-04-30T02-54-49.pdf', 1.0),
+            ],
+        ),
         patch('tramites.sftp.Actividades') as mock_act_model,
         patch.object(SFTPService, '_check_file_count_warning', return_value=None),
         override_settings(SFTP_BASE_DIR='/remote/pdfs'),
@@ -190,11 +194,15 @@ def test_fetch_actividad_files_empty_directory(mock_get_client, mock_close):
 def test_fetch_actividad_files_filters_non_act(mock_get_client, mock_close):
     """Only ACT-*.pdf files are included; DAU-*.pdf and others are excluded."""
     with (
-        patch.object(SFTPService, '_list_files_for_tramite', return_value=[
-            ('ACT-145-2026-04-30T02-54-49.pdf', 1.0),
-            ('DAU-260420-AAAE-B-19.pdf', 0.5),       # requisito file — excluded
-            ('random-notes.txt', 0.1),                 # unrelated — excluded
-        ]),
+        patch.object(
+            SFTPService,
+            '_list_files_for_tramite',
+            return_value=[
+                ('ACT-145-2026-04-30T02-54-49.pdf', 1.0),
+                ('DAU-260420-AAAE-B-19.pdf', 0.5),  # requisito file — excluded
+                ('random-notes.txt', 0.1),  # unrelated — excluded
+            ],
+        ),
         patch('tramites.sftp.Actividades') as mock_act_model,
         patch.object(SFTPService, '_check_file_count_warning', return_value=None),
         override_settings(SFTP_BASE_DIR='/remote/pdfs'),
@@ -209,12 +217,14 @@ def test_fetch_actividad_files_filters_non_act(mock_get_client, mock_close):
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
 def test_fetch_actividad_files_sftp_error_closes_connection(
-    mock_get_client, mock_close,
+    mock_get_client,
+    mock_close,
 ):
     """Connection is closed even on SFTP error."""
     with (
         patch.object(
-            SFTPService, '_list_files_for_tramite',
+            SFTPService,
+            '_list_files_for_tramite',
             side_effect=SFTPConnectionError('connection failed'),
         ),
         pytest.raises(SFTPConnectionError, match='connection failed'),
@@ -229,11 +239,15 @@ def test_fetch_actividad_files_sftp_error_closes_connection(
 def test_fetch_actividad_files_sorts_by_timestamp_desc(mock_get_client, mock_close):
     """Files are sorted by timestamp descending (most recent first)."""
     with (
-        patch.object(SFTPService, '_list_files_for_tramite', return_value=[
-            ('ACT-100-2026-04-30T10-00-00.pdf', 1.0),
-            ('ACT-100-2026-04-30T08-00-00.pdf', 0.5),
-            ('ACT-100-2026-04-30T12-00-00.pdf', 2.0),
-        ]),
+        patch.object(
+            SFTPService,
+            '_list_files_for_tramite',
+            return_value=[
+                ('ACT-100-2026-04-30T10-00-00.pdf', 1.0),
+                ('ACT-100-2026-04-30T08-00-00.pdf', 0.5),
+                ('ACT-100-2026-04-30T12-00-00.pdf', 2.0),
+            ],
+        ),
         patch('tramites.sftp.Actividades') as mock_act_model,
         patch.object(SFTPService, '_check_file_count_warning', return_value=None),
         override_settings(SFTP_BASE_DIR='/remote/pdfs'),
@@ -499,10 +513,12 @@ from tramites.timeline import build_timeline_entries
 def test_timeline_building_requerimiento_gets_act_files():
     """ACT files are attached only to REQUERIMIENTO/SUBSANADO entries."""
     act_req = _make_actividad_mock(
-        estatus_id=TramiteEstatus.Estatus.REQUERIMIENTO, actividad_id=145,
+        estatus_id=TramiteEstatus.Estatus.REQUERIMIENTO,
+        actividad_id=145,
     )
     act_review = _make_actividad_mock(
-        estatus_id=TramiteEstatus.Estatus.EN_REVISION, actividad_id=144,
+        estatus_id=TramiteEstatus.Estatus.EN_REVISION,
+        actividad_id=144,
     )
     historial = [act_req, act_review]
 
@@ -527,7 +543,8 @@ def test_timeline_building_requerimiento_gets_act_files():
 def test_timeline_building_subsanado_gets_act_files():
     """SUBSANADO entries also receive ACT files."""
     act_sub = _make_actividad_mock(
-        estatus_id=TramiteEstatus.Estatus.SUBSANADO, actividad_id=150,
+        estatus_id=TramiteEstatus.Estatus.SUBSANADO,
+        actividad_id=150,
     )
     historial = [act_sub]
 
@@ -547,10 +564,12 @@ def test_timeline_building_subsanado_gets_act_files():
 def test_timeline_building_requisitos_only_on_first_pendiente_pago():
     """Requisito files are attached ONLY to the first PENDIENTE_PAGO activity."""
     act_pago = _make_actividad_mock(
-        estatus_id=TramiteEstatus.Estatus.PENDIENTE_PAGO, actividad_id=100,
+        estatus_id=TramiteEstatus.Estatus.PENDIENTE_PAGO,
+        actividad_id=100,
     )
     act_review = _make_actividad_mock(
-        estatus_id=TramiteEstatus.Estatus.EN_REVISION, actividad_id=101,
+        estatus_id=TramiteEstatus.Estatus.EN_REVISION,
+        actividad_id=101,
     )
     # historial is -timestamp order, so reversed() gives chronological
     historial = [act_review, act_pago]
@@ -576,7 +595,8 @@ def test_timeline_building_requisitos_only_on_first_pendiente_pago():
 def test_timeline_building_no_pendiente_pago_no_requisitos():
     """When no PENDIENTE_PAGO exists, no entry gets requisito files."""
     act_review = _make_actividad_mock(
-        estatus_id=TramiteEstatus.Estatus.EN_REVISION, actividad_id=101,
+        estatus_id=TramiteEstatus.Estatus.EN_REVISION,
+        actividad_id=101,
     )
     historial = [act_review]
 
@@ -634,7 +654,8 @@ def test_timeline_building_empty_historial():
 def test_timeline_building_multiple_act_files_per_actividad():
     """Multiple ACT files for same actividad_id are all attached."""
     act = _make_actividad_mock(
-        estatus_id=TramiteEstatus.Estatus.REQUERIMIENTO, actividad_id=145,
+        estatus_id=TramiteEstatus.Estatus.REQUERIMIENTO,
+        actividad_id=145,
     )
     historial = [act]
 

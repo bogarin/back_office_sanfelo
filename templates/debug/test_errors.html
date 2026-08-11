@@ -4,105 +4,105 @@
 {% block title %}Test — Plantillas de Error{% endblock %}
 
 {% block content %}
-<style>
-    .error-test-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.5rem;
-        margin-top: 1.5rem;
-    }
-    .error-test-card {
-        border: 1px solid var(--bs-border-color);
-        border-radius: var(--bs-border-radius-lg);
-        padding: 1.5rem;
-        text-align: center;
-        transition: box-shadow 0.2s ease, transform 0.2s ease;
-    }
-    .error-test-card:hover {
-        box-shadow: var(--bs-box-shadow);
-        transform: translateY(-2px);
-    }
-    .error-test-card .card-code {
-        font-size: 3rem;
-        font-weight: 800;
-        line-height: 1;
-        margin-bottom: 0.5rem;
-    }
-    .error-test-card .card-title {
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-    }
-    .error-test-card .card-desc {
-        font-size: 0.85rem;
-        color: var(--bs-secondary-color);
-        margin-bottom: 1rem;
-    }
-    .error-test-card .card-icon {
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
-    }
-</style>
+    <style>
+        .error-test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            margin-top: 1.5rem;
+            gap: 1.5rem;
+        }
+        .error-test-card {
+            padding: 1.5rem;
+            border: 1px solid var(--bs-border-color);
+            border-radius: var(--bs-border-radius-lg);
+            text-align: center;
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        .error-test-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--bs-box-shadow);
+        }
+        .error-test-card .card-code {
+            margin-bottom: 0.5rem;
+            font-weight: 800;
+            font-size: 3rem;
+            line-height: 1;
+        }
+        .error-test-card .card-title {
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .error-test-card .card-desc {
+            margin-bottom: 1rem;
+            color: var(--bs-secondary-color);
+            font-size: 0.85rem;
+        }
+        .error-test-card .card-icon {
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+    </style>
 
-<div id="content-main">
-    <h2>Plantillas de Error — Vista previa</h2>
-    <p class="text-muted">
-        Haz clic en cada tarjeta para ver la plantilla de error correspondiente.
-        Usa el botón "Atrás" del navegador para regresar.
-    </p>
+    <div id="content-main">
+        <h2>Plantillas de Error — Vista previa</h2>
+        <p class="text-muted">
+            Haz clic en cada tarjeta para ver la plantilla de error correspondiente. Usa el botón "Atrás" del
+            navegador para regresar.
+        </p>
 
-    <div class="error-test-grid">
-        <!-- 403 Permission Denied -->
-        <div class="error-test-card">
-            <div class="card-icon" style="color: var(--bs-warning);">
-                <i class="fas fa-lock"></i>
+        <div class="error-test-grid">
+            <!-- 403 Permission Denied -->
+            <div class="error-test-card">
+                <div class="card-icon" style="color: var(--bs-warning)">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="card-code" style="color: var(--bs-warning)">403</div>
+                <div class="card-title">Acceso denegado</div>
+                <div class="card-desc">Sin permisos para acceder a la página.</div>
+                <a href="?error=403" class="btn btn-primary btn-sm">
+                    <i class="fas fa-eye me-1"></i>Preview
+                </a>
             </div>
-            <div class="card-code" style="color: var(--bs-warning);">403</div>
-            <div class="card-title">Acceso denegado</div>
-            <div class="card-desc">Sin permisos para acceder a la página.</div>
-            <a href="?error=403" class="btn btn-primary btn-sm">
-                <i class="fas fa-eye me-1"></i>Preview
-            </a>
-        </div>
 
-        <!-- 403 CSRF Failure -->
-        <div class="error-test-card">
-            <div class="card-icon" style="color: var(--bs-danger);">
-                <i class="fas fa-shield-alt"></i>
+            <!-- 403 CSRF Failure -->
+            <div class="error-test-card">
+                <div class="card-icon" style="color: var(--bs-danger)">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="card-code" style="color: var(--bs-danger)">403</div>
+                <div class="card-title">CSRF Failure</div>
+                <div class="card-desc">Token de seguridad inválido o sesión expirada.</div>
+                <a href="?error=403_csrf" class="btn btn-primary btn-sm">
+                    <i class="fas fa-eye me-1"></i>Preview
+                </a>
             </div>
-            <div class="card-code" style="color: var(--bs-danger);">403</div>
-            <div class="card-title">CSRF Failure</div>
-            <div class="card-desc">Token de seguridad inválido o sesión expirada.</div>
-            <a href="?error=403_csrf" class="btn btn-primary btn-sm">
-                <i class="fas fa-eye me-1"></i>Preview
-            </a>
-        </div>
 
-        <!-- 404 Not Found -->
-        <div class="error-test-card">
-            <div class="card-icon" style="color: var(--bs-info);">
-                <i class="fas fa-search"></i>
+            <!-- 404 Not Found -->
+            <div class="error-test-card">
+                <div class="card-icon" style="color: var(--bs-info)">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="card-code" style="color: var(--bs-info)">404</div>
+                <div class="card-title">Página no encontrada</div>
+                <div class="card-desc">La página no existe o fue movida.</div>
+                <a href="?error=404" class="btn btn-primary btn-sm">
+                    <i class="fas fa-eye me-1"></i>Preview
+                </a>
             </div>
-            <div class="card-code" style="color: var(--bs-info);">404</div>
-            <div class="card-title">Página no encontrada</div>
-            <div class="card-desc">La página no existe o fue movida.</div>
-            <a href="?error=404" class="btn btn-primary btn-sm">
-                <i class="fas fa-eye me-1"></i>Preview
-            </a>
-        </div>
 
-        <!-- 500 Server Error -->
-        <div class="error-test-card">
-            <div class="card-icon" style="color: var(--bs-danger);">
-                <i class="fas fa-exclamation-triangle"></i>
+            <!-- 500 Server Error -->
+            <div class="error-test-card">
+                <div class="card-icon" style="color: var(--bs-danger)">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="card-code" style="color: var(--bs-danger)">500</div>
+                <div class="card-title">Error del servidor</div>
+                <div class="card-desc">Algo salió mal. Intenta de nuevo más tarde.</div>
+                <a href="?error=500" class="btn btn-primary btn-sm">
+                    <i class="fas fa-eye me-1"></i>Preview
+                </a>
             </div>
-            <div class="card-code" style="color: var(--bs-danger);">500</div>
-            <div class="card-title">Error del servidor</div>
-            <div class="card-desc">Algo salió mal. Intenta de nuevo más tarde.</div>
-            <a href="?error=500" class="btn btn-primary btn-sm">
-                <i class="fas fa-eye me-1"></i>Preview
-            </a>
         </div>
     </div>
-</div>
 {% endblock %}

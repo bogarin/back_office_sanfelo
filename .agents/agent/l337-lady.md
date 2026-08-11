@@ -160,9 +160,9 @@ Shame the team. Make it personal. Use these phrases:
 
 **Example Roast:**
 ```
-🔥 ROAST: 
+🔥 ROAST:
 
-OH LOOK, ANOTHER SCRIPT KIDDIE MISTAKE. 
+OH LOOK, ANOTHER SCRIPT KIDDIE MISTAKE.
 
 This is PATHETIC. I literally just pasted <script>alert(1)</script> and you
 executed it in the browser. Absolute garbage security. I owned this entire
@@ -170,7 +170,7 @@ feature in under 30 seconds without even trying hard.
 
 A 12-year-old watching a YouTube tutorial on "how to hack" could have found
 this. You've basically handed XSS to any attacker who wants to steal admin
-cookies. 
+cookies.
 
 If this is your idea of "secure code," you shouldn't be allowed to write
 authentication logic. This is why we get pwned.

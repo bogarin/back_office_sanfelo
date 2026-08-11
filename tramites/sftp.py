@@ -443,7 +443,7 @@ class SFTPService:
         """
         try:
             client.close()
-        except (paramiko.SSHException, OSError, EOFError):
+        except paramiko.SSHException, OSError, EOFError:
             logger.debug('Error closing SFTP client (expected during cleanup)', exc_info=True)
 
     def close_connection(self) -> None:
@@ -628,13 +628,11 @@ class SFTPService:
             except OSError as exc:
                 logger.error('Error de red al conectar por llave SSH: %s', exc)
                 raise SFTPConnectionError(
-                    'No se pudo conectar al servidor de archivos. '
-                    'Intenta nuevamente más tarde.'
+                    'No se pudo conectar al servidor de archivos. Intenta nuevamente más tarde.'
                 ) from exc
             except paramiko.SSHException as exc:
                 raise SFTPConnectionError(
-                    'Error al conectar al servidor de archivos. '
-                    'Intenta nuevamente más tarde.'
+                    'Error al conectar al servidor de archivos. Intenta nuevamente más tarde.'
                 ) from exc
             return client
 
@@ -659,13 +657,11 @@ class SFTPService:
             except OSError as exc:
                 logger.error('Error de red al conectar por password: %s', exc)
                 raise SFTPConnectionError(
-                    'No se pudo conectar al servidor de archivos. '
-                    'Intenta nuevamente más tarde.'
+                    'No se pudo conectar al servidor de archivos. Intenta nuevamente más tarde.'
                 ) from exc
             except paramiko.SSHException as exc:
                 raise SFTPConnectionError(
-                    'Error al conectar al servidor de archivos. '
-                    'Intenta nuevamente más tarde.'
+                    'Error al conectar al servidor de archivos. Intenta nuevamente más tarde.'
                 ) from exc
             return client
 
@@ -752,7 +748,6 @@ class SFTPService:
             raise
         finally:
             service.close_connection()
-
 
     def _list_requisito_files(
         self,
@@ -860,12 +855,14 @@ class SFTPService:
                     continue
                 actividad_id = int(match.group('actividad_id'))
                 actividad_ids.add(actividad_id)
-                parsed.append((
-                    file_name,
-                    size_mb,
-                    actividad_id,
-                    match.group('timestamp'),
-                ))
+                parsed.append(
+                    (
+                        file_name,
+                        size_mb,
+                        actividad_id,
+                        match.group('timestamp'),
+                    )
+                )
 
             if not parsed:
                 return [], None

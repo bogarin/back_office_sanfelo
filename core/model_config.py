@@ -141,9 +141,9 @@ def register_model(
             allow_migrations=allow_migrations,
         )
         _model_registry[model_class] = config
-        _model_registry_by_label[
-            (model_class._meta.app_label, model_class._meta.model_name)
-        ] = config
+        _model_registry_by_label[(model_class._meta.app_label, model_class._meta.model_name)] = (
+            config
+        )
 
         # Return the original class unchanged (decorator pattern)
         return model_class

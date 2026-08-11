@@ -46,7 +46,9 @@ def test_setup_roles_idempotent(db):
                 codename__in=TRAMITES_CUSTOM_PERMISSIONS,
             ).values_list('codename', flat=True)
         )
-        assert actual_perms == expected_perms, f'{role.name}: expected {expected_perms}, got {actual_perms}'
+        assert actual_perms == expected_perms, (
+            f'{role.name}: expected {expected_perms}, got {actual_perms}'
+        )
 
 
 def test_setup_roles_preserves_all_custom_permissions(db):

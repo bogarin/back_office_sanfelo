@@ -61,9 +61,7 @@ class ErrorLoggingMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         return self.get_response(request)
 
-    def process_exception(
-        self, request: HttpRequest, exception: Exception
-    ) -> None:
+    def process_exception(self, request: HttpRequest, exception: Exception) -> None:
         """Log the exception with full request context.
 
         Returns ``None`` so Django continues to its default error handling.

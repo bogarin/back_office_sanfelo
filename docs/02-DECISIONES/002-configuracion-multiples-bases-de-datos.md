@@ -12,7 +12,7 @@ El microservicio requiere manejar dos bases de datos distintas:
 
 La configuración debe asegurar:
 - Que las aplicaciones de negocio usen PostgreSQL
-- Que Django admin y auth usen SQLite  
+- Que Django admin y auth usen SQLite
 - Que no se ejecuten migraciones en PostgreSQL (datos managed externamente)
 - Que se permitan relaciones dentro de cada BD pero no entre ellas
 

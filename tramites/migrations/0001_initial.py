@@ -4,11 +4,9 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
@@ -29,8 +27,18 @@ class Migration(migrations.Migration):
             name='Actividades',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('backoffice_user_id', models.IntegerField(blank=True, null=True, verbose_name='ID Usuario Backoffice')),
-                ('observacion', models.CharField(blank=True, max_length=255, null=True, verbose_name='Observación')),
+                (
+                    'backoffice_user_id',
+                    models.IntegerField(
+                        blank=True, null=True, verbose_name='ID Usuario Backoffice'
+                    ),
+                ),
+                (
+                    'observacion',
+                    models.CharField(
+                        blank=True, max_length=255, null=True, verbose_name='Observación'
+                    ),
+                ),
                 ('timestamp', models.DateTimeField(auto_now_add=True, verbose_name='Fecha/Hora')),
             ],
             options={
@@ -45,7 +53,12 @@ class Migration(migrations.Migration):
             name='Categoria',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('categoria', models.CharField(blank=True, max_length=120, null=True, verbose_name='Categoría')),
+                (
+                    'categoria',
+                    models.CharField(
+                        blank=True, max_length=120, null=True, verbose_name='Categoría'
+                    ),
+                ),
             ],
             options={
                 'verbose_name': 'Categoría',
@@ -59,19 +72,58 @@ class Migration(migrations.Migration):
             name='Perito',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('paterno', models.CharField(blank=True, max_length=30, null=True, verbose_name='Apellido Paterno')),
-                ('materno', models.CharField(blank=True, max_length=30, null=True, verbose_name='Apellido Materno')),
-                ('nombre', models.CharField(blank=True, max_length=90, null=True, verbose_name='Nombre')),
-                ('domicilio', models.CharField(blank=True, max_length=250, null=True, verbose_name='Domicilio')),
-                ('colonia', models.CharField(blank=True, max_length=120, null=True, verbose_name='Colonia')),
-                ('telefono', models.CharField(blank=True, max_length=16, null=True, verbose_name='Teléfono')),
-                ('celular', models.CharField(blank=True, max_length=16, null=True, verbose_name='Celular')),
-                ('correo', models.CharField(blank=True, max_length=255, null=True, verbose_name='Correo')),
-                ('revalidacion', models.DateField(blank=True, null=True, verbose_name='Revalidación')),
-                ('fecha_registro', models.DateField(blank=True, null=True, verbose_name='Fecha de Registro')),
+                (
+                    'paterno',
+                    models.CharField(
+                        blank=True, max_length=30, null=True, verbose_name='Apellido Paterno'
+                    ),
+                ),
+                (
+                    'materno',
+                    models.CharField(
+                        blank=True, max_length=30, null=True, verbose_name='Apellido Materno'
+                    ),
+                ),
+                (
+                    'nombre',
+                    models.CharField(blank=True, max_length=90, null=True, verbose_name='Nombre'),
+                ),
+                (
+                    'domicilio',
+                    models.CharField(
+                        blank=True, max_length=250, null=True, verbose_name='Domicilio'
+                    ),
+                ),
+                (
+                    'colonia',
+                    models.CharField(blank=True, max_length=120, null=True, verbose_name='Colonia'),
+                ),
+                (
+                    'telefono',
+                    models.CharField(blank=True, max_length=16, null=True, verbose_name='Teléfono'),
+                ),
+                (
+                    'celular',
+                    models.CharField(blank=True, max_length=16, null=True, verbose_name='Celular'),
+                ),
+                (
+                    'correo',
+                    models.CharField(blank=True, max_length=255, null=True, verbose_name='Correo'),
+                ),
+                (
+                    'revalidacion',
+                    models.DateField(blank=True, null=True, verbose_name='Revalidación'),
+                ),
+                (
+                    'fecha_registro',
+                    models.DateField(blank=True, null=True, verbose_name='Fecha de Registro'),
+                ),
                 ('rfc', models.CharField(blank=True, max_length=17, null=True, verbose_name='RFC')),
                 ('estatus', models.BooleanField(verbose_name='Estatus')),
-                ('cedula', models.CharField(blank=True, max_length=19, null=True, verbose_name='Cédula')),
+                (
+                    'cedula',
+                    models.CharField(blank=True, max_length=19, null=True, verbose_name='Cédula'),
+                ),
             ],
             options={
                 'verbose_name': 'Perito',
@@ -117,31 +169,147 @@ class Migration(migrations.Migration):
                 ('tramite_id', models.IntegerField()),
                 ('tramite_nombre', models.CharField(help_text='Tipo de trámite', max_length=255)),
                 ('tramite_categoria_id', models.IntegerField(blank=True, null=True)),
-                ('tramite_categoria_nombre', models.CharField(blank=True, help_text='Categoría', max_length=255, null=True)),
+                (
+                    'tramite_categoria_nombre',
+                    models.CharField(blank=True, help_text='Categoría', max_length=255, null=True),
+                ),
                 ('tramite_tipo_cobro_id', models.IntegerField(blank=True, null=True)),
-                ('tramite_tipo_cobro_nombre', models.CharField(blank=True, help_text='Tipo de cobro', max_length=100, null=True)),
-                ('clave_catastral', models.CharField(blank=True, help_text='Clave catastral', max_length=100, null=True)),
-                ('es_propietario', models.BooleanField(help_text='Indica si el solicitante es el propietario del inmueble')),
-                ('importe_total', models.DecimalField(blank=True, decimal_places=2, help_text='Importe total del trámite', max_digits=12, null=True)),
-                ('urgente', models.BooleanField(help_text='Indica si el trámite es urgente', verbose_name='Urgente')),
-                ('solicitante_nombre', models.CharField(blank=True, help_text='Nombre del solicitante', max_length=200, null=True)),
-                ('solicitante_telefono', models.CharField(blank=True, help_text='Teléfono del solicitante', max_length=20, null=True)),
-                ('solicitante_correo', models.CharField(blank=True, help_text='Correo del solicitante', max_length=100, null=True)),
-                ('solicitante_comentario', models.TextField(blank=True, help_text='Comentario del solicitante', null=True)),
+                (
+                    'tramite_tipo_cobro_nombre',
+                    models.CharField(
+                        blank=True, help_text='Tipo de cobro', max_length=100, null=True
+                    ),
+                ),
+                (
+                    'clave_catastral',
+                    models.CharField(
+                        blank=True, help_text='Clave catastral', max_length=100, null=True
+                    ),
+                ),
+                (
+                    'es_propietario',
+                    models.BooleanField(
+                        help_text='Indica si el solicitante es el propietario del inmueble'
+                    ),
+                ),
+                (
+                    'importe_total',
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=2,
+                        help_text='Importe total del trámite',
+                        max_digits=12,
+                        null=True,
+                    ),
+                ),
+                (
+                    'urgente',
+                    models.BooleanField(
+                        help_text='Indica si el trámite es urgente', verbose_name='Urgente'
+                    ),
+                ),
+                (
+                    'solicitante_nombre',
+                    models.CharField(
+                        blank=True, help_text='Nombre del solicitante', max_length=200, null=True
+                    ),
+                ),
+                (
+                    'solicitante_telefono',
+                    models.CharField(
+                        blank=True, help_text='Teléfono del solicitante', max_length=20, null=True
+                    ),
+                ),
+                (
+                    'solicitante_correo',
+                    models.CharField(
+                        blank=True, help_text='Correo del solicitante', max_length=100, null=True
+                    ),
+                ),
+                (
+                    'solicitante_comentario',
+                    models.TextField(blank=True, help_text='Comentario del solicitante', null=True),
+                ),
                 ('perito_id', models.IntegerField(blank=True, null=True)),
-                ('perito_nombre', models.CharField(blank=True, help_text='Nombre del perito', max_length=200, null=True)),
+                (
+                    'perito_nombre',
+                    models.CharField(
+                        blank=True, help_text='Nombre del perito', max_length=200, null=True
+                    ),
+                ),
                 ('ultima_actividad_estatus_id', models.IntegerField(blank=True, null=True)),
-                ('ultima_actividad_estatus', models.CharField(blank=True, help_text='Estado de la última actividad', max_length=100, null=True)),
-                ('ultima_actividad_responsable', models.CharField(blank=True, help_text='Responsable de la última actividad', max_length=100, null=True)),
-                ('ultima_actividad_descripcion', models.TextField(blank=True, help_text='Descripción de la última actividad', null=True)),
-                ('ultima_actividad_observacion', models.TextField(blank=True, help_text='Observación de la última actividad', null=True)),
+                (
+                    'ultima_actividad_estatus',
+                    models.CharField(
+                        blank=True,
+                        help_text='Estado de la última actividad',
+                        max_length=100,
+                        null=True,
+                    ),
+                ),
+                (
+                    'ultima_actividad_responsable',
+                    models.CharField(
+                        blank=True,
+                        help_text='Responsable de la última actividad',
+                        max_length=100,
+                        null=True,
+                    ),
+                ),
+                (
+                    'ultima_actividad_descripcion',
+                    models.TextField(
+                        blank=True, help_text='Descripción de la última actividad', null=True
+                    ),
+                ),
+                (
+                    'ultima_actividad_observacion',
+                    models.TextField(
+                        blank=True, help_text='Observación de la última actividad', null=True
+                    ),
+                ),
                 ('asignado_user_id', models.IntegerField(blank=True, null=True)),
-                ('asignado_username', models.CharField(blank=True, help_text='Nombre de usuario del analista asignado', max_length=150, null=True)),
-                ('asignado_nombre', models.CharField(blank=True, help_text='Nombre del analista asignado', max_length=150, null=True)),
+                (
+                    'asignado_username',
+                    models.CharField(
+                        blank=True,
+                        help_text='Nombre de usuario del analista asignado',
+                        max_length=150,
+                        null=True,
+                    ),
+                ),
+                (
+                    'asignado_nombre',
+                    models.CharField(
+                        blank=True,
+                        help_text='Nombre del analista asignado',
+                        max_length=150,
+                        null=True,
+                    ),
+                ),
                 ('asignado_group_id', models.IntegerField(blank=True, null=True)),
-                ('asignado_rol', models.CharField(blank=True, help_text='Rol del analista asignado', max_length=150, null=True)),
-                ('creado', models.DateTimeField(help_text='Fecha y hora de creación del trámite', verbose_name='Fecha de creación')),
-                ('actualizado', models.DateTimeField(blank=True, help_text='Fecha y hora de la última actualización del trámite', null=True, verbose_name='Fecha de actualización')),
+                (
+                    'asignado_rol',
+                    models.CharField(
+                        blank=True, help_text='Rol del analista asignado', max_length=150, null=True
+                    ),
+                ),
+                (
+                    'creado',
+                    models.DateTimeField(
+                        help_text='Fecha y hora de creación del trámite',
+                        verbose_name='Fecha de creación',
+                    ),
+                ),
+                (
+                    'actualizado',
+                    models.DateTimeField(
+                        blank=True,
+                        help_text='Fecha y hora de la última actualización del trámite',
+                        null=True,
+                        verbose_name='Fecha de actualización',
+                    ),
+                ),
             ],
             options={
                 'verbose_name': 'Lista de Trámites',
@@ -156,11 +324,34 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
                 ('nombre', models.CharField(max_length=255, verbose_name='Nombre')),
-                ('descripcion', models.CharField(blank=True, max_length=600, null=True, verbose_name='Descripción')),
-                ('area', models.CharField(blank=True, max_length=80, null=True, verbose_name='Área')),
-                ('respuesta_dias', models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True, verbose_name='Respuesta en Días')),
-                ('pago_inicial', models.BooleanField(blank=True, null=True, verbose_name='Pago Inicial')),
-                ('url', models.CharField(blank=True, max_length=512, null=True, verbose_name='URL')),
+                (
+                    'descripcion',
+                    models.CharField(
+                        blank=True, max_length=600, null=True, verbose_name='Descripción'
+                    ),
+                ),
+                (
+                    'area',
+                    models.CharField(blank=True, max_length=80, null=True, verbose_name='Área'),
+                ),
+                (
+                    'respuesta_dias',
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=2,
+                        max_digits=5,
+                        null=True,
+                        verbose_name='Respuesta en Días',
+                    ),
+                ),
+                (
+                    'pago_inicial',
+                    models.BooleanField(blank=True, null=True, verbose_name='Pago Inicial'),
+                ),
+                (
+                    'url',
+                    models.CharField(blank=True, max_length=512, null=True, verbose_name='URL'),
+                ),
                 ('activo', models.BooleanField(null=True, verbose_name='Activo')),
             ],
             options={
@@ -224,8 +415,18 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
                 ('estatus', models.CharField(max_length=30, verbose_name='Estatus')),
-                ('responsable', models.CharField(blank=True, max_length=64, null=True, verbose_name='Responsable')),
-                ('descripcion', models.CharField(blank=True, max_length=255, null=True, verbose_name='Descripción')),
+                (
+                    'responsable',
+                    models.CharField(
+                        blank=True, max_length=64, null=True, verbose_name='Responsable'
+                    ),
+                ),
+                (
+                    'descripcion',
+                    models.CharField(
+                        blank=True, max_length=255, null=True, verbose_name='Descripción'
+                    ),
+                ),
             ],
             options={
                 'verbose_name': 'Estatus de Trámite',
@@ -237,8 +438,7 @@ class Migration(migrations.Migration):
         ),
         migrations.CreateModel(
             name='Buzon',
-            fields=[
-            ],
+            fields=[],
             options={
                 'verbose_name': 'Mis trámites',
                 'verbose_name_plural': 'Buzón de trámites',
@@ -251,8 +451,7 @@ class Migration(migrations.Migration):
         ),
         migrations.CreateModel(
             name='Disponible',
-            fields=[
-            ],
+            fields=[],
             options={
                 'verbose_name': 'Trámite disponible para autoasignación',
                 'verbose_name_plural': 'Trámites disponibles',

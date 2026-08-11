@@ -38,8 +38,7 @@ def build_timeline_entries(
         files_by_act.setdefault(f.actividad_id, []).append(f)
 
     first_pendiente_pago = next(
-        (a for a in reversed(historial)
-         if a.estatus_id == TramiteEstatus.Estatus.PENDIENTE_PAGO),
+        (a for a in reversed(historial) if a.estatus_id == TramiteEstatus.Estatus.PENDIENTE_PAGO),
         None,
     )
 

@@ -1,6 +1,6 @@
 # 001: Selección de Stack Tecnológico Base
 
-**Fecha:** 26 de febrero de 2026  
+**Fecha:** 26 de febrero de 2026
 **Estado:** Aceptado
 
 ## Contexto
@@ -38,7 +38,7 @@ Se ha decidido utilizar el siguiente stack tecnológico:
 - **Developer experience**: Usaremos uv y justfile para eliminar fricción en el onboarding de nuevos desarrolladores
 - **Development tools**: Configuración de herramientas de calidad de código (ruff para linting, pyright para type checking) con grupos de dependencias separados (dev/prod)
 - **Deployment**: Construiremos imágenes de Docker configurables mediante envvars, con settings necesarios configurables en runtime y guardados en SQLite si es necesario
-- **Performance**: 
+- **Performance**:
   - Baseline de rendimiento: 50 usuarios simultáneos
   - Optimizaremos parámetros de SQLite para mejorar rendimiento
   - Usaremos módulos de cacheo de Django (incluso Redis si es necesario)

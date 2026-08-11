@@ -47,11 +47,13 @@ class BackOfficeRole(StrEnum):
 # Property names on the User model that represent RBAC role checks.
 # These are the ONLY strings that RoleCheckMixin.allowed_roles may contain.
 # Adding a new role property to User? Add it here too.
-VALID_ROLE_PROPERTIES: frozenset[str] = frozenset({
-    'is_administrador',
-    'is_coordinador',
-    'is_analista',
-})
+VALID_ROLE_PROPERTIES: frozenset[str] = frozenset(
+    {
+        'is_administrador',
+        'is_coordinador',
+        'is_analista',
+    }
+)
 
 
 # =============================================================================

@@ -85,12 +85,12 @@ def configure_security(env: Env) -> dict[str, Any]:
         # This is more secure than 'unsafe-inline' as it explicitly whitelists scripts
         'script-src': [CSP.SELF, CSP.UNSAFE_INLINE],
         # 'script-src': [
-            # CSP.NONE
-            # CSP.NONCE,    # para nuestros inline scripts con nonce
-            # CSP.SELF,     # para todos los .js estáticos (jQuery, Bootstrap, Jazzmin, admin)
-            # # hashes para los 2-3 inline scripts de Jazzmin
-            # 'sha256-nLEB6J7sxmSsTqwuB/NEyb2atpyjTdtHdfLxmsXvCP8=',
-            # 'sha256-F7GVayJMLy0KHikNUhjbBcBE0ax/V4knxuE9lJsuA6A=',
+        # CSP.NONE
+        # CSP.NONCE,    # para nuestros inline scripts con nonce
+        # CSP.SELF,     # para todos los .js estáticos (jQuery, Bootstrap, Jazzmin, admin)
+        # # hashes para los 2-3 inline scripts de Jazzmin
+        # 'sha256-nLEB6J7sxmSsTqwuB/NEyb2atpyjTdtHdfLxmsXvCP8=',
+        # 'sha256-F7GVayJMLy0KHikNUhjbBcBE0ax/V4knxuE9lJsuA6A=',
         # ],
         # Style sources: Allow styles from same origin and inline styles
         # Note: Django admin uses some inline styles, so UNSAFE_INLINE is needed

@@ -53,7 +53,7 @@ else:
 # =============================================================================
 
 LANGUAGE_CODE = 'es-mx'
-TIME_ZONE =  env('DJANGO_TIME_ZONE', default='America/Tijuana')
+TIME_ZONE = env('DJANGO_TIME_ZONE', default='America/Tijuana')
 
 USE_I18N = True
 USE_L10N = True
@@ -250,8 +250,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-
-
 # =============================================================================
 # STATIC FILES
 # =============================================================================
@@ -380,8 +378,7 @@ DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='noreply@sanfelipe
 ACTIVE_DEPARTMENT = env('ACTIVE_DEPARTMENT', default='DAU').strip().upper()
 if ACTIVE_DEPARTMENT not in {'DAU', 'SEC', 'TES'}:
     raise ImproperlyConfigured(
-        f"ACTIVE_DEPARTMENT must be one of {{'DAU', 'SEC', 'TES'}}, "
-        f"got '{ACTIVE_DEPARTMENT}'"
+        f"ACTIVE_DEPARTMENT must be one of {{'DAU', 'SEC', 'TES'}}, got '{ACTIVE_DEPARTMENT}'"
     )
 
 # =============================================================================

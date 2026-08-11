@@ -129,9 +129,7 @@ class TestTransitionsDict:
 
         for active in active_statuses:
             for target in close_targets:
-                assert (active, target) in TRANSITIONS, (
-                    f'Missing transition: {active} → {target}'
-                )
+                assert (active, target) in TRANSITIONS, f'Missing transition: {active} → {target}'
 
     def test_invalid_transition_not_in_dict(self):
         """Borrador → EN_REVISION is not a valid direct transition."""
@@ -215,7 +213,9 @@ class TestTramitePermissions:
     @pytest.fixture
     def superuser(self, db):
         return User.objects.create_superuser(
-            username='val_superuser', email='su@example.com', password='testpass123',
+            username='val_superuser',
+            email='su@example.com',
+            password='testpass123',
         )
 
     @pytest.fixture
@@ -225,8 +225,10 @@ class TestTramitePermissions:
         from core.rbac.constants import BackOfficeRole
 
         user = User.objects.create_user(
-            username='val_coordinador', email='coord@example.com',
-            password='testpass123', is_staff=True,
+            username='val_coordinador',
+            email='coord@example.com',
+            password='testpass123',
+            is_staff=True,
         )
         group = Group.objects.get_or_create(name=BackOfficeRole.COORDINADOR)[0]
         user.groups.add(group)
@@ -250,7 +252,9 @@ class TestTramitePermissions:
 
     def test_cannot_view_unassigned_analista(self, assigned_tramite, db):
         other = User.objects.create_user(
-            username='val_other_analista', password='testpass123', is_staff=True,
+            username='val_other_analista',
+            password='testpass123',
+            is_staff=True,
         )
         assert assigned_tramite.can_view(other) is False
 
@@ -273,7 +277,9 @@ class TestTramitePermissions:
 
     def test_cannot_execute_unassigned_analista(self, assigned_tramite, db):
         other = User.objects.create_user(
-            username='val_other', password='testpass123', is_staff=True,
+            username='val_other',
+            password='testpass123',
+            is_staff=True,
         )
         assert assigned_tramite.can_execute_action(other) is False
 
@@ -290,7 +296,9 @@ class TestAvailableActions:
     @pytest.fixture
     def superuser(self, db):
         return User.objects.create_superuser(
-            username='act_superuser', email='su@example.com', password='testpass123',
+            username='act_superuser',
+            email='su@example.com',
+            password='testpass123',
         )
 
     def test_en_revision_has_all_actions(self, tramite_en_revision, superuser):
@@ -321,7 +329,9 @@ class TestAvailableActions:
     def test_unassigned_user_no_actions(self, tramite_en_revision, db):
         """User not assigned to tramite gets no actions."""
         user = User.objects.create_user(
-            username='act_unassigned', password='testpass123', is_staff=True,
+            username='act_unassigned',
+            password='testpass123',
+            is_staff=True,
         )
         actions = tramite_en_revision.available_actions(user)
         assert actions == []

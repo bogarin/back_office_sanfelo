@@ -36,10 +36,7 @@ User = get_user_model()
 def setup_roles_run(db):
     """Run setup_roles and return the groups dict."""
     call_command('setup_roles', verbosity=0)
-    return {
-        role: Group.objects.get(name=role)
-        for role in BackOfficeRole
-    }
+    return {role: Group.objects.get(name=role) for role in BackOfficeRole}
 
 
 @pytest.fixture
@@ -107,9 +104,11 @@ def test_role_has_exactly_expected_permissions(setup_roles_run, role):
 def test_administrador_has_both_acceso_perms(setup_roles_run):
     """Administrador has both acceso_analista and acceso_coordinador."""
     group = setup_roles_run[BackOfficeRole.ADMINISTRADOR]
-    codenames = set(group.permissions.filter(
-        codename__in=TRAMITES_CUSTOM_PERMISSIONS,
-    ).values_list('codename', flat=True))
+    codenames = set(
+        group.permissions.filter(
+            codename__in=TRAMITES_CUSTOM_PERMISSIONS,
+        ).values_list('codename', flat=True)
+    )
 
     assert TramitePermission.ACCESO_ANALISTA in codenames
     assert TramitePermission.ACCESO_COORDINADOR in codenames
@@ -118,9 +117,11 @@ def test_administrador_has_both_acceso_perms(setup_roles_run):
 def test_coordinador_has_coordinador_perm_only(setup_roles_run):
     """Coordinador has acceso_coordinador but NOT acceso_analista."""
     group = setup_roles_run[BackOfficeRole.COORDINADOR]
-    codenames = set(group.permissions.filter(
-        codename__in=TRAMITES_CUSTOM_PERMISSIONS,
-    ).values_list('codename', flat=True))
+    codenames = set(
+        group.permissions.filter(
+            codename__in=TRAMITES_CUSTOM_PERMISSIONS,
+        ).values_list('codename', flat=True)
+    )
 
     assert TramitePermission.ACCESO_COORDINADOR in codenames
     assert TramitePermission.ACCESO_ANALISTA not in codenames
@@ -129,9 +130,11 @@ def test_coordinador_has_coordinador_perm_only(setup_roles_run):
 def test_analista_has_analista_perm_only(setup_roles_run):
     """Analista has acceso_analista but NOT acceso_coordinador."""
     group = setup_roles_run[BackOfficeRole.ANALISTA]
-    codenames = set(group.permissions.filter(
-        codename__in=TRAMITES_CUSTOM_PERMISSIONS,
-    ).values_list('codename', flat=True))
+    codenames = set(
+        group.permissions.filter(
+            codename__in=TRAMITES_CUSTOM_PERMISSIONS,
+        ).values_list('codename', flat=True)
+    )
 
     assert TramitePermission.ACCESO_ANALISTA in codenames
     assert TramitePermission.ACCESO_COORDINADOR not in codenames
