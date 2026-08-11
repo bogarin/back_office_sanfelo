@@ -157,7 +157,7 @@ def test_role_choices_include_empty():
         is_staff=True,
     )
     form = CustomUserChangeForm(instance=user)
-    assert form.fields['role'].choices[0] == ('', 'Sin rol')
+    assert form.fields['role'].choices[0] == ('', 'Sin rol')  # ty: ignore[not-subscriptable]
 
 
 @pytest.mark.django_db
@@ -271,7 +271,7 @@ def test_superuser_shows_superusuario_choice():
         password='testpass123',
     )
     form = CustomUserChangeForm(instance=user)
-    first_choice_value = form.fields['role'].choices[0][0]
+    first_choice_value = form.fields['role'].choices[0][0]  # ty: ignore[not-subscriptable]
     assert first_choice_value == 'superusuario'
 
 

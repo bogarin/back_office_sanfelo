@@ -15,7 +15,7 @@ from tramites.models.catalogos import TramiteEstatus
 
 
 def test_contains_three_choices():
-    assert len(CerrarTramiteForm.base_fields['estatus_cierre'].choices) == 3
+    assert len(CerrarTramiteForm.base_fields['estatus_cierre'].choices) == 3  # ty: ignore[invalid-argument-type]
 
 
 @pytest.mark.parametrize(

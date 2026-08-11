@@ -125,12 +125,6 @@ venvPath = "."
 venv = ".venv"
 pythonVersion = "3.14"
 
-[tool.mypy]
-plugins = ["mypy_django_plugin.main"]
-
-[tool.django-stubs]
-django_settings_module = "sanfelipe.settings"
-
 [tool.djangofmt]
 # Django template formatter (https://github.com/UnknownPlatypus/djangofmt)
 line-length = 120

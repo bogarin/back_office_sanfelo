@@ -98,7 +98,7 @@ class TramiteWithEstatusFactory(factory.django.DjangoModelFactory):
             # 2. Check if estatus was stored on instance
             if estatus_obj is None:
                 with contextlib.suppress(AttributeError):
-                    estatus_obj = tramite_instance._estatus
+                    estatus_obj = tramite_instance._estatus  # ty: ignore[unresolved-attribute]
 
             # 3. If still no estatus, create a default one
             if estatus_obj is None or estatus_obj.id >= 300:

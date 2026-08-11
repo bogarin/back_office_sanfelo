@@ -95,7 +95,7 @@ def admin_user(db, admin_group):  # noqa: ARG001
 def mock_http_request():
     """Create a mock HTTP request object."""
     request = HttpRequest()
-    request.user = type('User', (), {'username': 'testuser'})()
+    request.user = type('User', (), {'username': 'testuser'})()  # ty: ignore[invalid-assignment]
     request.META = {'REMOTE_ADDR': '127.0.0.1', 'REMOTE_HOST': 'localhost'}
     return request
 

@@ -36,7 +36,7 @@ def _build_request(user, *, with_messages=False):
     request = factory.get('/')
     request.user = user
     if with_messages:
-        request._messages = CookieStorage(request)
+        request._messages = CookieStorage(request)  # ty: ignore[unresolved-attribute]
     return request
 
 
@@ -65,7 +65,7 @@ def _assert_cannot_login(username, password='testpass123'):
     client.login(username=username, password=password)
     response = client.get('/admin/')
     assert response.status_code == 302, f'{username} unexpectedly got {response.status_code}'
-    assert '/admin/login/' in response.url
+    assert '/admin/login/' in response.url  # ty: ignore[unresolved-attribute]
 
 
 # ---------------------------------------------------------------------------

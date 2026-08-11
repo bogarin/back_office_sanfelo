@@ -130,10 +130,12 @@ def test_read_only_models_block_migrations(router, business_models):  # noqa: AR
     Actividad = business_models['Actividad']
 
     tramite_config = get_model_config(Tramite)
+    assert tramite_config is not None
     assert tramite_config.access_pattern == AccessPattern.READ_ONLY
     assert tramite_config.allow_migrations is False
 
     actividad_config = get_model_config(Actividad)
+    assert actividad_config is not None
     assert actividad_config.access_pattern == AccessPattern.READ_ONLY
     assert actividad_config.allow_migrations is False
 

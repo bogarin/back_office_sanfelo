@@ -39,8 +39,8 @@ def _build_post_request(user, data=None):
     factory = RequestFactory()
     request = factory.post('/', data or {})
     request.user = user
-    request._messages = CookieStorage(request)
-    request.session = {}
+    request._messages = CookieStorage(request)  # ty: ignore[unresolved-attribute]
+    request.session = {}  # ty: ignore[invalid-assignment]
     return request
 
 
@@ -298,7 +298,7 @@ def test_batch_assign_partial_failure_reports_errors(superuser):
     )
 
     with patch.object(Tramite, 'asignar', asignar_with_failure):
-        response = model_admin.modificar_asignacion(request, queryset)
+        response = model_admin.modificar_asignacion(request, queryset)  # ty: ignore[unresolved-attribute]
 
     # Should redirect (not crash)
     assert response.status_code == 302
@@ -332,5 +332,5 @@ def test_batch_assign_happy_path(superuser):
         },
     )
 
-    response = model_admin.modificar_asignacion(request, queryset)
+    response = model_admin.modificar_asignacion(request, queryset)  # ty: ignore[unresolved-attribute]
     assert response.status_code == 302, 'Should redirect after successful batch'

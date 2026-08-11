@@ -6,7 +6,7 @@ plugin injection, and iframe embedding attacks.
 
 import pytest
 from django.conf import settings
-from django.utils.csp import CSP
+from django.utils.csp import CSP  # ty: ignore[unresolved-import]
 
 # ---------------------------------------------------------------------------
 # Fixtures

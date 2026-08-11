@@ -76,9 +76,9 @@ def test_user_with_multiple_roles(cache_middleware, cache_factory):
 
     cache_middleware(request)
 
-    assert BackOfficeRole.COORDINADOR in request.user.roles
-    assert BackOfficeRole.ANALISTA in request.user.roles
-    assert len(request.user.roles) == 2
+    assert BackOfficeRole.COORDINADOR in request.user.roles  # ty: ignore[unresolved-attribute]
+    assert BackOfficeRole.ANALISTA in request.user.roles  # ty: ignore[unresolved-attribute]
+    assert len(request.user.roles) == 2  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.django_db

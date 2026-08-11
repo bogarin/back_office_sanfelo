@@ -32,7 +32,7 @@ def _build_request(user, *, with_messages=False):
     request = factory.get('/')
     request.user = user
     if with_messages:
-        request._messages = CookieStorage(request)
+        request._messages = CookieStorage(request)  # ty: ignore[unresolved-attribute]
     return request
 
 

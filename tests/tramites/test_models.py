@@ -597,7 +597,7 @@ def test_asignar_reasignar_a_diferente_analista(
     assert mock_registrar.call_count == 1
     call_args = mock_registrar.call_args
     assert call_args[0][0] == TramiteEstatus.Estatus.EN_REVISION
-    assert call_args.kwargs['analista_id'] == nuevo_analista.id
+    assert call_args.kwargs['analista_id'] == nuevo_analista.id  # ty: ignore[unresolved-attribute]
     assert 'reasignación' in call_args.kwargs['observacion'].lower()
 
 
@@ -653,7 +653,7 @@ def test_asignar_coordinadores_diferentes_asignan_analistas_diferentes(
     # New activity created (not silent reassignment)
     assert mock_registrar.call_count == 2
     call_args = mock_registrar.call_args
-    assert call_args.kwargs['analista_id'] == nuevo_analista.id
+    assert call_args.kwargs['analista_id'] == nuevo_analista.id  # ty: ignore[unresolved-attribute]
     assert 'segunda' in call_args.kwargs['observacion'].lower()
 
 
@@ -929,7 +929,7 @@ def test_asignar_autoasignacion_y_reasignacion_rapida(mock_registrar, analista, 
     )
     assert mock_registrar.call_count == 2
     assert mock_registrar.call_args[0][0] == TramiteEstatus.Estatus.EN_REVISION
-    assert mock_registrar.call_args.kwargs['analista_id'] == otro_analista.id
+    assert mock_registrar.call_args.kwargs['analista_id'] == otro_analista.id  # ty: ignore[unresolved-attribute]
     assert 'traspaso' in mock_registrar.call_args.kwargs['observacion'].lower()
 
 

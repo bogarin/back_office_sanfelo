@@ -23,7 +23,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.cookie import CookieStorage
 from django.http import HttpResponse, HttpResponseRedirect
 from django.test import RequestFactory
-from django.utils.csp import CSP
+from django.utils.csp import CSP  # ty: ignore[unresolved-import]
 from environ import Env
 
 from sanfelipe.settings.security import configure_security
@@ -265,7 +265,7 @@ def _setup_modificar_asignacion(db, admin_user):  # noqa: ARG001
     request = factory.post('/', {'analista': '99999', 'observacion': 'test'})
     request.user = admin_user
 
-    request._messages = CookieStorage(request)
+    request._messages = CookieStorage(request)  # ty: ignore[unresolved-attribute]
 
     return model_admin, request
 
