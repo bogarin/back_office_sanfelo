@@ -124,7 +124,7 @@ def test_cross_db_relations_blocked(router, business_models):
 
 
 @pytest.mark.django_db
-def test_read_only_models_block_migrations(router, business_models):
+def test_read_only_models_block_migrations(router, business_models):  # noqa: ARG001
     """READ_ONLY models should not allow migrations on any database."""
     Tramite = business_models['Tramite']
     Actividad = business_models['Actividad']

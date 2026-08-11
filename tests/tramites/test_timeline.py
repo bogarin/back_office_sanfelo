@@ -167,7 +167,7 @@ def test_fetch_actividad_files_returns_files(mock_get_client, mock_close):
 
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
-def test_fetch_actividad_files_invalid_folio_raises(mock_get_client, mock_close):
+def test_fetch_actividad_files_invalid_folio_raises(mock_get_client, _mock_close):  # noqa: PT019
     """Invalid folio raises SFTPConnectionError before SFTP access."""
     with pytest.raises(SFTPConnectionError, match='caracteres no permitidos'):
         SFTPService.fetch_actividad_files('../../../etc')
@@ -177,7 +177,7 @@ def test_fetch_actividad_files_invalid_folio_raises(mock_get_client, mock_close)
 
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
-def test_fetch_actividad_files_empty_directory(mock_get_client, mock_close):
+def test_fetch_actividad_files_empty_directory(_mock_get_client, _mock_close):  # noqa: PT019
     """No ACT files returns empty list."""
     with (
         patch.object(SFTPService, '_list_files_for_tramite', return_value=[]),
@@ -191,7 +191,7 @@ def test_fetch_actividad_files_empty_directory(mock_get_client, mock_close):
 
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
-def test_fetch_actividad_files_filters_non_act(mock_get_client, mock_close):
+def test_fetch_actividad_files_filters_non_act(_mock_get_client, _mock_close):  # noqa: PT019
     """Only ACT-*.pdf files are included; DAU-*.pdf and others are excluded."""
     with (
         patch.object(
@@ -208,7 +208,7 @@ def test_fetch_actividad_files_filters_non_act(mock_get_client, mock_close):
         override_settings(SFTP_BASE_DIR='/remote/pdfs'),
     ):
         mock_act_model.objects.filter.return_value.select_related.return_value = []
-        files, warning = SFTPService.fetch_actividad_files('DAU-260420-AAAE-B')
+        files, _warning = SFTPService.fetch_actividad_files('DAU-260420-AAAE-B')
 
     assert len(files) == 1
     assert files[0].actividad_id == 145
@@ -217,7 +217,7 @@ def test_fetch_actividad_files_filters_non_act(mock_get_client, mock_close):
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
 def test_fetch_actividad_files_sftp_error_closes_connection(
-    mock_get_client,
+    _mock_get_client,  # noqa: PT019
     mock_close,
 ):
     """Connection is closed even on SFTP error."""
@@ -236,7 +236,7 @@ def test_fetch_actividad_files_sftp_error_closes_connection(
 
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
-def test_fetch_actividad_files_sorts_by_timestamp_desc(mock_get_client, mock_close):
+def test_fetch_actividad_files_sorts_by_timestamp_desc(_mock_get_client, _mock_close):  # noqa: PT019
     """Files are sorted by timestamp descending (most recent first)."""
     with (
         patch.object(
@@ -416,7 +416,7 @@ def test_timeline_entry_with_requisito_files():
 
 
 @pytest.mark.parametrize(
-    'estatus_id, expected',
+    ('estatus_id', 'expected'),
     [
         (100, 'inicio'),
         (101, 'inicio'),
@@ -457,7 +457,7 @@ def test_status_group_none_returns_otro():
 
 
 @pytest.mark.parametrize(
-    'estatus_id, expected_prefix',
+    ('estatus_id', 'expected_prefix'),
     [
         (101, 'inicio'),
         (102, 'inicio'),
@@ -507,7 +507,7 @@ def test_status_badge_class_filter_in_template():
 # P3: Admin change_view timeline context logic (unit tests)
 # =============================================================================
 
-from tramites.timeline import build_timeline_entries
+from tramites.timeline import build_timeline_entries  # noqa: E402
 
 
 def test_timeline_building_requerimiento_gets_act_files():

@@ -93,7 +93,7 @@ def test_save_model_rollback_on_group_add_failure(superuser):
         'core.admin.Group.objects.filter',
         side_effect=IntegrityError('DB connection lost'),
     ):
-        try:
+        try:  # noqa: SIM105
             model_admin.save_model(request, user, form, change=True)
         except IntegrityError:
             pass  # Expected — what matters is the rollback
@@ -187,9 +187,9 @@ def test_asignar_rol_rollback_on_save_failure(superuser):
         return original_save(user_instance, *args, **kwargs)
 
     with patch.object(User, 'save', failing_save):
-        try:
+        try:  # noqa: SIM105
             asignar_rol(request)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass  # Expected
 
     user1.refresh_from_db()
@@ -281,9 +281,7 @@ def test_batch_assign_partial_failure_reports_errors(superuser):
 
     # First asignar succeeds, second raises
     call_count = 0
-    original_asignar = Tramite.asignar
-
-    def asignar_with_failure(self, *args, **kwargs):
+    def asignar_with_failure(_self, *_args, **_kwargs):
         nonlocal call_count
         call_count += 1
         if call_count == 2:

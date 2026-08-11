@@ -1,5 +1,7 @@
 """Factory-boy factories for tramites models."""
 
+import contextlib
+
 import factory
 
 from tests.factories.catalogos import TramiteEstatusFactory
@@ -69,7 +71,7 @@ class TramiteWithEstatusFactory(factory.django.DjangoModelFactory):
     estatus_id = None  # Override: use this instead of estatus object
 
     @factory.post_generation
-    def create_actividades(self, create, extracted, **kwargs):
+    def create_actividades(self, create, extracted, **kwargs):  # noqa: ARG002
         """Create an Actividades record to set tramite's estatus."""
         if not create:
             return
@@ -95,10 +97,8 @@ class TramiteWithEstatusFactory(factory.django.DjangoModelFactory):
 
             # 2. Check if estatus was stored on instance
             if estatus_obj is None:
-                try:
+                with contextlib.suppress(AttributeError):
                     estatus_obj = tramite_instance._estatus
-                except AttributeError:
-                    pass
 
             # 3. If still no estatus, create a default one
             if estatus_obj is None or estatus_obj.id >= 300:

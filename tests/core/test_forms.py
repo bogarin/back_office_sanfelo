@@ -77,7 +77,7 @@ def test_role_field_required():
 
 
 @pytest.mark.django_db
-def test_valid_data(db):
+def test_valid_data():
     """Form is valid with all required fields + role."""
     form = CustomUserAddForm(
         data={
@@ -91,7 +91,7 @@ def test_valid_data(db):
 
 
 @pytest.mark.django_db
-def test_duplicate_email_rejected(db):
+def test_duplicate_email_rejected():
     """clean_email rejects emails already in use."""
     User.objects.create_user(
         username='existing',
@@ -112,7 +112,7 @@ def test_duplicate_email_rejected(db):
 
 
 @pytest.mark.django_db
-def test_unique_email_accepted(db):
+def test_unique_email_accepted():
     """clean_email accepts emails not yet in use."""
     form = CustomUserAddForm(
         data={
@@ -127,7 +127,7 @@ def test_unique_email_accepted(db):
 
 
 @pytest.mark.django_db
-def test_save_returns_user_without_commit(db):
+def test_save_returns_user_without_commit():
     """save(commit=False) returns user without persisting."""
     form = CustomUserAddForm(
         data={
@@ -149,7 +149,7 @@ def test_save_returns_user_without_commit(db):
 
 
 @pytest.mark.django_db
-def test_role_choices_include_empty(db):
+def test_role_choices_include_empty():
     """Role field has 'Sin rol' empty option."""
     user = User.objects.create_user(
         username='edituser',
@@ -161,7 +161,7 @@ def test_role_choices_include_empty(db):
 
 
 @pytest.mark.django_db
-def test_role_choices_include_all_roles(db):
+def test_role_choices_include_all_roles():
     """Role field includes all BackOfficeRole options."""
     user = User.objects.create_user(
         username='edituser',
@@ -175,7 +175,7 @@ def test_role_choices_include_all_roles(db):
 
 
 @pytest.mark.django_db
-def test_role_field_not_required(db):
+def test_role_field_not_required():
     """Role field is optional on change form."""
     user = User.objects.create_user(
         username='edituser',
@@ -187,7 +187,7 @@ def test_role_field_not_required(db):
 
 
 @pytest.mark.django_db
-def test_username_disabled_on_existing_user(db):
+def test_username_disabled_on_existing_user():
     """Username field is disabled when editing existing user."""
     user = User.objects.create_user(
         username='edituser',
@@ -199,7 +199,7 @@ def test_username_disabled_on_existing_user(db):
 
 
 @pytest.mark.django_db
-def test_password_uses_custom_widget(db):
+def test_password_uses_custom_widget():
     """Password field uses CustomReadOnlyPasswordHashWidget."""
     user = User.objects.create_user(
         username='edituser',
@@ -214,7 +214,7 @@ def test_password_uses_custom_widget(db):
 
 
 @pytest.mark.django_db
-def test_analista_initial_role(db):
+def test_analista_initial_role():
     """Analista user gets ANALISTA as initial role value."""
     user = User.objects.create_user(
         username='edituser',
@@ -229,7 +229,7 @@ def test_analista_initial_role(db):
 
 
 @pytest.mark.django_db
-def test_coordinador_initial_role(db):
+def test_coordinador_initial_role():
     """Coordinador user gets COORDINADOR as initial role value."""
     user = User.objects.create_user(
         username='edituser',
@@ -246,7 +246,7 @@ def test_coordinador_initial_role(db):
 
 
 @pytest.mark.django_db
-def test_administrador_initial_role(db):
+def test_administrador_initial_role():
     """Administrador user gets ADMINISTRADOR as initial role value."""
     user = User.objects.create_user(
         username='edituser',
@@ -263,7 +263,7 @@ def test_administrador_initial_role(db):
 
 
 @pytest.mark.django_db
-def test_superuser_shows_superusuario_choice(db):
+def test_superuser_shows_superusuario_choice():
     """Superuser gets 'superusuario' as first role choice."""
     user = User.objects.create_superuser(
         username='superuser',
@@ -276,7 +276,7 @@ def test_superuser_shows_superusuario_choice(db):
 
 
 @pytest.mark.django_db
-def test_no_role_user_initial_empty(db):
+def test_no_role_user_initial_empty():
     """User without role gets empty string as initial role."""
     user = User.objects.create_user(
         username='norole',

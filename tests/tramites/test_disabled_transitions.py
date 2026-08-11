@@ -73,7 +73,7 @@ def test_transitions_constant_never_mutated():
 
 
 @pytest.mark.django_db
-def test_available_actions_excludes_disabled(analista, django_db_setup):
+def test_available_actions_excludes_disabled(analista, django_db_setup):  # noqa: ARG001
     """available_actions() hides en_diligencia when 205 is disabled."""
     tramite = Tramite(
         id=99,
@@ -101,7 +101,7 @@ def test_available_actions_excludes_disabled(analista, django_db_setup):
 
 
 @pytest.mark.django_db
-def test_available_actions_includes_non_disabled(analista, django_db_setup):
+def test_available_actions_includes_non_disabled(analista, django_db_setup):  # noqa: ARG001
     """available_actions() includes all actions when nothing is disabled."""
     tramite = Tramite(
         id=100,
@@ -134,7 +134,7 @@ def test_available_actions_includes_non_disabled(analista, django_db_setup):
 
 
 @pytest.fixture
-def analista(django_db_setup):
+def analista(django_db_setup):  # noqa: ARG001
     """Create an analyst user with the Analista role."""
     User = get_user_model()
     user = User.objects.create_user(

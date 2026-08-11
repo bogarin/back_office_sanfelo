@@ -105,7 +105,7 @@ def test_administrador_sees_readonly_fields_for_superuser(admin_user, superuser)
     assert set(readonly) == {'username', 'first_name', 'last_name', 'email', 'password', 'role'}
 
 
-def test_administrador_sees_normal_readonly_for_regular(admin_user, db):
+def test_administrador_sees_normal_readonly_for_regular(admin_user, db):  # noqa: ARG001
     User = get_user_model()
     regular = User.objects.create_user(username='regular2', password='pass')
     model_admin = _get_model_admin()
@@ -142,7 +142,7 @@ def test_superuser_sees_password_link_for_superuser(superuser):
 # ---------------------------------------------------------------------------
 
 
-def test_marcar_como_activo_excludes_superusers(admin_user, superuser, db):
+def test_marcar_como_activo_excludes_superusers(admin_user, superuser, db):  # noqa: ARG001
     User = get_user_model()
     regular = User.objects.create_user(username='regular3', password='pass', is_active=False)
 
@@ -158,7 +158,7 @@ def test_marcar_como_activo_excludes_superusers(admin_user, superuser, db):
     assert regular.is_active is True
 
 
-def test_marcar_como_inactivo_excludes_superusers(admin_user, superuser, db):
+def test_marcar_como_inactivo_excludes_superusers(admin_user, superuser, db):  # noqa: ARG001
     User = get_user_model()
     regular = User.objects.create_user(username='regular4', password='pass', is_active=True)
 
@@ -184,7 +184,7 @@ def test_marcar_como_inactivo_excludes_superusers(admin_user, superuser, db):
     list(BackOfficeRole),
     ids=[r.name for r in BackOfficeRole],
 )
-def test_new_user_with_role_gets_is_staff(superuser, db, role):
+def test_new_user_with_role_gets_is_staff(superuser, db, role):  # noqa: ARG001
     User = get_user_model()
     _ensure_groups_exist()
 
@@ -201,7 +201,7 @@ def test_new_user_with_role_gets_is_staff(superuser, db, role):
     assert new_user.groups.filter(name=role).exists()
 
 
-def test_new_user_is_active(superuser, db):
+def test_new_user_is_active(superuser, db):  # noqa: ARG001
     User = get_user_model()
     _ensure_groups_exist()
 
@@ -216,7 +216,7 @@ def test_new_user_is_active(superuser, db):
     assert new_user.is_active is True
 
 
-def test_role_removed_sets_is_staff_false(superuser, admin_user, db):
+def test_role_removed_sets_is_staff_false(superuser, admin_user, db):  # noqa: ARG001
     _ensure_groups_exist()
 
     # admin_user already has Administrador group via fixture
@@ -231,7 +231,7 @@ def test_role_removed_sets_is_staff_false(superuser, admin_user, db):
     assert not admin_user.groups.filter(name__in=list(BackOfficeRole)).exists()
 
 
-def test_soft_delete_preserves_group_and_is_staff(admin_user, admin_group, db):
+def test_soft_delete_preserves_group_and_is_staff(admin_user, admin_group, db):  # noqa: ARG001
     User = get_user_model()
     _ensure_groups_exist()
 
@@ -247,7 +247,7 @@ def test_soft_delete_preserves_group_and_is_staff(admin_user, admin_group, db):
     assert admin_user.groups.filter(name=BackOfficeRole.ADMINISTRADOR).exists()
 
 
-def test_reactivate_user_preserves_group_and_is_staff(admin_user, admin_group, db):
+def test_reactivate_user_preserves_group_and_is_staff(admin_user, admin_group, db):  # noqa: ARG001
     User = get_user_model()
     _ensure_groups_exist()
 

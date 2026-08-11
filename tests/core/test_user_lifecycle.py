@@ -78,7 +78,7 @@ def _assert_cannot_login(username, password='testpass123'):
     list(BackOfficeRole),
     ids=[r.name for r in BackOfficeRole],
 )
-def test_user_created_with_role_can_login(superuser, db, role):
+def test_user_created_with_role_can_login(superuser, db, role):  # noqa: ARG001
     """User created via save_model with a role can log in to admin."""
     _ensure_groups_exist()
 
@@ -104,7 +104,7 @@ def test_user_created_with_role_can_login(superuser, db, role):
     list(BackOfficeRole),
     ids=[r.name for r in BackOfficeRole],
 )
-def test_bulk_assign_role_can_login(superuser, db, role):
+def test_bulk_assign_role_can_login(superuser, db, role):  # noqa: ARG001
     """User assigned role via asignar_rol view can log in to admin."""
     _ensure_groups_exist()
 
@@ -138,7 +138,7 @@ def test_bulk_assign_role_can_login(superuser, db, role):
     ],
     ids=lambda v: v.name if hasattr(v, 'name') else str(v),
 )
-def test_edit_user_role_can_login(superuser, db, from_role, to_role):
+def test_edit_user_role_can_login(superuser, db, from_role, to_role):  # noqa: ARG001
     """User whose role is changed via save_model can still log in."""
     _ensure_groups_exist()
 
@@ -169,7 +169,7 @@ def test_edit_user_role_can_login(superuser, db, from_role, to_role):
 # ---------------------------------------------------------------------------
 
 
-def test_disable_user_cannot_login(admin_user, db):
+def test_disable_user_cannot_login(admin_user, db):  # noqa: ARG001
     """User deactivated via marcar_como_inactivo cannot access admin."""
     _ensure_groups_exist()
 
@@ -188,7 +188,7 @@ def test_disable_user_cannot_login(admin_user, db):
 # ---------------------------------------------------------------------------
 
 
-def test_reactivate_user_can_login(admin_user, db):
+def test_reactivate_user_can_login(admin_user, db):  # noqa: ARG001
     """User reactivated via marcar_como_activo can access admin again."""
     _ensure_groups_exist()
 
@@ -214,7 +214,7 @@ def test_reactivate_user_can_login(admin_user, db):
 # ---------------------------------------------------------------------------
 
 
-def test_remove_role_cannot_login(superuser, admin_user, db):
+def test_remove_role_cannot_login(superuser, admin_user, db):  # noqa: ARG001
     """User with role removed cannot log in to admin."""
     _ensure_groups_exist()
 

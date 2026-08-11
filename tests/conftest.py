@@ -46,7 +46,7 @@ def pytest_configure(config):
 
 
 @pytest.fixture
-def superuser(db):
+def superuser(db):  # noqa: ARG001
     """Create a superuser for testing."""
     return User.objects.create_superuser(
         username='test_superuser',
@@ -56,25 +56,25 @@ def superuser(db):
 
 
 @pytest.fixture
-def admin_group(db):
+def admin_group(db):  # noqa: ARG001
     """Get or create the Administrador group."""
     return Group.objects.get_or_create(name=BackOfficeRole.ADMINISTRADOR)[0]
 
 
 @pytest.fixture
-def coordinador_group(db):
+def coordinador_group(db):  # noqa: ARG001
     """Get or create the Coordinador group."""
     return Group.objects.get_or_create(name=BackOfficeRole.COORDINADOR)[0]
 
 
 @pytest.fixture
-def analista_group(db):
+def analista_group(db):  # noqa: ARG001
     """Get or create the Analista group."""
     return Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0]
 
 
 @pytest.fixture
-def admin_user(db, admin_group):
+def admin_user(db, admin_group):  # noqa: ARG001
     """Create an administrador user."""
     user = User.objects.create_user(
         username='test_admin',
@@ -106,7 +106,7 @@ def mock_http_request():
 
 
 @pytest.fixture
-def admin_client(db, superuser):
+def admin_client(db, superuser):  # noqa: ARG001
     """Create a Django test client logged in as superuser."""
     client = Client()
     client.force_login(superuser)
@@ -114,7 +114,7 @@ def admin_client(db, superuser):
 
 
 @pytest.fixture
-def admin_user_client(db, admin_user):
+def admin_user_client(db, admin_user):  # noqa: ARG001
     """Create a Django test client logged in as administrador user."""
     client = Client()
     client.force_login(admin_user)
@@ -127,7 +127,7 @@ def admin_user_client(db, admin_user):
 
 
 @pytest.fixture(scope='session')
-def catalog_fixtures(django_db_setup, django_db_blocker):
+def catalog_fixtures(django_db_setup, django_db_blocker):  # noqa: ARG001
     """
     Load and return catalog fixture data from backend.json.
 
@@ -184,7 +184,7 @@ def catalog_fixtures(django_db_setup, django_db_blocker):
     # Read and parse the fixture data to return as a dictionary
     fixture_path = Path(fixture_file)
     if fixture_path.exists():
-        with open(fixture_path, encoding='utf-8') as f:
+        with fixture_path.open(encoding='utf-8') as f:
             fixture_data: dict[str, Any] = json.load(f)
         return fixture_data
     raise FileNotFoundError(

@@ -24,7 +24,7 @@ ADMIN_REGISTERED_MODELS = [
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    'app_label, model_name',
+    ('app_label', 'model_name'),
     ADMIN_REGISTERED_MODELS,
     ids=[f'{app}.{name}' for app, name in ADMIN_REGISTERED_MODELS],
 )

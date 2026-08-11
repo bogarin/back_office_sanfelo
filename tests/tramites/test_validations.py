@@ -24,7 +24,7 @@ User = get_user_model()
 
 
 @pytest.fixture
-def analista(django_db_setup):
+def analista(django_db_setup):  # noqa: ARG001
     user = User.objects.create_user(
         username='val_analista',
         email='val_analista@example.com',
@@ -37,7 +37,7 @@ def analista(django_db_setup):
 
 
 @pytest.fixture
-def tramite_en_revision(django_db_setup, django_db_blocker):
+def tramite_en_revision(django_db_setup, django_db_blocker):  # noqa: ARG001
     """Tramite in EN_REVISION (202), unassigned."""
     return Tramite(
         id=100,
@@ -63,7 +63,7 @@ def tramite_en_revision(django_db_setup, django_db_blocker):
 
 
 @pytest.mark.parametrize(
-    'estatus_id, expected',
+    ('estatus_id', 'expected'),
     [
         (TramiteEstatus.Estatus.PRESENTADO, True),
         (TramiteEstatus.Estatus.EN_REVISION, True),
@@ -198,7 +198,7 @@ def test_inactive_statuses_raise(tramite_en_revision, estatus_id):
 
 
 @pytest.fixture
-def perms_superuser(db):
+def perms_superuser(db):  # noqa: ARG001
     return User.objects.create_superuser(
         username='val_superuser',
         email='su@example.com',
@@ -207,7 +207,7 @@ def perms_superuser(db):
 
 
 @pytest.fixture
-def perms_coordinador(db):
+def perms_coordinador(db):  # noqa: ARG001
     user = User.objects.create_user(
         username='val_coordinador',
         email='coord@example.com',
@@ -243,7 +243,7 @@ def test_can_view_assigned_analista(assigned_tramite, analista):
 
 
 @pytest.mark.django_db
-def test_cannot_view_unassigned_analista(assigned_tramite, db):
+def test_cannot_view_unassigned_analista(assigned_tramite):
     other = User.objects.create_user(
         username='val_other_analista',
         password='testpass123',
@@ -280,7 +280,7 @@ def test_can_execute_assigned_analista(assigned_tramite, analista):
 
 
 @pytest.mark.django_db
-def test_cannot_execute_unassigned_analista(assigned_tramite, db):
+def test_cannot_execute_unassigned_analista(assigned_tramite):
     other = User.objects.create_user(
         username='val_other',
         password='testpass123',
@@ -295,7 +295,7 @@ def test_cannot_execute_unassigned_analista(assigned_tramite, db):
 
 
 @pytest.fixture
-def avail_superuser(db):
+def avail_superuser(db):  # noqa: ARG001
     return User.objects.create_superuser(
         username='act_superuser',
         email='su@example.com',
@@ -337,7 +337,7 @@ def test_presentado_no_actions(tramite_en_revision, avail_superuser):
 
 
 @pytest.mark.django_db
-def test_unassigned_user_no_actions(tramite_en_revision, db):
+def test_unassigned_user_no_actions(tramite_en_revision):
     """User not assigned to tramite gets no actions."""
     user = User.objects.create_user(
         username='act_unassigned',

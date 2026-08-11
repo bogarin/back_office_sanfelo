@@ -219,7 +219,7 @@ def test_serve_pdf_rejects_invalid_filename():
 @patch.object(SFTPService, 'close_connection')
 def test_serve_pdf_cache_hit_returns_response(mock_close, mock_download):
     """Cache hit: _download_with_cache returns path, response is built."""
-    mock_download.return_value = Path('/tmp/.sftp_cache/DAU-260420-AAAE-B/DAU-260420-AAAE-B-19.pdf')
+    mock_download.return_value = Path('/tmp/.sftp_cache/DAU-260420-AAAE-B/DAU-260420-AAAE-B-19.pdf')  # noqa: S108
 
     with patch.object(SFTPService, 'build_file_response') as mock_build:
         mock_build.return_value = HttpResponse()
@@ -265,7 +265,7 @@ def test_serve_pdf_wraps_unexpected_error(mock_close, mock_download):
 
 @patch.object(SFTPService, '_download_with_cache')
 @patch.object(SFTPService, 'close_connection')
-def test_serve_pdf_valid_input_passes_traversal_check(mock_close, mock_download):
+def test_serve_pdf_valid_input_passes_traversal_check(_mock_close, mock_download):  # noqa: PT019
     """Defense-in-depth: valid folio+filename passes the '..' check (SEC-003)."""
     mock_download.return_value = Path('/safe/DAU-260420-AAAE-B/DAU-260420-AAAE-B-19.pdf')
 
@@ -604,14 +604,14 @@ def download_url():
     return reverse('tramites:download-pdf', kwargs={'pk': 1, 'filename': VALID_FILENAME})
 
 
-def test_download_view_redirects_anonymous_user(client, db, download_url):
+def test_download_view_redirects_anonymous_user(client, db, download_url):  # noqa: ARG001
     """Anonymous users are redirected to login (staff_member_required)."""
     response = client.get(download_url)
     assert response.status_code == 302
     assert '/login/' in response['Location']
 
 
-def test_download_view_rejects_non_staff_user(client, db, download_url):
+def test_download_view_rejects_non_staff_user(client, db, download_url):  # noqa: ARG001
     """Non-staff authenticated users are also redirected to login."""
     User = get_user_model()
     user = User.objects.create_user(username='regular', password='pass')
@@ -624,7 +624,7 @@ def test_download_view_rejects_non_staff_user(client, db, download_url):
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_rejects_invalid_filename(mock_log, mock_serve, admin_client, db):
+def test_download_view_rejects_invalid_filename(_mock_log, mock_serve, admin_client, db):  # noqa: ARG001, PT019
     """Invalid filename is rejected before any DB or SFTP access.
 
     The view calls validate_filename() which raises SFTPConnectionError for
@@ -644,7 +644,7 @@ def test_download_view_rejects_invalid_filename(mock_log, mock_serve, admin_clie
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_returns_404_for_missing_tramite(mock_log, mock_serve, admin_client, db):
+def test_download_view_returns_404_for_missing_tramite(_mock_log, mock_serve, admin_client, db):  # noqa: ARG001, PT019
     """Non-existent tramite PK returns 404.
 
     Tramite is a managed=False model backed by a DB view, so we must
@@ -659,7 +659,7 @@ def test_download_view_returns_404_for_missing_tramite(mock_log, mock_serve, adm
 
 
 @patch('tramites.views._log_download')
-def test_download_view_rejects_unauthorized_user(mock_log, superuser, client, db, download_url):
+def test_download_view_rejects_unauthorized_user(_mock_log, superuser, client, db, download_url):  # noqa: ARG001, PT019
     """PermissionDenied when tramite.can_download() returns False."""
     client.force_login(superuser)
 
@@ -677,8 +677,8 @@ def test_download_view_rejects_unauthorized_user(mock_log, superuser, client, db
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_success_logs_download(
-    mock_log, mock_serve, superuser, client, db, download_url
+def test_download_view_success_logs_download(  # noqa: PLR0913
+    mock_log, mock_serve, superuser, client, db, download_url  # noqa: ARG001
 ):
     """Successful download logs with success=True."""
     mock_serve.return_value = HttpResponse(b'%PDF', content_type='application/pdf')
@@ -699,13 +699,13 @@ def test_download_view_success_logs_download(
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_sftp_error_logs_failure(
-    mock_log, mock_serve, superuser, client, db, download_url
+def test_download_view_sftp_error_logs_failure(  # noqa: PLR0913
+    mock_log, mock_serve, superuser, client, db, download_url  # noqa: ARG001
 ):
     """SFTPConnectionError is logged with success=False and re-raised."""
     mock_serve.side_effect = SFTPConnectionError('connection failed')
 
-    with (
+    with (  # noqa: PT012
         patch('tramites.views.get_object_or_404') as mock_get,
         pytest.raises(SFTPConnectionError, match='connection failed'),
     ):
@@ -724,7 +724,7 @@ def test_download_view_sftp_error_logs_failure(
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
 def test_download_view_passes_correct_args_to_service(
-    mock_log, mock_serve, superuser, client, db, download_url
+    _mock_log, mock_serve, superuser, client, db, download_url  # noqa: ARG001, PT019
 ):
     """View passes tramite and filename to SFTPService.serve_pdf."""
     mock_serve.return_value = HttpResponse(b'%PDF', content_type='application/pdf')
@@ -735,7 +735,7 @@ def test_download_view_passes_correct_args_to_service(
         mock_tramite.folio = 'DAU-260420-AAAE-B'
         mock_get.return_value = mock_tramite
 
-        response = client.get(download_url)
+        response = client.get(download_url)  # noqa: F841
 
     mock_serve.assert_called_once_with(tramite=mock_tramite, filename=VALID_FILENAME)
 
@@ -773,7 +773,7 @@ def test_try_load_key_rsa_success(mock_rsa):
 
 @patch('paramiko.Ed25519Key.from_private_key_file')
 @patch('paramiko.RSAKey.from_private_key_file', side_effect=paramiko.SSHException('not RSA'))
-def test_try_load_key_ed25519_fallback(mock_rsa, mock_ed25519):
+def test_try_load_key_ed25519_fallback(_mock_rsa, mock_ed25519):  # noqa: PT019
     """Falls back to Ed25519 when RSA fails."""
     fake_key = MagicMock()
     mock_ed25519.return_value = fake_key
@@ -800,7 +800,7 @@ def test_try_load_key_with_passphrase(mock_rsa):
 @patch('paramiko.RSAKey.from_private_key_file', side_effect=paramiko.SSHException('bad'))
 @patch('paramiko.Ed25519Key.from_private_key_file', side_effect=OSError('nope'))
 @patch('paramiko.ECDSAKey.from_private_key_file', side_effect=paramiko.SSHException('nope'))
-def test_try_load_key_all_types_fail_returns_none(mock_ecdsa, mock_ed25519, mock_rsa):
+def test_try_load_key_all_types_fail_returns_none(_mock_ecdsa, _mock_ed25519, _mock_rsa):  # noqa: PT019
     """Returns None when every key type raises an exception."""
     result = _try_load_key('/fake/path')
     assert result is None
@@ -970,7 +970,7 @@ def test_create_sftp_connection_password_auth(mock_connect):
 
 @patch.object(SFTPService, '_configure_host_key_policy')
 @patch('paramiko.SSHClient.connect')
-def test_create_sftp_connection_key_auth(mock_connect, mock_policy):
+def test_create_sftp_connection_key_auth(mock_connect, _mock_policy):  # noqa: PT019
     """Private key authentication connects with pkey."""
     service = SFTPService()
     fake_key = MagicMock(spec=paramiko.PKey)
@@ -987,7 +987,7 @@ def test_create_sftp_connection_key_auth(mock_connect, mock_policy):
         patch.object(Path, 'is_absolute', return_value=True),
         patch.object(Path, 'resolve', return_value=Path('/home/user/.ssh/id_rsa')),
     ):
-        client = service._create_sftp_connection()
+        service._create_sftp_connection()
 
     mock_connect.assert_called_once()
     call_kwargs = mock_connect.call_args.kwargs
@@ -1009,33 +1009,33 @@ def test_create_sftp_connection_no_auth_method():
     'paramiko.SSHClient.connect',
     side_effect=paramiko.AuthenticationException('bad creds'),
 )
-def test_create_sftp_connection_auth_failure_password(mock_connect, mock_policy):
+def test_create_sftp_connection_auth_failure_password(_mock_connect, _mock_policy):  # noqa: PT019
     """AuthenticationException is wrapped in SFTPConnectionError."""
     service = SFTPService()
 
-    with override_settings(**_sftp_settings()):
+    with override_settings(**_sftp_settings()):  # noqa: SIM117
         with pytest.raises(SFTPConnectionError, match='autenticación del servidor de archivos'):
             service._create_sftp_connection()
 
 
 @patch.object(SFTPService, '_configure_host_key_policy')
 @patch('paramiko.SSHClient.connect', side_effect=OSError('connection refused'))
-def test_create_sftp_connection_os_error(mock_connect, mock_policy):
+def test_create_sftp_connection_os_error(_mock_connect, _mock_policy):  # noqa: PT019
     """OSError (network) is wrapped in SFTPConnectionError."""
     service = SFTPService()
 
-    with override_settings(**_sftp_settings()):
+    with override_settings(**_sftp_settings()):  # noqa: SIM117
         with pytest.raises(SFTPConnectionError, match='No se pudo conectar'):
             service._create_sftp_connection()
 
 
 @patch.object(SFTPService, '_configure_host_key_policy')
 @patch('paramiko.SSHClient.connect', side_effect=paramiko.SSHException('ssh error'))
-def test_create_sftp_connection_ssh_exception(mock_connect, mock_policy):
+def test_create_sftp_connection_ssh_exception(_mock_connect, _mock_policy):  # noqa: PT019
     """SSHException is wrapped in SFTPConnectionError."""
     service = SFTPService()
 
-    with override_settings(**_sftp_settings()):
+    with override_settings(**_sftp_settings()):  # noqa: SIM117
         with pytest.raises(SFTPConnectionError, match='Error al conectar'):
             service._create_sftp_connection()
 
@@ -1048,7 +1048,7 @@ def test_create_sftp_connection_ssh_exception(mock_connect, mock_policy):
 @patch.object(SFTPService, '_get_cached_requisitos', return_value={})
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
-def test_fetch_requisito_files_returns_files(mock_get_client, mock_close, mock_reqs):
+def test_fetch_requisito_files_returns_files(mock_get_client, mock_close, _mock_reqs):  # noqa: PT019
     """Returns list of RequisitoFile for matching PDFs."""
     # Simulate SFTP listdir_attr response
     mock_sftp = MagicMock()
@@ -1075,7 +1075,7 @@ def test_fetch_requisito_files_returns_files(mock_get_client, mock_close, mock_r
 @patch.object(SFTPService, '_get_cached_requisitos', return_value={})
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
-def test_fetch_requisito_files_empty_directory(mock_get_client, mock_close, mock_reqs):
+def test_fetch_requisito_files_empty_directory(mock_get_client, _mock_close, _mock_reqs):  # noqa: PT019
     """FileNotFoundError on remote returns empty list."""
     mock_sftp = MagicMock()
     mock_sftp.listdir_attr.side_effect = FileNotFoundError('no dir')
@@ -1093,7 +1093,7 @@ def test_fetch_requisito_files_empty_directory(mock_get_client, mock_close, mock
 @patch.object(SFTPService, '_get_cached_requisitos', return_value={})
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
-def test_fetch_requisito_files_filters_non_matching(mock_get_client, mock_close, mock_reqs):
+def test_fetch_requisito_files_filters_non_matching(mock_get_client, _mock_close, _mock_reqs):  # noqa: PT019
     """Files not matching FILENAME_REGEX are excluded."""
     mock_sftp = MagicMock()
     entry_ok = MagicMock()
@@ -1109,7 +1109,7 @@ def test_fetch_requisito_files_filters_non_matching(mock_get_client, mock_close,
     mock_get_client.return_value = mock_client
 
     with override_settings(SFTP_BASE_DIR='/remote/pdfs'):
-        files, warning = SFTPService.fetch_requisito_files('DAU-260420-AAAE-B')
+        files, _warning = SFTPService.fetch_requisito_files('DAU-260420-AAAE-B')
 
     assert len(files) == 1
     assert files[0].file_name == 'DAU-260420-AAAE-B-19.pdf'
@@ -1118,7 +1118,7 @@ def test_fetch_requisito_files_filters_non_matching(mock_get_client, mock_close,
 @patch.object(SFTPService, '_get_cached_requisitos')
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
-def test_fetch_requisito_files_enriches_with_catalog(mock_get_client, mock_close, mock_reqs):
+def test_fetch_requisito_files_enriches_with_catalog(mock_get_client, _mock_close, mock_reqs):  # noqa: PT019
     """Files are enriched with requisito name from cached catalog."""
     # Catalog has requisito_id=19 named "Acta de nacimiento"
     mock_req = MagicMock()
@@ -1136,7 +1136,7 @@ def test_fetch_requisito_files_enriches_with_catalog(mock_get_client, mock_close
     mock_get_client.return_value = mock_client
 
     with override_settings(SFTP_BASE_DIR='/remote/pdfs'):
-        files, warning = SFTPService.fetch_requisito_files('DAU-260420-AAAE-B')
+        files, _warning = SFTPService.fetch_requisito_files('DAU-260420-AAAE-B')
 
     assert len(files) == 1
     assert files[0].requisito_nombre == 'Acta de nacimiento'
@@ -1145,7 +1145,7 @@ def test_fetch_requisito_files_enriches_with_catalog(mock_get_client, mock_close
 @patch.object(SFTPService, '_get_cached_requisitos', return_value={})
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
-def test_fetch_requisito_files_invalid_folio_raises(mock_get_client, mock_close, mock_reqs):
+def test_fetch_requisito_files_invalid_folio_raises(mock_get_client, _mock_close, _mock_reqs):  # noqa: PT019
     """Invalid folio raises SFTPConnectionError before any SFTP access."""
     with pytest.raises(SFTPConnectionError, match='caracteres no permitidos'):
         SFTPService.fetch_requisito_files('../../../etc')
@@ -1156,7 +1156,7 @@ def test_fetch_requisito_files_invalid_folio_raises(mock_get_client, mock_close,
 @patch.object(SFTPService, '_get_cached_requisitos', return_value={})
 @patch.object(SFTPService, 'close_connection')
 @patch.object(SFTPService, 'get_sftp_client')
-def test_fetch_requisito_files_sftp_error_raises(mock_get_client, mock_close, mock_reqs):
+def test_fetch_requisito_files_sftp_error_raises(mock_get_client, mock_close, _mock_reqs):  # noqa: PT019
     """SFTP errors are wrapped and connection is still closed."""
     mock_client = MagicMock()
     mock_sftp = MagicMock()
@@ -1203,7 +1203,7 @@ def test_ping_dir_not_found(mock_get_client, mock_close):
     mock_client.open_sftp.return_value = mock_sftp
     mock_get_client.return_value = mock_client
 
-    with override_settings(SFTP_BASE_DIR='/remote/pdfs'):
+    with override_settings(SFTP_BASE_DIR='/remote/pdfs'):  # noqa: SIM117
         with pytest.raises(SFTPConnectionError, match='configuración del servidor de archivos'):
             SFTPService.ping()
 
@@ -1221,7 +1221,7 @@ def test_ping_os_error(mock_get_client, mock_close):
     mock_client.open_sftp.return_value = mock_sftp
     mock_get_client.return_value = mock_client
 
-    with override_settings(SFTP_BASE_DIR='/remote/pdfs'):
+    with override_settings(SFTP_BASE_DIR='/remote/pdfs'):  # noqa: SIM117
         with pytest.raises(SFTPConnectionError, match='Error al conectar'):
             SFTPService.ping()
 
@@ -1372,7 +1372,7 @@ def test_download_file_creates_parent_directory(mock_get_client, tmp_path):
 
 
 @patch.object(SFTPService, '_download_file')
-@override_settings(SFTP_CACHE_DIR='/tmp/.sftp_cache_test')
+@override_settings(SFTP_CACHE_DIR='/tmp/.sftp_cache_test')  # noqa: S108
 def test_download_with_cache_hit_returns_existing(mock_download, tmp_path):
     """Cache hit: returns final_path without downloading."""
     cache_dir = tmp_path / 'cache'
@@ -1396,14 +1396,14 @@ def test_download_with_cache_hit_returns_existing(mock_download, tmp_path):
 
 
 @patch.object(SFTPService, '_download_file')
-@override_settings(SFTP_CACHE_DIR='/tmp/.sftp_cache_test')
+@override_settings(SFTP_CACHE_DIR='/tmp/.sftp_cache_test')  # noqa: S108
 def test_download_with_cache_miss_downloads_and_renames(mock_download, tmp_path):
     """Cache miss: downloads to temp file, then atomically renames to final."""
     cache_dir = tmp_path / 'cache'
     folio_dir = cache_dir / 'DAU-260420-AAAE-B'
 
     # Simulate _download_file creating the temp file
-    def fake_download(folio, filename, local_path):
+    def fake_download(folio, filename, local_path):  # noqa: ARG001
         local_path.parent.mkdir(parents=True, exist_ok=True)
         local_path.write_bytes(b'%PDF-1.4 new content')
 
@@ -1430,7 +1430,7 @@ def test_download_with_cache_miss_downloads_and_renames(mock_download, tmp_path)
 
 
 @patch.object(SFTPService, '_download_file', side_effect=SFTPConnectionError('fail'))
-def test_download_with_cache_cleanup_on_failure(mock_download, tmp_path):
+def test_download_with_cache_cleanup_on_failure(_mock_download, tmp_path):  # noqa: PT019
     """Temp file is cleaned up when download fails."""
     cache_dir = tmp_path / 'cache'
     folio_dir = cache_dir / 'DAU-260420-AAAE-B'
@@ -1458,7 +1458,7 @@ def test_download_with_cache_temp_filename_format(mock_download, tmp_path):
 
     captured_temp_path = None
 
-    def capture_download(folio, filename, local_path):
+    def capture_download(folio, filename, local_path):  # noqa: ARG001
         nonlocal captured_temp_path
         captured_temp_path = local_path
         local_path.parent.mkdir(parents=True, exist_ok=True)

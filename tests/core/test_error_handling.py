@@ -15,7 +15,7 @@ from core.rbac.constants import (
 )
 
 
-def test_setup_roles_creates_groups_without_preconditions(db):
+def test_setup_roles_creates_groups_without_preconditions(db):  # noqa: ARG001
     """setup_roles succeeds even when no groups or permissions exist beforehand."""
     # Delete all groups to simulate fresh state
     Group.objects.filter(name__in=list(BackOfficeRole)).delete()
@@ -28,7 +28,7 @@ def test_setup_roles_creates_groups_without_preconditions(db):
         assert Group.objects.filter(name=role).exists(), f'{role} group was not created'
 
 
-def test_setup_roles_idempotent(db):
+def test_setup_roles_idempotent(db):  # noqa: ARG001
     """setup_roles produces the same result when run multiple times."""
     call_command('setup_roles', verbosity=0)
     call_command('setup_roles', verbosity=0)  # Second run
@@ -48,7 +48,7 @@ def test_setup_roles_idempotent(db):
         )
 
 
-def test_setup_roles_preserves_all_custom_permissions(db):
+def test_setup_roles_preserves_all_custom_permissions(db):  # noqa: ARG001
     """setup_roles ensures all custom permissions exist after any number of runs."""
     call_command('setup_roles', verbosity=0)
 

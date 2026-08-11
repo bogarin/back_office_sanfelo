@@ -159,7 +159,7 @@ def test_serve_pdf_rejects_path_traversal_in_cache_path(mock_close, mock_downloa
         patch('tramites.sftp.validate_folio', return_value='DAU-260420-AAAE-B'),
         patch('tramites.sftp.validate_filename', return_value='../../../etc/passwd.pdf'),
     ):
-        mock_download.return_value = '/tmp/safe.pdf'
+        mock_download.return_value = '/tmp/safe.pdf'  # noqa: S108
         with pytest.raises(SFTPConnectionError, match='Error de seguridad'):
             SFTPService.serve_pdf(tramite, '../../../etc/passwd.pdf')
 
@@ -170,7 +170,7 @@ def test_serve_pdf_rejects_path_traversal_in_cache_path(mock_close, mock_downloa
 @patch.object(SFTPService, 'close_connection')
 def test_serve_pdf_valid_input_passes_traversal_check(mock_close, mock_download):
     """Defense-in-depth: valid folio+filename passes the '..' check."""
-    mock_download.return_value = '/tmp/.sftp_cache/DAU-260420-AAAE-B/DAU-260420-AAAE-B-19.pdf'
+    mock_download.return_value = '/tmp/.sftp_cache/DAU-260420-AAAE-B/DAU-260420-AAAE-B-19.pdf'  # noqa: S108
 
     with patch.object(SFTPService, 'build_file_response') as mock_build:
         mock_build.return_value = HttpResponse()
@@ -256,7 +256,7 @@ def test_returns_unknown_when_no_meta():
 
 
 @pytest.fixture
-def _setup_modificar_asignacion(db, admin_user):
+def _setup_modificar_asignacion(db, admin_user):  # noqa: ARG001
     model_admin = django_admin.site._registry.get(Tramite)
     if model_admin is None:
         pytest.skip('Tramite not registered in admin')
@@ -270,7 +270,7 @@ def _setup_modificar_asignacion(db, admin_user):
     return model_admin, request
 
 
-def test_invalid_analyst_id_does_not_raise_500(_setup_modificar_asignacion):
+def test_invalid_analyst_id_does_not_raise_500(_setup_modificar_asignacion):  # noqa: PT019
     """Posting a non-existent analyst ID should redirect with error, not 500."""
     model_admin, request = _setup_modificar_asignacion
 
@@ -325,7 +325,7 @@ def test_production_session_cookie_secure_default():
     """When DEBUG=False and no env var, SESSION_COOKIE_SECURE defaults True."""
     # Create a mock env that simulates production defaults
     env = Env()
-    with patch.object(env, 'bool', side_effect=_mock_env_bool_prod):
+    with patch.object(env, 'bool', side_effect=_mock_env_bool_prod):  # noqa: SIM117
         with patch.object(env, '__call__', side_effect=_mock_env_call_prod):
             config = configure_security(env)
 
@@ -336,7 +336,7 @@ def test_production_session_cookie_secure_default():
 def test_production_csrf_cookie_secure_default():
     """When DEBUG=False and no env var, CSRF_COOKIE_SECURE defaults True."""
     env = Env()
-    with patch.object(env, 'bool', side_effect=_mock_env_bool_prod):
+    with patch.object(env, 'bool', side_effect=_mock_env_bool_prod):  # noqa: SIM117
         with patch.object(env, '__call__', side_effect=_mock_env_call_prod):
             config = configure_security(env)
 
@@ -346,7 +346,7 @@ def test_production_csrf_cookie_secure_default():
 def test_debug_mode_does_not_force_secure_cookies():
     """When DEBUG=True, cookies are not forced secure (dev convenience)."""
     env = Env()
-    with patch.object(env, 'bool', side_effect=_mock_env_bool_debug):
+    with patch.object(env, 'bool', side_effect=_mock_env_bool_debug):  # noqa: SIM117
         with patch.object(env, '__call__', side_effect=_mock_env_call_debug):
             config = configure_security(env)
 

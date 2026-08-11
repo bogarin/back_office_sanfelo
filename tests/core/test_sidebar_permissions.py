@@ -33,7 +33,7 @@ User = get_user_model()
 
 
 @pytest.fixture
-def setup_roles_run(db):
+def setup_roles_run(db):  # noqa: ARG001
     """Run setup_roles and return the groups dict."""
     call_command('setup_roles', verbosity=0)
     return {role: Group.objects.get(name=role) for role in BackOfficeRole}
@@ -67,7 +67,7 @@ def role_user(setup_roles_run):
     TRAMITES_CUSTOM_PERMISSIONS,
     ids=lambda c: c,
 )
-def test_setup_roles_creates_acceso_perms(setup_roles_run, codename):
+def test_setup_roles_creates_acceso_perms(setup_roles_run, codename):  # noqa: ARG001
     """setup_roles creates each custom permission in the database."""
     # Get the tramites content type (permissions are created under this app)
     perm = Permission.objects.filter(
@@ -241,7 +241,7 @@ def test_analista_no_usuarios_link(role_user):
 # ---------------------------------------------------------------------------
 
 
-def test_setup_roles_creates_all_groups(db):
+def test_setup_roles_creates_all_groups(db):  # noqa: ARG001
     """setup_roles creates all three RBAC groups."""
     Group.objects.filter(name__in=list(BackOfficeRole)).delete()
 
@@ -251,7 +251,7 @@ def test_setup_roles_creates_all_groups(db):
         assert Group.objects.filter(name=role).exists(), f'Group {role} was not created'
 
 
-def test_setup_roles_updates_existing_groups(db):
+def test_setup_roles_updates_existing_groups(db):  # noqa: ARG001
     """setup_roles is idempotent: updates permissions for existing groups."""
     Group.objects.get_or_create(name=BackOfficeRole.ADMINISTRADOR)
 
@@ -268,7 +268,7 @@ def test_administrador_has_auth_permissions(setup_roles_run):
     assert auth_permissions > 0
 
 
-def test_setup_roles_does_not_touch_users_without_roles(db):
+def test_setup_roles_does_not_touch_users_without_roles(db):  # noqa: ARG001
     """setup_roles does not modify users outside RBAC groups."""
     call_command('setup_roles', verbosity=0)
 

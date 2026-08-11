@@ -20,19 +20,19 @@ from tests.factories.tramites import (
 )
 
 __all__ = [
-    # Auth factories
-    'UserFactory',
-    'SuperUserFactory',
+    'ActividadFactory',
     'AdminUserFactory',
-    'GroupFactory',
-    'PermissionFactory',
     'ContentTypeFactory',
+    'GroupFactory',
+    'PeritoFactory',
+    'PermissionFactory',
+    'SuperUserFactory',
     # Catalog factories
     'TramiteCatalogoFactory',
     'TramiteEstatusFactory',
-    'PeritoFactory',
-    'ActividadFactory',
     # Tramites factories
     'TramiteFactory',
     'TramiteWithEstatusFactory',
+    # Auth factories
+    'UserFactory',
 ]

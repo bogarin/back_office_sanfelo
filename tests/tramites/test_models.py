@@ -27,7 +27,7 @@ User = get_user_model()
 
 
 @pytest.fixture
-def analista(django_db_setup):
+def analista(django_db_setup):  # noqa: ARG001
     """Create an analyst user."""
     return User.objects.create_user(
         username='analista_test',
@@ -39,7 +39,7 @@ def analista(django_db_setup):
 
 
 @pytest.fixture
-def coordinador(django_db_setup):
+def coordinador(django_db_setup):  # noqa: ARG001
     """Create a coordinator user."""
     return User.objects.create_user(
         username='coordinador_test',
@@ -51,9 +51,9 @@ def coordinador(django_db_setup):
 
 
 @pytest.fixture
-def tramite_en_revision(django_db_setup, django_db_blocker):
+def tramite_en_revision(django_db_blocker):  # noqa: ARG001
     """Create a tramite in memory with estatus 202 (EN_REVISION), unassigned."""
-    tramite = Tramite(
+    return Tramite(
         id=3,
         folio='TRAM-000003',
         tramite_id=1,
@@ -69,13 +69,12 @@ def tramite_en_revision(django_db_setup, django_db_blocker):
         es_propietario=True,
         creado='2024-01-01 00:00:00',
     )
-    return tramite
 
 
 @pytest.fixture
-def tramite_no_activo(django_db_setup, django_db_blocker):
+def tramite_no_activo(django_db_blocker):  # noqa: ARG001
     """Create a non-active tramite in memory (estatus 301 - POR_RECOGER)."""
-    tramite = Tramite(
+    return Tramite(
         id=2,
         folio='TRAM-000002',
         tramite_id=1,
@@ -88,13 +87,12 @@ def tramite_no_activo(django_db_setup, django_db_blocker):
         es_propietario=True,
         creado='2024-01-01 00:00:00',
     )
-    return tramite
 
 
 @pytest.fixture
-def tramite_activo(django_db_setup, django_db_blocker):
+def tramite_activo(django_db_blocker):  # noqa: ARG001
     """Create an active tramite in memory (estatus 201 - PRESENTADO)."""
-    tramite = Tramite(
+    return Tramite(
         id=1,
         folio='TRAM-000001',
         tramite_id=1,
@@ -110,13 +108,12 @@ def tramite_activo(django_db_setup, django_db_blocker):
         es_propietario=True,
         creado='2024-01-01 00:00:00',
     )
-    return tramite
 
 
 @pytest.fixture
-def tramite_en_revision_asignado(analista, django_db_setup, django_db_blocker):
+def tramite_en_revision_asignado(analista, django_db_blocker):  # noqa: ARG001
     """Create a tramite in EN_REVISION assigned to the shared analyst."""
-    tramite = Tramite(
+    return Tramite(
         id=1,
         folio='TRAM-000001',
         tramite_id=1,
@@ -132,7 +129,6 @@ def tramite_en_revision_asignado(analista, django_db_setup, django_db_blocker):
         es_propietario=True,
         creado='2024-01-01 00:00:00',
     )
-    return tramite
 
 
 # ---------------------------------------------------------------------------
@@ -141,9 +137,9 @@ def tramite_en_revision_asignado(analista, django_db_setup, django_db_blocker):
 
 
 @pytest.fixture
-def tramite_ya_asignado(analista, django_db_setup, django_db_blocker):
+def tramite_ya_asignado(analista, django_db_blocker):  # noqa: ARG001
     """Create a tramite in memory already assigned to an analyst."""
-    tramite = Tramite(
+    return Tramite(
         id=4,
         folio='TRAM-000004',
         tramite_id=1,
@@ -159,13 +155,12 @@ def tramite_ya_asignado(analista, django_db_setup, django_db_blocker):
         es_propietario=True,
         creado='2024-01-01 00:00:00',
     )
-    return tramite
 
 
 @pytest.fixture
-def tramite_borrador(django_db_setup, django_db_blocker):
+def tramite_borrador(django_db_blocker):  # noqa: ARG001
     """Create a tramite in estatus BORRADOR (101)."""
-    tramite = Tramite(
+    return Tramite(
         id=5,
         folio='TRAM-000005',
         tramite_id=1,
@@ -178,13 +173,12 @@ def tramite_borrador(django_db_setup, django_db_blocker):
         es_propietario=True,
         creado='2024-01-01 00:00:00',
     )
-    return tramite
 
 
 @pytest.fixture
-def tramite_pendiente_pago(django_db_setup, django_db_blocker):
+def tramite_pendiente_pago(django_db_blocker):  # noqa: ARG001
     """Create a tramite in estatus PENDIENTE_PAGO (102)."""
-    tramite = Tramite(
+    return Tramite(
         id=6,
         folio='TRAM-000006',
         tramite_id=1,
@@ -197,13 +191,12 @@ def tramite_pendiente_pago(django_db_setup, django_db_blocker):
         es_propietario=True,
         creado='2024-01-01 00:00:00',
     )
-    return tramite
 
 
 @pytest.fixture
-def tramite_rechazado(django_db_setup, django_db_blocker):
+def tramite_rechazado(django_db_blocker):  # noqa: ARG001
     """Create a tramite in estatus RECHAZADO (302)."""
-    tramite = Tramite(
+    return Tramite(
         id=7,
         folio='TRAM-000007',
         tramite_id=1,
@@ -216,13 +209,12 @@ def tramite_rechazado(django_db_setup, django_db_blocker):
         es_propietario=True,
         creado='2024-01-01 00:00:00',
     )
-    return tramite
 
 
 @pytest.fixture
-def tramite_finalizado(django_db_setup, django_db_blocker):
+def tramite_finalizado(django_db_blocker):  # noqa: ARG001
     """Create a tramite in estatus FINALIZADO (303)."""
-    tramite = Tramite(
+    return Tramite(
         id=8,
         folio='TRAM-000008',
         tramite_id=1,
@@ -235,7 +227,6 @@ def tramite_finalizado(django_db_setup, django_db_blocker):
         es_propietario=True,
         creado='2024-01-01 00:00:00',
     )
-    return tramite
 
 
 # ---- Tests for Tramite.asignar() method ----
@@ -574,7 +565,7 @@ def test_asignar_usuario_con_id_none_devuelve_silenciosamente(
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
 def test_asignar_reasignar_a_diferente_analista(
-    mock_registrar, analista, coordinador, tramite_ya_asignado
+    mock_registrar, analista, coordinador, tramite_ya_asignado  # noqa: ARG001
 ):
     """
     Edge case: Reassign to a different analyst.
@@ -1217,7 +1208,7 @@ def test_cerrar_estatus_no_activo_raises_no_asignable(analista, tramite_no_activ
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
 def test_cerrar_usuario_no_asignado_raises_permission_denied(
-    mock_registrar, analista, tramite_en_revision_asignado
+    mock_registrar, analista, tramite_en_revision_asignado  # noqa: ARG001
 ):
     """
     Edge case: Try to close tramite not assigned to this analyst.
