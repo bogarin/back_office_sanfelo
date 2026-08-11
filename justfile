@@ -4,101 +4,88 @@
 set dotenv-load
 SHORT_SHA := `git rev-parse --short HEAD`
 
+[private]
 default:
     @just --list
 
-install:
+alias install := setup
+# Setup development environment
+[group('Development')]
+setup:
     uv sync
+    uv run prek install --install-hooks --hook-type pre-commit --hook-type pre-push
+    uv run prek update
 
-# Development server
+# Launch django development server
+[group('Development')]
 run:
     uv run manage.py runserver
 
 # Create/update database migrations
+[group('Development')]
 migrate:
     uv run manage.py migrate
 
-# Show migration status
-migrate-status:
-    uv run manage.py showmigrations
-
-# Create a new migration (after model changes)
-makemigrations APP:
-    uv run manage.py makemigrations --database=default {{ APP }}
-
-# Create superuser for admin
-createsuperuser:
-    uv run manage.py createsuperuser
-
 # Setup roles (create Administrador and Operador groups)
+[group('Development')]
 setup_roles:
     uv run manage.py setup_roles
 
-# Validate schema against external PostgreSQL database
-validate-schema:
-    uv run manage.py validate_schema
+# Run every prek hook across the whole repo (manual safety net / CI parity).
+[group('Quality')]
+pre-commit:
+    uv run prek run --all-files --show-diff-on-failure
 
-# Type checking with pyright
-typecheck:
-    uv run pyright
+# Run linter (readonly)
+[group('Quality')]
+lint *ARGS:
+    uv run ruff check {{ARGS}}
 
-# Linting with ruff
-lint:
-    uv run ruff check .
-
-# Fix auto-fixable linting issues
-lint-fix *ARGS:
-    uv run ruff check --fix {{ if ARGS == "" { "." } else { ARGS } }}
-
-# Format code with ruff
+# Linter autofix + format.
+[group('Quality')]
 format *ARGS:
-    uv run ruff format {{ if ARGS == "" { "." } else { ARGS } }}
+    uv run ruff check --fix {{ARGS}}
+    uv run ruff format {{ARGS}}
 
-# Run all checks (lint + typecheck)
-check: lint typecheck
+# Type checker.
+[group('Quality')]
+typecheck *ARGS:
+    uv run ty check {{ARGS}}
 
-# Django shell
-shell:
-    uv run manage.py shell
+# Django template formatter.
+[group('Quality')]
+djlint *ARGS = '.':
+    uv run djangofmt {{ARGS}}
 
-# Test runner with pytest
+# Run test suite
+[group('Quality')]
 test *ARGS:
-    TESTING=1 uv run pytest {{ARGS}}
+    uv run pytest {{ ARGS }}
 
-# Run tests for a specific app
-test-app APP:
-    TESTING=1 uv run pytest tests/{{APP}}/
-
-# Run tests with coverage
-test-cov *ARGS:
-    TESTING=1 uv run pytest --cov=. --cov-report=html --cov-report=term {{ARGS}}
-
-# Run tests skipping slow tests
-test-fast *ARGS:
-    TESTING=1 uv run pytest -m 'not slow' {{ARGS}}
-
-# Run tests re-creating database
-test-create-db *ARGS:
-    TESTING=1 uv run pytest --create-db {{ARGS}}
-
-# Check Django system status
-check-system:
-    uv run manage.py check
+# AST audit of the test suite (skill rules: no class-based tests).
+[group('Quality')]
+audit-tests:
+    uv run python apps/core/scripts/check_tests.py
 
 # Test nginx configuration
+[group('Deployment')]
 check-nginx:
     nginx -t -c {{justfile_directory()}}/nginx/nginx.conf
 
+
 # Build docker container
+[group('Deployment')]
 container-build:
     @echo "\033[36m▶ Building Docker image...\033[0m"
-    podman build -t sanfelipe-backoffice:dev-{{SHORT_SHA}} .
-    podman tag sanfelipe-backoffice:dev-{{SHORT_SHA}} sanfelipe-backoffice:latest
+    docker build -t sanfelipe-backoffice:dev-{{SHORT_SHA}} .
+    docker tag sanfelipe-backoffice:dev-{{SHORT_SHA}} sanfelipe-backoffice:latest
     mkdir -p .docker-images
     rm -f .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.*
-    podman save -o .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.raw "sanfelipe-backoffice:dev-{{SHORT_SHA}}"
+    docker save -o .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.raw "sanfelipe-backoffice:dev-{{SHORT_SHA}}"
     zstd -19 -o .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.tar.zst .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.raw
 
+# Push latest docker container to staging
+[group('Deployment')]
 container-push:
     @echo "\033[36m▶ Pushing Docker image to sanfelo.stage \033[0m"
     scp .docker-images/sanfelipe-backoffice-dev-{{SHORT_SHA}}.tar.zst sanfelo.stage:/tmp/
@@ -109,9 +96,33 @@ container-push:
       docker rmi localhost/sanfelipe-backoffice:dev-{{SHORT_SHA}} && \
       rm -f /tmp/sanfelipe-backoffice-dev-{{SHORT_SHA}}.tar.zst"
 
+# Run the container image locally
+[group('Deployment')]
 container-run:
-    @podman rm -f backoffice 2>/dev/null || true
+    @docker rm -f backoffice 2>/dev/null || true
     podman run --name backoffice \
     -p 8090:8080 \
     --env-file .env \
     sanfelipe-backoffice:latest
+
+[group('Deployment')]
+[arg('bump', pattern='patch|minor|major|none')]
+deploy bump='patch':
+    #!/bin/bash
+    set -e
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "Error: working tree not clean. Commit or stash first." >&2
+        exit 1
+    fi
+    if [ "{{ bump }}" != "none" ]; then
+        uv version --bump {{ bump }}
+        VERSION=$(uv version --short)
+        git add pyproject.toml uv.lock
+        git commit -m "release: v${VERSION}"
+        git tag "v${VERSION}"
+        git push --follow-tags
+        echo "Released v${VERSION}"
+    fi
+    just container-build
+    just container-push
+    echo "TODO: tag new image"
