@@ -6,10 +6,12 @@ from django.core.management import call_command
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 
+from core.apps import CoreConfig
+
 logger = logging.getLogger(__name__)
 
 
-@receiver(post_migrate)
+@receiver(post_migrate, sender=CoreConfig)
 def setup_roles(sender, **kwargs):
     """Setup roles and permissions after database migrations."""
     try:
