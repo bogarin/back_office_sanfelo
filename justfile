@@ -65,7 +65,7 @@ test *ARGS:
 # AST audit of the test suite (skill rules: no class-based tests).
 [group('Quality')]
 audit-tests:
-    uv run python apps/core/scripts/check_tests.py
+    uv run manage.py audit_tests
 
 # Test nginx configuration
 [group('Deployment')]

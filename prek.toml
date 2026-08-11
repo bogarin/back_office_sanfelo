@@ -1,0 +1,110 @@
+# prek configuration — see https://prek.j178.dev/configuration/
+#
+# Run all hooks manually:  `just pre-commit`   (alias of `prek run --all-files`)
+# Install git shims:        `uv run prek install --install-hooks`
+
+minimum_prek_version = '0.4.5'
+
+# -----------------------------------------------------------------------------
+# Python: ruff (lint + format)
+# -----------------------------------------------------------------------------
+[[repos]]
+repo = 'https://github.com/astral-sh/ruff-pre-commit'
+rev = "v0.16.2"
+hooks = [
+    { id = 'ruff', args = ['--fix'] },
+    { id = 'ruff-format' },
+]
+
+# -----------------------------------------------------------------------------
+# Python: ty (type checker)
+# -----------------------------------------------------------------------------
+[[repos]]
+repo = 'https://github.com/astral-sh/ty-pre-commit'
+rev = "v0.0.69"
+hooks = [
+    { id = 'ty' },
+]
+
+# -----------------------------------------------------------------------------
+# Django templates: djangofmt (HTML-aware formatter, Rust)
+# -----------------------------------------------------------------------------
+[[repos]]
+repo = 'https://github.com/UnknownPlatypus/djangofmt-pre-commit'
+rev = "v0.2.12"
+hooks = [
+    { id = 'djangofmt' },
+]
+
+# -----------------------------------------------------------------------------
+# uv lockfile freshness
+# -----------------------------------------------------------------------------
+[[repos]]
+repo = 'https://github.com/astral-sh/uv-pre-commit'
+rev = "0.12.3"
+hooks = [
+    { id = 'uv-lock' },
+]
+
+# -----------------------------------------------------------------------------
+# prek builtin hooks (Rust-native, offline, zero-setup)
+# -----------------------------------------------------------------------------
+[[repos]]
+repo = 'builtin'
+hooks = [
+    { id = 'trailing-whitespace' },
+    { id = 'end-of-file-fixer' },
+    { id = 'check-toml' },
+    { id = 'check-yaml' },
+    { id = 'check-json' },
+    { id = 'check-merge-conflict' },
+    { id = 'check-added-large-files' },
+    { id = 'detect-private-key' },
+    { id = 'mixed-line-ending' },
+]
+
+# -----------------------------------------------------------------------------
+# Local hooks — project-specific guards
+# -----------------------------------------------------------------------------
+[[repos]]
+repo = 'local'
+
+# Markdown formatter — uses the project dev-dep mdformat (same version as CI).
+# Excludes vendored skill files in .agents/.claude/.pi/.opencode.
+[[repos.hooks]]
+id = 'mdformat'
+name = 'mdformat (markdown formatter)'
+entry = 'uv run mdformat'
+language = 'system'
+files = '\.md$'
+exclude = '^(\.agents|\.claude|\.pi|\.opencode)/'
+
+# Cheapest safety net: imports every test module. Any SyntaxError, missing
+# import, or broken settings surfaces here in <5s instead of at runtime.
+[[repos.hooks]]
+id = 'pytest-collect'
+name = 'pytest collect-only (import check)'
+entry = 'uv run pytest --collect-only -q'
+language = 'system'
+pass_filenames = false
+always_run = true
+
+# Django framework + apps/core custom system checks (SECRET_KEY, STORAGES, etc.)
+[[repos.hooks]]
+id = 'django-check'
+name = 'django manage.py check'
+entry = 'uv run manage.py check'
+language = 'system'
+pass_filenames = false
+always_run = true
+
+# AST audit for the test-suite rules in the project skill:
+# - class-based tests are forbidden (function-based only)
+# - test_* without assert in body (WARN; promote with --strict)
+[[repos.hooks]]
+id = 'audit-tests'
+name = 'AST audit tests (skill rules)'
+entry = 'uv run manage.py audit_tests'
+language = 'system'
+pass_filenames = false
+always_run = true
