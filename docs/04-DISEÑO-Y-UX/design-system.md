@@ -477,7 +477,7 @@ Todos los templates extienden `admin/base_site.html`, que a su vez extiende el l
 
 | Template | Extiende | Propósito | Layout |
 |----------|----------|-----------|--------|
-| `admin/base_site.html` | `admin/base.html` | Footer personalizado con build tag y copyright | Full layout |
+| `admin/base_site.html` | `admin/base.html` | Footer con versión de la app (desde `pyproject.toml`) y copyright | Full layout |
 | `admin/tramite_detail.html` | `admin/base_site.html` | Vista de detalle de trámite con timeline | 2 columnas (9-3) |
 | `admin/tramite_cerrar.html` | `admin/base_site.html` | Formulario de cierre de trámite | 1 columna centrada (8) |
 | `admin/modificar_asignacion.html` | `admin/base_site.html` | Asignación/reasignación de trámites | 2 columnas (6-6) |

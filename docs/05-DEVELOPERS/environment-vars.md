@@ -15,7 +15,7 @@
 | [Seguridad](#seguridad-producción) | 6 | En producción |
 | [CSP](#content-security-policy) | 1 | No |
 | [CSRF](#csrf) | 1 | En producción |
-| [Sesión](#sesión) | 1 | No |
+| [Sesión](#sesión) | 2 | No |
 | [Paginación](#paginación) | 1 | No |
 | [Email](#email) | 7 | En producción |
 | [Docker](#dockerdeployment) | 1 | No |
@@ -200,6 +200,7 @@ Orígenes confiables para protección CSRF. Incluir protocolo (`http://` o `http
 | Variable | Tipo | Default | Requerida |
 |----------|------|---------|-----------|
 | `DJANGO_SESSION_COOKIE_AGE` | int (seg) | `3600` | No |
+| `DJANGO_SESSION_SAVE_EVERY_REQUEST` | bool | `True` | No |
 
 ### `DJANGO_SESSION_COOKIE_AGE`
 
@@ -210,6 +211,15 @@ Tiempo de vida de la cookie de sesión en segundos.
 - `7200` = 2 horas
 
 El proyecto usa `signed_cookies` como backend de sesión (no hay almacenamiento server-side).
+
+### `DJANGO_SESSION_SAVE_EVERY_REQUEST`
+
+Controla si la sesión se guarda (re-firma la cookie) en **cada petición** o solo cuando se modifica.
+
+- **`True` (default, recomendado):** Cada petición reinicia el contador de `SESSION_COOKIE_AGE`. La sesión expira tras ese tiempo de **inactividad** (idle timeout). Es el comportamiento esperado: si el usuario está usando el sistema, no se le cierra la sesión.
+- **`False`:** La cookie solo se re-firma cuando los datos de sesión cambian. Con el backend `signed_cookies`, esto significa que el timestamp de la cookie queda congelado y la sesión expira de forma **absoluta** a los `SESSION_COOKIE_AGE` segundos del último cambio, **aunque el usuario haya estado activo**. Resulta muy molesto: el usuario es cerrado en medio del trabajo.
+
+> **⚠️ Por qué importa con `signed_cookies`:** Los datos de sesión viajan firmados dentro de la cookie con un timestamp. Al cargar, Django verifica `max_age = SESSION_COOKIE_AGE`. Si la cookie no se re-firma en cada petición, el timestamp no se renueva y la firma caduca en tiempo absoluto. `True` fuerza el re-firma en cada request, produciendo un idle timeout real.
 
 ---
 
@@ -313,6 +323,8 @@ Estas variables permiten que una misma imagen Docker sirva a múltiples departam
 | `BACKOFFICE_SITE_LOGO` | string | (vacío) | No |
 | `BACKOFFICE_WELCOME_SIGN` | string | `Ventanilla Urbana Digital - Municipio...` | No |
 | `BACKOFFICE_COPYRIGHT` | string | `Municipio de San Felipe...` | No |
+
+> **Nota:** La versión que se muestra en el footer (`Build vX.Y.Z`) **no se configura por variable de entorno**. La fuente única de verdad es el campo `[project].version` de `pyproject.toml`; se lee al cargar los settings (`sanfelipe/settings/__init__.py`) y se expone a las templates vía el context processor `sanfelipe.context_processors.version`. No existe una variable `IMAGE_TAG_BACKOFFICE`.
 
 ### Ejemplo para otro departamento
 
@@ -452,7 +464,7 @@ Los PDFs se descargan a un cache local antes de servirlos via Nginx X-Accel-Redi
 ### Probar conectividad SFTP
 
 ```bash
-just shell  # o uv run manage.py shell
+uv run manage.py shell
 >>> from core.management.commands.sftp import Command
 >>> # O usar el comando directamente:
 uv run manage.py sftp ping

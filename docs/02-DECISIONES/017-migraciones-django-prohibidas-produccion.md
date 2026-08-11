@@ -61,6 +61,7 @@ Opción elegida: **"B — DDL exclusivo en producción"**, porque el cliente lo 
 
 - Comparar el DDL generado por `manage.py sqlmigrate` con los scripts en `esquemas_de_dau/` como paso de CI/review.
 - El router Django (`core/db_router.ModelBasedRouter`) ya bloquea `allow_migrate` para modelos con `allow_migrations=False`.
+- El comando `manage.py makemigrations` custom imprime warnings para modelos READ_ONLY y APPEND_ONLY, recordando que los cambios de schema deben ir en el repo de DDL. No bloquea la ejecución — permite generar migraciones para modelos gestionados (ej. proxy models) mientras informa sobre los restringidos.
 
 ---
 

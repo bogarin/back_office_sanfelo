@@ -53,7 +53,7 @@ cd backoffice_tramites
 ## Paso 2: Instalar dependencias
 
 ```bash
-just install
+just setup
 ```
 
 Esto ejecuta `uv sync` que instala todas las dependencias del proyecto (Django, psycopg2, gunicorn, etc.) y crea el entorno virtual.
@@ -129,7 +129,7 @@ Esto crea las tablas de Django (auth, sessions, admin, AsignacionTramite) en el 
 ## Paso 7: Crear superusuario
 
 ```bash
-just createsuperuser
+uv run manage.py createsuperuser
 ```
 
 Sigue las instrucciones interactivas para crear tu usuario admin.
@@ -171,14 +171,13 @@ Deberías ver la pantalla de login de Django Admin con el tema jazzmin.
 
 ```bash
 just run              # Servidor de desarrollo (puerto 8000)
-just shell            # Django shell interactivo
+uv run manage.py shell  # Django shell interactivo
 just test             # Ejecutar todos los tests
-just test-app core    # Tests de una app específica
+just test core        # Tests de una app específica
 just lint             # Linting con ruff
 just typecheck        # Type checking con pyright
-just check            # lint + typecheck
-just format           # Formatear código
-just migrate-status   # Ver estado de migraciones
+just lint && just typecheck  # lint + typecheck
+just format           # Corregir y formatear código
 ```
 
 Ver: [Referencia de Comandos](./commands.md)
@@ -228,7 +227,7 @@ backoffice_tramites/
 ### "No module named 'psycopg2'"
 
 ```bash
-just install  # Reinstalar dependencias
+just setup  # Reinstalar dependencias
 ```
 
 ### Error de conexión a PostgreSQL
@@ -242,7 +241,7 @@ psql postgres://backoffice_user:backoffice_pass@localhost:5432/backoffice_tramit
 ### Error de migraciones
 
 ```bash
-just migrate-status    # Ver qué migraciones faltan
+uv run manage.py showmigrations    # Ver qué migraciones faltan
 just migrate           # Aplicar migraciones pendientes
 ```
 

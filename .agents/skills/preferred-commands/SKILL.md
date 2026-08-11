@@ -7,9 +7,8 @@ Order of preference
 
 - Recipes in `justfile` if available
   - `just install`
-  - `just createsuperuser`
   - `just lint`
-  - `just lint-fix *ARGS`
   - `just format *ARGS`
-  - `just test APP` 
+  - `just test *ARGS`
 - `uv` package manager. Use uv to invoke installed utilities or python scripts. DO NOT USE system python.
+  - `uv run manage.py createsuperuser` (no `just` recipe for superuser creation)

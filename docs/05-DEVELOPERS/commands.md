@@ -17,52 +17,44 @@ Todos los comandos de desarrollo se ejecutan con `just` (task runner). Los coman
 
 | Comando | Descripción |
 |---------|-------------|
-| `just install` | Instalar dependencias (`uv sync`) |
+| `just setup` | Instalar dependencias y configurar hooks (`uv sync` + pre-commit) |
 | `just run` | Servidor de desarrollo (`runserver` en puerto 8000) |
-| `just shell` | Django shell interactivo |
 
 ### Base de Datos
 
 | Comando | Descripción |
 |---------|-------------|
 | `just migrate` | Aplicar migraciones pendientes |
-| `just migrate-status` | Ver estado de migraciones |
-| `just makemigrations APP` | Crear migración para una app (solo schema backoffice) |
-
-### Usuarios y Roles
-
-| Comando | Descripción |
-|---------|-------------|
-| `just createsuperuser` | Crear usuario administrador |
 | `just setup_roles` | Crear grupos RBAC (Administrador, Coordinador, Analista) |
 
 ### Calidad de Código
 
 | Comando | Descripción |
 |---------|-------------|
-| `just lint` | Linting con ruff |
-| `just lint-fix` | Corregir problemas de linting automáticamente |
-| `just format` | Formatear código con ruff |
-| `just typecheck` | Type checking con pyright |
-| `just check` | Ejecutar lint + typecheck |
+| `just pre-commit` | Ejecutar todos los hooks de pre-commit |
+| `just lint *ARGS` | Linting con ruff (solo lectura) |
+| `just format *ARGS` | Corregir problemas de linting automáticamente y formatear código |
+| `just typecheck *ARGS` | Type checking con pyright |
+| `just djlint *ARGS` | Formatear templates de Django |
+| `just lint && just typecheck` | Ejecutar lint + typecheck |
+| `just audit-tests` | Auditoría AST de suite de tests |
 
 ### Testing
 
 | Comando | Descripción |
 |---------|-------------|
 | `just test` | Ejecutar todos los tests |
-| `just test APP` | Ejecutar tests pasando args a pytest |
-| `just test-app APP` | Tests de una app específica |
-| `just test-cov` | Tests con cobertura HTML + terminal |
-| `just test-fast` | Tests saltando los marcados como `slow` |
-| `just test-create-db` | Tests recreando la base de datos |
+| `just test <args>` | Ejecutar tests pasando args a pytest |
 
 ### Docker
 
 | Comando | Descripción |
 |---------|-------------|
 | `just container-build` | Construir imagen Docker/Podman |
-| `just check-system` | Verificar estado del sistema Django |
+| `just container-push` | Push imagen Docker a staging |
+| `just container-run` | Ejecutar contenedor localmente |
+| `just deploy` | Desplegar (build + push) |
+| `just check-nginx` | Verificar configuración de nginx |
 
 ---
 
