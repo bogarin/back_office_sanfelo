@@ -5,6 +5,7 @@ Tests cover field configuration, role choices, validation, and widget rendering.
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 
 from core.forms import (
     CustomReadOnlyPasswordHashWidget,
@@ -220,7 +221,6 @@ def test_analista_initial_role(db):
         password='testpass123',
         is_staff=True,
     )
-    from django.contrib.auth.models import Group
 
     user.groups.add(Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0])
 
@@ -236,7 +236,6 @@ def test_coordinador_initial_role(db):
         password='testpass123',
         is_staff=True,
     )
-    from django.contrib.auth.models import Group
 
     user.groups.add(
         Group.objects.get_or_create(name=BackOfficeRole.COORDINADOR)[0],
@@ -254,7 +253,6 @@ def test_administrador_initial_role(db):
         password='testpass123',
         is_staff=True,
     )
-    from django.contrib.auth.models import Group
 
     user.groups.add(
         Group.objects.get_or_create(name=BackOfficeRole.ADMINISTRADOR)[0],

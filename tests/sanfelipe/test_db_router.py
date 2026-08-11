@@ -13,6 +13,8 @@ from django.contrib.contenttypes.models import ContentType
 
 from core.db_router import ModelBasedRouter
 from core.model_config import AccessPattern, get_model_config, get_model_config_by_label
+from core.models import User
+from tramites.models import Actividad, Tramite
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -27,9 +29,7 @@ def router():
 
 @pytest.fixture
 def business_models():
-    """Import and return business models (skip if unavailable)."""
-    from tramites.models import Actividad, Tramite
-
+    """Import and return business models."""
     return {'Tramite': Tramite, 'Actividad': Actividad}
 
 
@@ -52,8 +52,6 @@ def test_auth_models_route_to_default(router):
 @pytest.mark.django_db
 def test_user_model_routes_to_default(router):
     """Custom User model → 'default' database with FULL_ACCESS."""
-    from core.models import User
-
     assert router.db_for_read(User) == 'default'
     assert router.db_for_write(User) == 'default'
 
@@ -101,8 +99,6 @@ def test_business_models_routing(router, business_models):
 @pytest.mark.django_db
 def test_cross_db_relations_blocked(router, business_models):
     """Relations across different databases must be blocked."""
-    from core.models import User
-
     Tramite = business_models['Tramite']
     Actividad = business_models['Actividad']
 

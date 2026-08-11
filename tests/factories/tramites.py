@@ -3,7 +3,7 @@
 import factory
 
 from tests.factories.catalogos import TramiteEstatusFactory
-from tramites.models import Actividades
+from tramites.models import Actividades, TramiteEstatus
 
 
 class TramiteFactory(factory.django.DjangoModelFactory):
@@ -76,8 +76,6 @@ class TramiteWithEstatusFactory(factory.django.DjangoModelFactory):
 
         # The tramite instance is available via self
         tramite_instance = self
-
-        from tramites.models import TramiteEstatus
 
         # Determine estatus to use
         # Priority order: estatus_id kwarg -> estatus kwarg -> create default

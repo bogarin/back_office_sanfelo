@@ -7,11 +7,13 @@ These tests complement test_models.py which focuses on workflow methods
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 
 from core.rbac.constants import BackOfficeRole
 from tramites.exceptions import EstadoNoPermitidoError, TramiteNoAsignableError
 from tramites.models import Tramite
 from tramites.models.catalogos import TramiteEstatus
+from tramites.models.tramite import TRANSITIONS
 
 User = get_user_model()
 
@@ -23,8 +25,6 @@ User = get_user_model()
 
 @pytest.fixture
 def analista(django_db_setup):
-    from django.contrib.auth.models import Group
-
     user = User.objects.create_user(
         username='val_analista',
         email='val_analista@example.com',
@@ -110,8 +110,6 @@ def test_finalizados_excludes_active_statuses():
 
 def test_all_active_to_close_transitions_exist():
     """Every active status must be closable."""
-    from tramites.models.tramite import TRANSITIONS
-
     active_statuses = [
         TramiteEstatus.Estatus.EN_REVISION,
         TramiteEstatus.Estatus.REQUERIMIENTO,
@@ -130,8 +128,6 @@ def test_all_active_to_close_transitions_exist():
 
 def test_invalid_transition_not_in_dict():
     """Borrador → EN_REVISION is not a valid direct transition."""
-    from tramites.models.tramite import TRANSITIONS
-
     assert (
         TramiteEstatus.Estatus.BORRADOR,
         TramiteEstatus.Estatus.EN_REVISION,
@@ -212,10 +208,6 @@ def perms_superuser(db):
 
 @pytest.fixture
 def perms_coordinador(db):
-    from django.contrib.auth.models import Group
-
-    from core.rbac.constants import BackOfficeRole
-
     user = User.objects.create_user(
         username='val_coordinador',
         email='coord@example.com',

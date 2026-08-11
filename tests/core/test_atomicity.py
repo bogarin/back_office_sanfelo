@@ -13,9 +13,13 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.messages.storage.cookie import CookieStorage
+from django.db import IntegrityError
 from django.test import RequestFactory
 
 from core.rbac.constants import BackOfficeRole
+from core.views import asignar_rol
+from tramites.models import Tramite
+from tramites.models.catalogos import TramiteEstatus
 
 User = get_user_model()
 
@@ -85,8 +89,6 @@ def test_save_model_rollback_on_group_add_failure(superuser):
     # Make Group.objects.filter(name=role).first() return None AND then
     # raise when groups.add is called. We patch at the queryset level
     # to simulate a DB failure after the user has been saved.
-    from django.db import IntegrityError
-
     with patch(
         'core.admin.Group.objects.filter',
         side_effect=IntegrityError('DB connection lost'),
@@ -185,8 +187,6 @@ def test_asignar_rol_rollback_on_save_failure(superuser):
         return original_save(user_instance, *args, **kwargs)
 
     with patch.object(User, 'save', failing_save):
-        from core.views import asignar_rol
-
         try:
             asignar_rol(request)
         except Exception:
@@ -224,8 +224,6 @@ def test_asignar_rol_happy_path_unchanged(superuser):
     )
     request.session['selected_user_ids'] = [user.pk]
 
-    from core.views import asignar_rol
-
     asignar_rol(request)
 
     user.refresh_from_db()
@@ -243,12 +241,7 @@ def test_asignar_rol_happy_path_unchanged(superuser):
 def test_batch_assign_partial_failure_reports_errors(superuser):
     """When some trámites fail in batch, errors are reported via messages."""
 
-    from django.contrib import admin as django_admin
-
-    from tramites.models import Tramite
-    from tramites.models.catalogos import TramiteEstatus
-
-    model_admin = django_admin.site._registry.get(Tramite)
+    model_admin = admin.site._registry.get(Tramite)
     if model_admin is None:
         pytest.skip('Tramite not registered in admin')
 
@@ -321,11 +314,7 @@ def test_batch_assign_partial_failure_reports_errors(superuser):
 @pytest.mark.django_db
 def test_batch_assign_happy_path(superuser):
     """Verify normal batch assign still works after adding atomic."""
-    from django.contrib import admin as django_admin
-
-    from tramites.models import Tramite
-
-    model_admin = django_admin.site._registry.get(Tramite)
+    model_admin = admin.site._registry.get(Tramite)
     if model_admin is None:
         pytest.skip('Tramite not registered in admin')
 

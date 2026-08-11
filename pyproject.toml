@@ -48,6 +48,7 @@ select = [
     "DTZ",   # flake8-datetimez (Timezone safety)
     "E",     # pycodestyle errors
     "F",     # pyflakes
+    "FURB",  # A tool for refurbishing and modernizing Python codebases.
     "I",     # isort
     "PERF",  # perflint
     "PGH",   # pygrep-hooks
@@ -76,7 +77,7 @@ ignore = [
 # Django settings files often have long lines
 "sanfelipe/settings.py" = ["E501"]
 # Tests can have long lines
-"tests/**/*.py" = ["E501", "B011"]
+"tests/**/*.py" = ["E501", "B011", "S101", "S105", "S106", "S107"]
 # Migrations are auto-generated — skip all lint checks
 "*/migrations/**/*.py" = ["E501", "B008", "C4", "RUF012"]
 # Allow unused imports in __init__.py
@@ -90,17 +91,18 @@ known-first-party = ["tramites", "catalogos", "bitacora", "costos", "core", "san
 # Google-style docstrings (common in Django)
 convention = "google"
 
+[tool.lint.flake8-tidy-imports]
+# Require lazy imports for specific modules.
+require-lazy = ["typing"]
+
 [tool.ruff.format]
 # Use single quotes for Python
 quote-style = "single"
 
 [tool.ty.environment]
-root = [
-    "./core",
-    "./sanfelipe",
-    "./tramites",
-    "./tests"
-]
+# Project root as single first-party root so `core.X`, `tramites.X`, etc. resolve
+root = ["."]
+python = "./.venv"
 
 [tool.ty.analysis]
 replace-imports-with-any = [

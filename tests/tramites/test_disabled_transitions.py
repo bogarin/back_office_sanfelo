@@ -8,8 +8,11 @@ All tests use override_settings() so no .env changes are needed.
 """
 
 import pytest
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.test import override_settings
 
+from tramites.models import Tramite
 from tramites.models.catalogos import TramiteEstatus
 from tramites.models.tramite import (
     TRANSITIONS,
@@ -72,8 +75,6 @@ def test_transitions_constant_never_mutated():
 @pytest.mark.django_db
 def test_available_actions_excludes_disabled(analista, django_db_setup):
     """available_actions() hides en_diligencia when 205 is disabled."""
-    from tramites.models import Tramite
-
     tramite = Tramite(
         id=99,
         folio='TEST-000099',
@@ -102,8 +103,6 @@ def test_available_actions_excludes_disabled(analista, django_db_setup):
 @pytest.mark.django_db
 def test_available_actions_includes_non_disabled(analista, django_db_setup):
     """available_actions() includes all actions when nothing is disabled."""
-    from tramites.models import Tramite
-
     tramite = Tramite(
         id=100,
         folio='TEST-000100',
@@ -137,9 +136,6 @@ def test_available_actions_includes_non_disabled(analista, django_db_setup):
 @pytest.fixture
 def analista(django_db_setup):
     """Create an analyst user with the Analista role."""
-    from django.contrib.auth import get_user_model
-    from django.contrib.auth.models import Group
-
     User = get_user_model()
     user = User.objects.create_user(
         username='analista_disabled_test',

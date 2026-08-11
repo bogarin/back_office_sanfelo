@@ -19,7 +19,12 @@ from typing import Any
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.management import call_command
+from django.http import HttpRequest
+from django.test import Client
+
+from core.rbac.constants import BackOfficeRole
 
 User = get_user_model()
 
@@ -53,30 +58,18 @@ def superuser(db):
 @pytest.fixture
 def admin_group(db):
     """Get or create the Administrador group."""
-    from django.contrib.auth.models import Group
-
-    from core.rbac.constants import BackOfficeRole
-
     return Group.objects.get_or_create(name=BackOfficeRole.ADMINISTRADOR)[0]
 
 
 @pytest.fixture
 def coordinador_group(db):
     """Get or create the Coordinador group."""
-    from django.contrib.auth.models import Group
-
-    from core.rbac.constants import BackOfficeRole
-
     return Group.objects.get_or_create(name=BackOfficeRole.COORDINADOR)[0]
 
 
 @pytest.fixture
 def analista_group(db):
     """Get or create the Analista group."""
-    from django.contrib.auth.models import Group
-
-    from core.rbac.constants import BackOfficeRole
-
     return Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0]
 
 
@@ -101,8 +94,6 @@ def admin_user(db, admin_group):
 @pytest.fixture
 def mock_http_request():
     """Create a mock HTTP request object."""
-    from django.http import HttpRequest
-
     request = HttpRequest()
     request.user = type('User', (), {'username': 'testuser'})()
     request.META = {'REMOTE_ADDR': '127.0.0.1', 'REMOTE_HOST': 'localhost'}
@@ -117,8 +108,6 @@ def mock_http_request():
 @pytest.fixture
 def admin_client(db, superuser):
     """Create a Django test client logged in as superuser."""
-    from django.test import Client
-
     client = Client()
     client.force_login(superuser)
     return client
@@ -127,8 +116,6 @@ def admin_client(db, superuser):
 @pytest.fixture
 def admin_user_client(db, admin_user):
     """Create a Django test client logged in as administrador user."""
-    from django.test import Client
-
     client = Client()
     client.force_login(admin_user)
     return client

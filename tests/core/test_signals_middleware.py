@@ -7,10 +7,12 @@ Covers:
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import AnonymousUser, Group
+from django.core.management import call_command
 from django.http import HttpResponse
 from django.test import RequestFactory
 
+from core.middleware import CacheUserRolesMiddleware
 from core.rbac.constants import BackOfficeRole
 
 User = get_user_model()
@@ -24,7 +26,6 @@ User = get_user_model()
 @pytest.fixture
 def cache_middleware():
     """Create middleware instance with a dummy get_response."""
-    from core.middleware import CacheUserRolesMiddleware
 
     def get_response(request):
         return HttpResponse('OK')
@@ -99,8 +100,6 @@ def test_user_with_no_groups_gets_empty_set(cache_middleware, cache_factory, db)
 
 def test_anonymous_user_no_roles_attribute(cache_middleware, cache_factory):
     """Anonymous user gets an empty roles set."""
-    from django.contrib.auth.models import AnonymousUser
-
     request = cache_factory.get('/')
     request.user = AnonymousUser()
 
@@ -144,8 +143,6 @@ def test_middleware_calls_get_response(cache_middleware, cache_factory, db):
 @pytest.mark.django_db
 def test_setup_roles_signal_creates_groups(db):
     """The post_migrate signal creates all BackOfficeRole groups."""
-    from django.core.management import call_command
-
     # Use setup_roles directly instead of migrate --run-syncdb
     # which fails on SQLite with FK constraints
     call_command('setup_roles', verbosity=0)
@@ -159,8 +156,6 @@ def test_setup_roles_signal_creates_groups(db):
 @pytest.mark.django_db
 def test_setup_roles_idempotent(db):
     """Running setup_roles multiple times does not create duplicates."""
-    from django.core.management import call_command
-
     call_command('setup_roles', verbosity=0)
     call_command('setup_roles', verbosity=0)
 

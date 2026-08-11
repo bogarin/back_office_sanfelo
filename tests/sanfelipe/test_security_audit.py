@@ -13,16 +13,24 @@ Testable findings covered:
 - SEC-009: Production cookie secure defaults to True
 """
 
+import inspect
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.conf import settings
+from django.contrib import admin as django_admin
 from django.contrib.auth import get_user_model
-from django.http import HttpResponse
+from django.contrib.messages.storage.cookie import CookieStorage
+from django.http import HttpResponse, HttpResponseRedirect
 from django.test import RequestFactory
+from django.utils.csp import CSP
+from environ import Env
 
+from sanfelipe.settings.security import configure_security
 from tramites.exceptions import SFTPConnectionError
+from tramites.models import Tramite
 from tramites.sftp import SFTPService
-from tramites.views import _get_client_ip, _safe_redirect_url
+from tramites.views import _get_client_ip, _safe_redirect_url, cerrar_tramite_view
 
 User = get_user_model()
 
@@ -92,56 +100,36 @@ def test_allows_deep_relative_path():
 
 @pytest.fixture(autouse=True)
 def _require_csp():
-    from django.conf import settings
-
     if not getattr(settings, 'SECURE_CSP', None):
         pytest.skip('SECURE_CSP not configured')
 
 
 def test_csp_default_src_is_self():
-    from django.conf import settings
-    from django.utils.csp import CSP
-
     policy = settings.SECURE_CSP
     assert CSP.SELF in policy['default-src']
 
 
 def test_csp_object_src_is_none():
-    from django.conf import settings
-    from django.utils.csp import CSP
-
     policy = settings.SECURE_CSP
     assert CSP.NONE in policy['object-src'] or "'none'" in policy['object-src']
 
 
 def test_csp_frame_src_is_none():
-    from django.conf import settings
-    from django.utils.csp import CSP
-
     policy = settings.SECURE_CSP
     assert CSP.NONE in policy['frame-src'] or "'none'" in policy['frame-src']
 
 
 def test_csp_form_action_is_self():
-    from django.conf import settings
-    from django.utils.csp import CSP
-
     policy = settings.SECURE_CSP
     assert CSP.SELF in policy['form-action']
 
 
 def test_csp_base_uri_is_self():
-    from django.conf import settings
-    from django.utils.csp import CSP
-
     policy = settings.SECURE_CSP
     assert CSP.SELF in policy['base-uri']
 
 
 def test_csp_frame_ancestors_prevents_embedding():
-    from django.conf import settings
-    from django.utils.csp import CSP
-
     policy = settings.SECURE_CSP
     assert CSP.SELF in policy.get('frame-ancestors', [])
 
@@ -200,8 +188,6 @@ def test_path_traversal_check_is_not_assert():
     This is a static analysis test: read the source and confirm
     'assert' is not used in the path traversal check.
     """
-    import inspect
-
     source = inspect.getsource(SFTPService.serve_pdf)
     # The fix replaced assert with if/raise
     # Make sure 'assert' is not present for the path traversal check
@@ -220,10 +206,6 @@ def test_path_traversal_check_is_not_assert():
 
 def test_safe_redirect_url_is_used_in_cerrar_tramite():
     """Verify cerrar_tramite_view uses _safe_redirect_url for 'next' param."""
-    import inspect
-
-    from tramites.views import cerrar_tramite_view
-
     source = inspect.getsource(cerrar_tramite_view)
     assert '_safe_redirect_url' in source, (
         'cerrar_tramite_view must use _safe_redirect_url for the next parameter (SEC-001)'
@@ -275,11 +257,6 @@ def test_returns_unknown_when_no_meta():
 
 @pytest.fixture
 def _setup_modificar_asignacion(db, admin_user):
-    from django.contrib import admin as django_admin
-
-    from tramites.models import Tramite
-
-    # Get any registered Tramite admin
     model_admin = django_admin.site._registry.get(Tramite)
     if model_admin is None:
         pytest.skip('Tramite not registered in admin')
@@ -288,8 +265,6 @@ def _setup_modificar_asignacion(db, admin_user):
     request = factory.post('/', {'analista': '99999', 'observacion': 'test'})
     request.user = admin_user
 
-    from django.contrib.messages.storage.cookie import CookieStorage
-
     request._messages = CookieStorage(request)
 
     return model_admin, request
@@ -297,11 +272,7 @@ def _setup_modificar_asignacion(db, admin_user):
 
 def test_invalid_analyst_id_does_not_raise_500(_setup_modificar_asignacion):
     """Posting a non-existent analyst ID should redirect with error, not 500."""
-    from django.http import HttpResponseRedirect
-
     model_admin, request = _setup_modificar_asignacion
-
-    from tramites.models import Tramite
 
     queryset = Tramite.objects.none()
 
@@ -352,10 +323,6 @@ def _mock_env_call_debug(key, default=None):
 
 def test_production_session_cookie_secure_default():
     """When DEBUG=False and no env var, SESSION_COOKIE_SECURE defaults True."""
-    from environ import Env
-
-    from sanfelipe.settings.security import configure_security
-
     # Create a mock env that simulates production defaults
     env = Env()
     with patch.object(env, 'bool', side_effect=_mock_env_bool_prod):
@@ -368,10 +335,6 @@ def test_production_session_cookie_secure_default():
 
 def test_production_csrf_cookie_secure_default():
     """When DEBUG=False and no env var, CSRF_COOKIE_SECURE defaults True."""
-    from environ import Env
-
-    from sanfelipe.settings.security import configure_security
-
     env = Env()
     with patch.object(env, 'bool', side_effect=_mock_env_bool_prod):
         with patch.object(env, '__call__', side_effect=_mock_env_call_prod):
@@ -382,10 +345,6 @@ def test_production_csrf_cookie_secure_default():
 
 def test_debug_mode_does_not_force_secure_cookies():
     """When DEBUG=True, cookies are not forced secure (dev convenience)."""
-    from environ import Env
-
-    from sanfelipe.settings.security import configure_security
-
     env = Env()
     with patch.object(env, 'bool', side_effect=_mock_env_bool_debug):
         with patch.object(env, '__call__', side_effect=_mock_env_call_debug):

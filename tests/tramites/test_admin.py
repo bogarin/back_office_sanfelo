@@ -13,6 +13,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
 
 from core.rbac.constants import BackOfficeRole
+from tramites.admin import RoleCheckMixin, TramiteBaseAdmin
 from tramites.models import Buzon, Cerrado, Disponible, Tramite
 
 
@@ -245,8 +246,6 @@ def test_has_change_permission_with_obj_denied_cerrados(admin_perms_cerrados, ro
 
 def test_invalid_allowed_roles_raises_improperly_configured():
     """Subclassing RoleCheckMixin with invalid role strings fails at import time."""
-    from tramites.admin import RoleCheckMixin, TramiteBaseAdmin
-
     with pytest.raises(ImproperlyConfigured, match='is_staff'):
         type(
             'BadAdmin',

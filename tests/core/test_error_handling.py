@@ -6,6 +6,7 @@ Verifies that setup_roles is robust against edge cases:
 """
 
 from django.contrib.auth.models import Group, Permission
+from django.core.management import call_command
 
 from core.rbac.constants import (
     ROLE_CUSTOM_PERMISSIONS,
@@ -16,8 +17,6 @@ from core.rbac.constants import (
 
 def test_setup_roles_creates_groups_without_preconditions(db):
     """setup_roles succeeds even when no groups or permissions exist beforehand."""
-    from django.core.management import call_command
-
     # Delete all groups to simulate fresh state
     Group.objects.filter(name__in=list(BackOfficeRole)).delete()
 
@@ -31,8 +30,6 @@ def test_setup_roles_creates_groups_without_preconditions(db):
 
 def test_setup_roles_idempotent(db):
     """setup_roles produces the same result when run multiple times."""
-    from django.core.management import call_command
-
     call_command('setup_roles', verbosity=0)
     call_command('setup_roles', verbosity=0)  # Second run
 
@@ -53,8 +50,6 @@ def test_setup_roles_idempotent(db):
 
 def test_setup_roles_preserves_all_custom_permissions(db):
     """setup_roles ensures all custom permissions exist after any number of runs."""
-    from django.core.management import call_command
-
     call_command('setup_roles', verbosity=0)
 
     for codename in TRAMITES_CUSTOM_PERMISSIONS:

@@ -143,8 +143,6 @@ def tramite_en_revision_asignado(analista, django_db_setup, django_db_blocker):
 @pytest.fixture
 def tramite_ya_asignado(analista, django_db_setup, django_db_blocker):
     """Create a tramite in memory already assigned to an analyst."""
-    from tramites.models import TramiteEstatus
-
     tramite = Tramite(
         id=4,
         folio='TRAM-000004',
@@ -1008,8 +1006,6 @@ def test_requerir_documentos_usuario_no_asignado_raises_permission(
     tramite = tramite_en_revision_asignado
 
     # Mock _assert_asignado_a to raise PermissionDenied
-    from django.core.exceptions import PermissionDenied
-
     mock_verificar.side_effect = PermissionDenied('No asignado')
 
     with pytest.raises(PermissionDenied):
@@ -1088,8 +1084,6 @@ def test_en_diligencia_usuario_no_asignado_raises_permission(
     tramite = tramite_en_revision_asignado
 
     # Mock _assert_asignado_a to raise PermissionDenied
-    from django.core.exceptions import PermissionDenied
-
     mock_verificar.side_effect = PermissionDenied('No asignado')
 
     with pytest.raises(PermissionDenied):
@@ -1232,8 +1226,6 @@ def test_cerrar_usuario_no_asignado_raises_permission_denied(
     - Raises PermissionDenied
     - No Actividades created
     """
-    from django.contrib.auth import get_user_model
-
     User = get_user_model()
     other_analista = User.objects.create_user(
         username='other_analista',
