@@ -21,114 +21,119 @@ User = get_user_model()
 # ---------------------------------------------------------------------------
 
 
-class TestCacheUserRolesMiddleware:
-    """Tests for core.middleware.CacheUserRolesMiddleware."""
+@pytest.fixture
+def cache_middleware():
+    """Create middleware instance with a dummy get_response."""
+    from core.middleware import CacheUserRolesMiddleware
 
-    @pytest.fixture
-    def middleware(self):
-        """Create middleware instance with a dummy get_response."""
-        from core.middleware import CacheUserRolesMiddleware
+    def get_response(request):
+        return HttpResponse('OK')
 
-        def get_response(request):
-            return HttpResponse('OK')
+    return CacheUserRolesMiddleware(get_response)
 
-        return CacheUserRolesMiddleware(get_response)
 
-    @pytest.fixture
-    def factory(self):
-        return RequestFactory()
+@pytest.fixture
+def cache_factory():
+    return RequestFactory()
 
-    @pytest.mark.django_db
-    def test_authenticated_user_gets_roles_cached(self, middleware, factory, db):
-        """Authenticated user: request.user.roles is a set of group names."""
-        user = User.objects.create_user(
-            username='mw_user',
-            password='testpass123',
-            is_staff=True,
-        )
-        group = Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0]
-        user.groups.add(group)
 
-        request = factory.get('/')
-        request.user = user
+@pytest.mark.django_db
+def test_authenticated_user_gets_roles_cached(cache_middleware, cache_factory, db):
+    """Authenticated user: request.user.roles is a set of group names."""
+    user = User.objects.create_user(
+        username='mw_user',
+        password='testpass123',
+        is_staff=True,
+    )
+    group = Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0]
+    user.groups.add(group)
 
-        middleware(request)
+    request = cache_factory.get('/')
+    request.user = user
 
-        assert hasattr(request.user, 'roles')
-        assert isinstance(request.user.roles, set)
-        assert BackOfficeRole.ANALISTA in request.user.roles
+    cache_middleware(request)
 
-    @pytest.mark.django_db
-    def test_user_with_multiple_roles(self, middleware, factory, db):
-        """User in multiple groups: all group names appear in roles."""
-        user = User.objects.create_user(
-            username='mw_multi',
-            password='testpass123',
-            is_staff=True,
-        )
-        g1 = Group.objects.get_or_create(name=BackOfficeRole.COORDINADOR)[0]
-        g2 = Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0]
-        user.groups.add(g1, g2)
+    assert hasattr(request.user, 'roles')
+    assert isinstance(request.user.roles, set)
+    assert BackOfficeRole.ANALISTA in request.user.roles
 
-        request = factory.get('/')
-        request.user = user
 
-        middleware(request)
+@pytest.mark.django_db
+def test_user_with_multiple_roles(cache_middleware, cache_factory, db):
+    """User in multiple groups: all group names appear in roles."""
+    user = User.objects.create_user(
+        username='mw_multi',
+        password='testpass123',
+        is_staff=True,
+    )
+    g1 = Group.objects.get_or_create(name=BackOfficeRole.COORDINADOR)[0]
+    g2 = Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0]
+    user.groups.add(g1, g2)
 
-        assert BackOfficeRole.COORDINADOR in request.user.roles
-        assert BackOfficeRole.ANALISTA in request.user.roles
-        assert len(request.user.roles) == 2
+    request = cache_factory.get('/')
+    request.user = user
 
-    @pytest.mark.django_db
-    def test_user_with_no_groups_gets_empty_set(self, middleware, factory, db):
-        """User with no groups: roles is an empty set."""
-        user = User.objects.create_user(
-            username='mw_nogroup',
-            password='testpass123',
-        )
+    cache_middleware(request)
 
-        request = factory.get('/')
-        request.user = user
+    assert BackOfficeRole.COORDINADOR in request.user.roles
+    assert BackOfficeRole.ANALISTA in request.user.roles
+    assert len(request.user.roles) == 2
 
-        middleware(request)
 
-        assert hasattr(request.user, 'roles')
-        assert request.user.roles == set()
+@pytest.mark.django_db
+def test_user_with_no_groups_gets_empty_set(cache_middleware, cache_factory, db):
+    """User with no groups: roles is an empty set."""
+    user = User.objects.create_user(
+        username='mw_nogroup',
+        password='testpass123',
+    )
 
-    def test_anonymous_user_no_roles_attribute(self, middleware, factory):
-        """Anonymous user gets an empty roles set."""
-        from django.contrib.auth.models import AnonymousUser
+    request = cache_factory.get('/')
+    request.user = user
 
-        request = factory.get('/')
-        request.user = AnonymousUser()
+    cache_middleware(request)
 
-        middleware(request)
+    assert hasattr(request.user, 'roles')
+    assert request.user.roles == set()
 
-        assert hasattr(request.user, 'roles')
-        assert request.user.roles == set()
 
-    def test_request_without_user_attribute(self, middleware, factory):
-        """Request without user attribute: middleware passes through cleanly."""
-        request = factory.get('/')
-        # Don't set request.user at all
+def test_anonymous_user_no_roles_attribute(cache_middleware, cache_factory):
+    """Anonymous user gets an empty roles set."""
+    from django.contrib.auth.models import AnonymousUser
 
-        response = middleware(request)
+    request = cache_factory.get('/')
+    request.user = AnonymousUser()
 
-        assert response.status_code == 200
+    cache_middleware(request)
 
-    def test_middleware_calls_get_response(self, middleware, factory, db):
-        """Middleware always calls get_response and returns its result."""
-        user = User.objects.create_user(
-            username='mw_simple',
-            password='testpass123',
-        )
-        request = factory.get('/')
-        request.user = user
+    assert hasattr(request.user, 'roles')
+    assert request.user.roles == set()
 
-        response = middleware(request)
 
-        assert response.status_code == 200
-        assert response.content == b'OK'
+def test_request_without_user_attribute(cache_middleware, cache_factory):
+    """Request without user attribute: middleware passes through cleanly."""
+    request = cache_factory.get('/')
+    # Don't set request.user at all
+
+    response = cache_middleware(request)
+
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_middleware_calls_get_response(cache_middleware, cache_factory, db):
+    """Middleware always calls get_response and returns its result."""
+    user = User.objects.create_user(
+        username='mw_simple',
+        password='testpass123',
+    )
+    request = cache_factory.get('/')
+    request.user = user
+
+    response = cache_middleware(request)
+
+    assert response.status_code == 200
+    assert response.content == b'OK'
 
 
 # ---------------------------------------------------------------------------
@@ -136,32 +141,30 @@ class TestCacheUserRolesMiddleware:
 # ---------------------------------------------------------------------------
 
 
-class TestPostMigrateSignal:
-    """Tests for core.signals.setup_roles post_migrate handler."""
+@pytest.mark.django_db
+def test_setup_roles_signal_creates_groups(db):
+    """The post_migrate signal creates all BackOfficeRole groups."""
+    from django.core.management import call_command
 
-    @pytest.mark.django_db
-    def test_setup_roles_signal_creates_groups(self, db):
-        """The post_migrate signal creates all BackOfficeRole groups."""
-        from django.core.management import call_command
+    # Use setup_roles directly instead of migrate --run-syncdb
+    # which fails on SQLite with FK constraints
+    call_command('setup_roles', verbosity=0)
 
-        # Use setup_roles directly instead of migrate --run-syncdb
-        # which fails on SQLite with FK constraints
-        call_command('setup_roles', verbosity=0)
+    for role in BackOfficeRole:
+        assert Group.objects.filter(name=role).exists(), (
+            f'Group "{role}" should exist after setup_roles'
+        )
 
-        for role in BackOfficeRole:
-            assert Group.objects.filter(name=role).exists(), (
-                f'Group "{role}" should exist after setup_roles'
-            )
 
-    @pytest.mark.django_db
-    def test_setup_roles_idempotent(self, db):
-        """Running setup_roles multiple times does not create duplicates."""
-        from django.core.management import call_command
+@pytest.mark.django_db
+def test_setup_roles_idempotent(db):
+    """Running setup_roles multiple times does not create duplicates."""
+    from django.core.management import call_command
 
-        call_command('setup_roles', verbosity=0)
-        call_command('setup_roles', verbosity=0)
+    call_command('setup_roles', verbosity=0)
+    call_command('setup_roles', verbosity=0)
 
-        for role in BackOfficeRole:
-            assert Group.objects.filter(name=role).count() == 1, (
-                f'Group "{role}" should exist exactly once'
-            )
+    for role in BackOfficeRole:
+        assert Group.objects.filter(name=role).count() == 1, (
+            f'Group "{role}" should exist exactly once'
+        )

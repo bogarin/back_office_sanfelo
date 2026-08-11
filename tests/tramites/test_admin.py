@@ -38,172 +38,204 @@ def _get_admin_instance(model_class):
 
 # =============================================================================
 # B5-30: has_change_permission — role checks
+# ---- BuzonTramitesAdmin ----
 # =============================================================================
 
 
-class TestBuzonTramitesAdminPermissions:
-    """BuzonTramitesAdmin: analista/coordinador/administrador for list actions."""
-
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.admin = _get_admin_instance(Buzon)
-        self.request = _make_request()
-
-    @pytest.mark.parametrize(
-        'role',
-        [
-            frozenset({BackOfficeRole.ANALISTA}),
-            frozenset({BackOfficeRole.COORDINADOR}),
-            frozenset({BackOfficeRole.ADMINISTRADOR}),
-        ],
-    )
-    def test_has_change_permission_obj_none_allows_role(self, role):
-        self.request.user = _make_user(roles=role)
-        assert self.admin.has_change_permission(self.request, obj=None) is True
-
-    def test_has_change_permission_obj_none_superuser_allowed(self):
-        self.request.user = _make_user(is_superuser=True)
-        assert self.admin.has_change_permission(self.request, obj=None) is True
-
-    def test_has_change_permission_obj_none_anonymous_denied(self):
-        self.request.user = _make_user(roles=frozenset())
-        assert self.admin.has_change_permission(self.request, obj=None) is False
-
-    @pytest.mark.parametrize(
-        'role',
-        [
-            frozenset({BackOfficeRole.ANALISTA}),
-            frozenset({BackOfficeRole.COORDINADOR}),
-            frozenset({BackOfficeRole.ADMINISTRADOR}),
-        ],
-    )
-    def test_has_change_permission_with_obj_denied(self, role):
-        self.request.user = _make_user(roles=role)
-        assert self.admin.has_change_permission(self.request, obj=MagicMock()) is False
-
-    def test_has_change_permission_superuser_with_obj_denied(self):
-        self.request.user = _make_user(is_superuser=True)
-        assert self.admin.has_change_permission(self.request, obj=MagicMock()) is False
+@pytest.fixture
+def admin_perms_buzon():
+    return _get_admin_instance(Buzon), _make_request()
 
 
-class TestTramitesDisponiblesAdminPermissions:
-    """TramitesDisponiblesAdmin: same role pattern as Buzon."""
-
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.admin = _get_admin_instance(Disponible)
-        self.request = _make_request()
-
-    @pytest.mark.parametrize(
-        'role',
-        [
-            frozenset({BackOfficeRole.ANALISTA}),
-            frozenset({BackOfficeRole.COORDINADOR}),
-            frozenset({BackOfficeRole.ADMINISTRADOR}),
-        ],
-    )
-    def test_has_change_permission_obj_none_allows_role(self, role):
-        self.request.user = _make_user(roles=role)
-        assert self.admin.has_change_permission(self.request, obj=None) is True
-
-    def test_has_change_permission_obj_none_anonymous_denied(self):
-        self.request.user = _make_user(roles=frozenset())
-        assert self.admin.has_change_permission(self.request, obj=None) is False
-
-    @pytest.mark.parametrize(
-        'role',
-        [
-            frozenset({BackOfficeRole.ANALISTA}),
-            frozenset({BackOfficeRole.COORDINADOR}),
-        ],
-    )
-    def test_has_change_permission_with_obj_denied(self, role):
-        self.request.user = _make_user(roles=role)
-        assert self.admin.has_change_permission(self.request, obj=MagicMock()) is False
+@pytest.mark.parametrize(
+    'role',
+    [
+        frozenset({BackOfficeRole.ANALISTA}),
+        frozenset({BackOfficeRole.COORDINADOR}),
+        frozenset({BackOfficeRole.ADMINISTRADOR}),
+    ],
+)
+def test_has_change_permission_obj_none_allows_role_buzon(admin_perms_buzon, role):
+    admin, request = admin_perms_buzon
+    request.user = _make_user(roles=role)
+    assert admin.has_change_permission(request, obj=None) is True
 
 
-class TestTramitesAdminPermissions:
-    """TramitesAdmin: coordinador/administrador only (no analista)."""
-
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.admin = _get_admin_instance(Tramite)
-        self.request = _make_request()
-
-    @pytest.mark.parametrize(
-        'role',
-        [
-            frozenset({BackOfficeRole.COORDINADOR}),
-            frozenset({BackOfficeRole.ADMINISTRADOR}),
-        ],
-    )
-    def test_has_change_permission_obj_none_allows_role(self, role):
-        self.request.user = _make_user(roles=role)
-        assert self.admin.has_change_permission(self.request, obj=None) is True
-
-    def test_has_change_permission_obj_none_analista_denied(self):
-        self.request.user = _make_user(roles=frozenset({BackOfficeRole.ANALISTA}))
-        assert self.admin.has_change_permission(self.request, obj=None) is False
-
-    def test_has_change_permission_obj_none_anonymous_denied(self):
-        self.request.user = _make_user(roles=frozenset())
-        assert self.admin.has_change_permission(self.request, obj=None) is False
-
-    def test_has_change_permission_obj_none_superuser_without_roles_allowed(self):
-        """Superuser without any role group is still allowed."""
-        self.request.user = _make_user(is_superuser=True, roles=frozenset())
-        assert self.admin.has_change_permission(self.request, obj=None) is True
-
-    @pytest.mark.parametrize(
-        'role',
-        [
-            frozenset({BackOfficeRole.COORDINADOR}),
-            frozenset({BackOfficeRole.ADMINISTRADOR}),
-        ],
-    )
-    def test_has_change_permission_with_obj_denied(self, role):
-        self.request.user = _make_user(roles=role)
-        assert self.admin.has_change_permission(self.request, obj=MagicMock()) is False
+def test_has_change_permission_obj_none_superuser_allowed_buzon(admin_perms_buzon):
+    admin, request = admin_perms_buzon
+    request.user = _make_user(is_superuser=True)
+    assert admin.has_change_permission(request, obj=None) is True
 
 
-class TestTramitesCerradosAdminPermissions:
-    """TramitesCerradosAdmin: coordinador/administrador only (same as TramitesAdmin)."""
+def test_has_change_permission_obj_none_anonymous_denied_buzon(admin_perms_buzon):
+    admin, request = admin_perms_buzon
+    request.user = _make_user(roles=frozenset())
+    assert admin.has_change_permission(request, obj=None) is False
 
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.admin = _get_admin_instance(Cerrado)
-        self.request = _make_request()
 
-    @pytest.mark.parametrize(
-        'role',
-        [
-            frozenset({BackOfficeRole.COORDINADOR}),
-            frozenset({BackOfficeRole.ADMINISTRADOR}),
-        ],
-    )
-    def test_has_change_permission_obj_none_allows_role(self, role):
-        self.request.user = _make_user(roles=role)
-        assert self.admin.has_change_permission(self.request, obj=None) is True
+@pytest.mark.parametrize(
+    'role',
+    [
+        frozenset({BackOfficeRole.ANALISTA}),
+        frozenset({BackOfficeRole.COORDINADOR}),
+        frozenset({BackOfficeRole.ADMINISTRADOR}),
+    ],
+)
+def test_has_change_permission_with_obj_denied_buzon(admin_perms_buzon, role):
+    admin, request = admin_perms_buzon
+    request.user = _make_user(roles=role)
+    assert admin.has_change_permission(request, obj=MagicMock()) is False
 
-    def test_has_change_permission_obj_none_analista_denied(self):
-        self.request.user = _make_user(roles=frozenset({BackOfficeRole.ANALISTA}))
-        assert self.admin.has_change_permission(self.request, obj=None) is False
 
-    def test_has_change_permission_obj_none_superuser_without_roles_allowed(self):
-        """Superuser without any role group is still allowed."""
-        self.request.user = _make_user(is_superuser=True, roles=frozenset())
-        assert self.admin.has_change_permission(self.request, obj=None) is True
+def test_has_change_permission_superuser_with_obj_denied_buzon(admin_perms_buzon):
+    admin, request = admin_perms_buzon
+    request.user = _make_user(is_superuser=True)
+    assert admin.has_change_permission(request, obj=MagicMock()) is False
 
-    @pytest.mark.parametrize(
-        'role',
-        [
-            frozenset({BackOfficeRole.COORDINADOR}),
-            frozenset({BackOfficeRole.ADMINISTRADOR}),
-        ],
-    )
-    def test_has_change_permission_with_obj_denied(self, role):
-        self.request.user = _make_user(roles=role)
-        assert self.admin.has_change_permission(self.request, obj=MagicMock()) is False
+
+# ---- TramitesDisponiblesAdmin ----
+
+
+@pytest.fixture
+def admin_perms_disponibles():
+    return _get_admin_instance(Disponible), _make_request()
+
+
+@pytest.mark.parametrize(
+    'role',
+    [
+        frozenset({BackOfficeRole.ANALISTA}),
+        frozenset({BackOfficeRole.COORDINADOR}),
+        frozenset({BackOfficeRole.ADMINISTRADOR}),
+    ],
+)
+def test_has_change_permission_obj_none_allows_role_disponibles(admin_perms_disponibles, role):
+    admin, request = admin_perms_disponibles
+    request.user = _make_user(roles=role)
+    assert admin.has_change_permission(request, obj=None) is True
+
+
+def test_has_change_permission_obj_none_anonymous_denied_disponibles(admin_perms_disponibles):
+    admin, request = admin_perms_disponibles
+    request.user = _make_user(roles=frozenset())
+    assert admin.has_change_permission(request, obj=None) is False
+
+
+@pytest.mark.parametrize(
+    'role',
+    [
+        frozenset({BackOfficeRole.ANALISTA}),
+        frozenset({BackOfficeRole.COORDINADOR}),
+    ],
+)
+def test_has_change_permission_with_obj_denied_disponibles(admin_perms_disponibles, role):
+    admin, request = admin_perms_disponibles
+    request.user = _make_user(roles=role)
+    assert admin.has_change_permission(request, obj=MagicMock()) is False
+
+
+# ---- TramitesAdmin ----
+
+
+@pytest.fixture
+def admin_perms_tramites():
+    return _get_admin_instance(Tramite), _make_request()
+
+
+@pytest.mark.parametrize(
+    'role',
+    [
+        frozenset({BackOfficeRole.COORDINADOR}),
+        frozenset({BackOfficeRole.ADMINISTRADOR}),
+    ],
+)
+def test_has_change_permission_obj_none_allows_role_tramites(admin_perms_tramites, role):
+    admin, request = admin_perms_tramites
+    request.user = _make_user(roles=role)
+    assert admin.has_change_permission(request, obj=None) is True
+
+
+def test_has_change_permission_obj_none_analista_denied_tramites(admin_perms_tramites):
+    admin, request = admin_perms_tramites
+    request.user = _make_user(roles=frozenset({BackOfficeRole.ANALISTA}))
+    assert admin.has_change_permission(request, obj=None) is False
+
+
+def test_has_change_permission_obj_none_anonymous_denied_tramites(admin_perms_tramites):
+    admin, request = admin_perms_tramites
+    request.user = _make_user(roles=frozenset())
+    assert admin.has_change_permission(request, obj=None) is False
+
+
+def test_has_change_permission_obj_none_superuser_without_roles_allowed_tramites(
+    admin_perms_tramites,
+):
+    """Superuser without any role group is still allowed."""
+    admin, request = admin_perms_tramites
+    request.user = _make_user(is_superuser=True, roles=frozenset())
+    assert admin.has_change_permission(request, obj=None) is True
+
+
+@pytest.mark.parametrize(
+    'role',
+    [
+        frozenset({BackOfficeRole.COORDINADOR}),
+        frozenset({BackOfficeRole.ADMINISTRADOR}),
+    ],
+)
+def test_has_change_permission_with_obj_denied_tramites(admin_perms_tramites, role):
+    admin, request = admin_perms_tramites
+    request.user = _make_user(roles=role)
+    assert admin.has_change_permission(request, obj=MagicMock()) is False
+
+
+# ---- TramitesCerradosAdmin ----
+
+
+@pytest.fixture
+def admin_perms_cerrados():
+    return _get_admin_instance(Cerrado), _make_request()
+
+
+@pytest.mark.parametrize(
+    'role',
+    [
+        frozenset({BackOfficeRole.COORDINADOR}),
+        frozenset({BackOfficeRole.ADMINISTRADOR}),
+    ],
+)
+def test_has_change_permission_obj_none_allows_role_cerrados(admin_perms_cerrados, role):
+    admin, request = admin_perms_cerrados
+    request.user = _make_user(roles=role)
+    assert admin.has_change_permission(request, obj=None) is True
+
+
+def test_has_change_permission_obj_none_analista_denied_cerrados(admin_perms_cerrados):
+    admin, request = admin_perms_cerrados
+    request.user = _make_user(roles=frozenset({BackOfficeRole.ANALISTA}))
+    assert admin.has_change_permission(request, obj=None) is False
+
+
+def test_has_change_permission_obj_none_superuser_without_roles_allowed_cerrados(
+    admin_perms_cerrados,
+):
+    """Superuser without any role group is still allowed."""
+    admin, request = admin_perms_cerrados
+    request.user = _make_user(is_superuser=True, roles=frozenset())
+    assert admin.has_change_permission(request, obj=None) is True
+
+
+@pytest.mark.parametrize(
+    'role',
+    [
+        frozenset({BackOfficeRole.COORDINADOR}),
+        frozenset({BackOfficeRole.ADMINISTRADOR}),
+    ],
+)
+def test_has_change_permission_with_obj_denied_cerrados(admin_perms_cerrados, role):
+    admin, request = admin_perms_cerrados
+    request.user = _make_user(roles=role)
+    assert admin.has_change_permission(request, obj=MagicMock()) is False
 
 
 # =============================================================================
@@ -239,101 +271,125 @@ def _mock_base_queryset():
     return qs
 
 
-class TestBuzonTramitesAdminQueryset:
-    """Buzon: en_proceso() + asignados_a(user.id)."""
-
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.admin = _get_admin_instance(Buzon)
-        self.base_qs = _mock_base_queryset()
-        self.request = _make_request(
-            _make_user(user_id=42, roles=frozenset({BackOfficeRole.ANALISTA}))
-        )
-
-    @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
-    def test_calls_en_proceso(self, mock_super_qs):
-        mock_super_qs.return_value = self.base_qs
-        self.admin.get_queryset(self.request)
-        self.base_qs.en_proceso.assert_called_once()
-
-    @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
-    def test_filters_by_user_id(self, mock_super_qs):
-        mock_super_qs.return_value = self.base_qs
-        self.admin.get_queryset(self.request)
-        self.base_qs.asignados_a.assert_called_once_with(42)
+# ---- BuzonTramitesAdminQueryset ----
 
 
-class TestTramitesDisponiblesAdminQueryset:
-    """Disponible: en_proceso() + sin_asignar()."""
-
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.admin = _get_admin_instance(Disponible)
-        self.base_qs = _mock_base_queryset()
-        self.request = _make_request()
-
-    @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
-    def test_calls_en_proceso(self, mock_super_qs):
-        mock_super_qs.return_value = self.base_qs
-        self.admin.get_queryset(self.request)
-        self.base_qs.en_proceso.assert_called_once()
-
-    @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
-    def test_filters_unassigned(self, mock_super_qs):
-        mock_super_qs.return_value = self.base_qs
-        self.admin.get_queryset(self.request)
-        self.base_qs.sin_asignar.assert_called_once()
-
-    @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
-    def test_does_not_filter_by_user_id(self, mock_super_qs):
-        mock_super_qs.return_value = self.base_qs
-        self.admin.get_queryset(self.request)
-        self.base_qs.asignados_a.assert_not_called()
+@pytest.fixture
+def admin_qs_buzon():
+    return (
+        _get_admin_instance(Buzon),
+        _mock_base_queryset(),
+        _make_request(_make_user(user_id=42, roles=frozenset({BackOfficeRole.ANALISTA}))),
+    )
 
 
-class TestTramitesAdminQueryset:
-    """Tramites: en_proceso() only (no user/assignment filter)."""
-
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.admin = _get_admin_instance(Tramite)
-        self.base_qs = _mock_base_queryset()
-        self.request = _make_request()
-
-    @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
-    def test_calls_en_proceso(self, mock_super_qs):
-        mock_super_qs.return_value = self.base_qs
-        self.admin.get_queryset(self.request)
-        self.base_qs.en_proceso.assert_called_once()
-
-    @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
-    def test_no_user_or_assignment_filter(self, mock_super_qs):
-        mock_super_qs.return_value = self.base_qs
-        self.admin.get_queryset(self.request)
-        self.base_qs.asignados_a.assert_not_called()
-        self.base_qs.sin_asignar.assert_not_called()
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_calls_en_proceso_buzon(mock_super_qs, admin_qs_buzon):
+    admin, base_qs, request = admin_qs_buzon
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.en_proceso.assert_called_once()
 
 
-class TestTramitesCerradosAdminQueryset:
-    """Cerrado: finalizados() only."""
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_filters_by_user_id(mock_super_qs, admin_qs_buzon):
+    admin, base_qs, request = admin_qs_buzon
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.asignados_a.assert_called_once_with(42)
 
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.admin = _get_admin_instance(Cerrado)
-        self.base_qs = _mock_base_queryset()
-        self.request = _make_request()
 
-    @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
-    def test_calls_finalizados(self, mock_super_qs):
-        mock_super_qs.return_value = self.base_qs
-        self.admin.get_queryset(self.request)
-        self.base_qs.finalizados.assert_called_once()
+# ---- TramitesDisponiblesAdminQueryset ----
 
-    @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
-    def test_does_not_call_en_proceso(self, mock_super_qs):
-        mock_super_qs.return_value = self.base_qs
-        self.admin.get_queryset(self.request)
-        self.base_qs.en_proceso.assert_not_called()
+
+@pytest.fixture
+def admin_qs_disponibles():
+    return (
+        _get_admin_instance(Disponible),
+        _mock_base_queryset(),
+        _make_request(),
+    )
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_calls_en_proceso_disponibles(mock_super_qs, admin_qs_disponibles):
+    admin, base_qs, request = admin_qs_disponibles
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.en_proceso.assert_called_once()
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_filters_unassigned(mock_super_qs, admin_qs_disponibles):
+    admin, base_qs, request = admin_qs_disponibles
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.sin_asignar.assert_called_once()
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_does_not_filter_by_user_id(mock_super_qs, admin_qs_disponibles):
+    admin, base_qs, request = admin_qs_disponibles
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.asignados_a.assert_not_called()
+
+
+# ---- TramitesAdminQueryset ----
+
+
+@pytest.fixture
+def admin_qs_tramites():
+    return (
+        _get_admin_instance(Tramite),
+        _mock_base_queryset(),
+        _make_request(),
+    )
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_calls_en_proceso_tramites(mock_super_qs, admin_qs_tramites):
+    admin, base_qs, request = admin_qs_tramites
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.en_proceso.assert_called_once()
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_no_user_or_assignment_filter(mock_super_qs, admin_qs_tramites):
+    admin, base_qs, request = admin_qs_tramites
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.asignados_a.assert_not_called()
+    base_qs.sin_asignar.assert_not_called()
+
+
+# ---- TramitesCerradosAdminQueryset ----
+
+
+@pytest.fixture
+def admin_qs_cerrados():
+    return (
+        _get_admin_instance(Cerrado),
+        _mock_base_queryset(),
+        _make_request(),
+    )
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_calls_finalizados(mock_super_qs, admin_qs_cerrados):
+    admin, base_qs, request = admin_qs_cerrados
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.finalizados.assert_called_once()
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_does_not_call_en_proceso(mock_super_qs, admin_qs_cerrados):
+    admin, base_qs, request = admin_qs_cerrados
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.en_proceso.assert_not_called()
 
 
 # =============================================================================
@@ -341,26 +397,25 @@ class TestTramitesCerradosAdminQueryset:
 # =============================================================================
 
 
-class TestTramitesBaseAdminSearchFields:
-    """get_search_fields returns folio + solicitante_nombre, plus clave_catastral
-    only when ACTIVE_DEPARTMENT == 'DAU'."""
+@pytest.fixture
+def admin_search_tramites():
+    return _get_admin_instance(Tramite), _make_request()
 
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.admin = _get_admin_instance(Tramite)
-        self.request = _make_request()
 
-    @override_settings(ACTIVE_DEPARTMENT='DAU')
-    def test_dau_includes_clave_catastral(self):
-        fields = self.admin.get_search_fields(self.request)
-        assert 'folio' in fields
-        assert 'solicitante_nombre' in fields
-        assert 'clave_catastral' in fields
+@override_settings(ACTIVE_DEPARTMENT='DAU')
+def test_dau_includes_clave_catastral(admin_search_tramites):
+    admin, request = admin_search_tramites
+    fields = admin.get_search_fields(request)
+    assert 'folio' in fields
+    assert 'solicitante_nombre' in fields
+    assert 'clave_catastral' in fields
 
-    @pytest.mark.parametrize('dept', ['SEC', 'TES'])
-    def test_non_dau_excludes_clave_catastral(self, dept):
-        with override_settings(ACTIVE_DEPARTMENT=dept):
-            fields = self.admin.get_search_fields(self.request)
-        assert 'folio' in fields
-        assert 'solicitante_nombre' in fields
-        assert 'clave_catastral' not in fields
+
+@pytest.mark.parametrize('dept', ['SEC', 'TES'])
+def test_non_dau_excludes_clave_catastral(admin_search_tramites, dept):
+    admin, request = admin_search_tramites
+    with override_settings(ACTIVE_DEPARTMENT=dept):
+        fields = admin.get_search_fields(request)
+    assert 'folio' in fields
+    assert 'solicitante_nombre' in fields
+    assert 'clave_catastral' not in fields

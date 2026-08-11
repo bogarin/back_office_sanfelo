@@ -51,93 +51,86 @@ def _ensure_groups_exist():
 # ---------------------------------------------------------------------------
 
 
-class TestSaveModelAtomicity:
-    """Verify save_model rolls back on failure.
+@pytest.mark.django_db
+def test_save_model_rollback_on_group_add_failure(superuser):
+    """If group assignment fails after save, is_staff must be rolled back.
 
-    save_model does two things:
-      1. Sets is_staff/is_active and calls super().save_model()
-      2. Removes old RBAC groups and adds new one
+    save_model does:
+      1. Set is_staff=True on the instance
+      2. Call super().save_model() → persists is_staff=True to DB
+      3. Remove old RBAC groups
+      4. Add new RBAC group → Group.objects.filter(name=role).first()
 
-    If step 2 fails, step 1 must be rolled back.
+    If step 4 fails (e.g. DB error), steps 1-3 must be rolled back.
     """
+    _ensure_groups_exist()
 
-    def test_save_model_rollback_on_group_add_failure(self, superuser, db):
-        """If group assignment fails after save, is_staff must be rolled back.
+    user = User.objects.create_user(
+        username='atomic_test_user',
+        password='testpass123',
+        is_staff=False,
+    )
+    assert user.is_staff is False
 
-        save_model does:
-          1. Set is_staff=True on the instance
-          2. Call super().save_model() → persists is_staff=True to DB
-          3. Remove old RBAC groups
-          4. Add new RBAC group → Group.objects.filter(name=role).first()
+    form = type(
+        'MockForm',
+        (),
+        {
+            'cleaned_data': {'role': BackOfficeRole.ANALISTA},
+        },
+    )()
+    model_admin = _get_model_admin()
+    request = _build_post_request(superuser)
 
-        If step 4 fails (e.g. DB error), steps 1-3 must be rolled back.
-        """
-        _ensure_groups_exist()
+    # Make Group.objects.filter(name=role).first() return None AND then
+    # raise when groups.add is called. We patch at the queryset level
+    # to simulate a DB failure after the user has been saved.
+    from django.db import IntegrityError
 
-        user = User.objects.create_user(
-            username='atomic_test_user',
-            password='testpass123',
-            is_staff=False,
-        )
-        assert user.is_staff is False
+    with patch(
+        'core.admin.Group.objects.filter',
+        side_effect=IntegrityError('DB connection lost'),
+    ):
+        try:
+            model_admin.save_model(request, user, form, change=True)
+        except IntegrityError:
+            pass  # Expected — what matters is the rollback
 
-        form = type(
-            'MockForm',
-            (),
-            {
-                'cleaned_data': {'role': BackOfficeRole.ANALISTA},
-            },
-        )()
-        model_admin = _get_model_admin()
-        request = _build_post_request(superuser)
+    user.refresh_from_db()
+    # Without transaction.atomic(), is_staff=True (partial write from step 2)
+    # With transaction.atomic(), is_staff=False (full rollback)
+    assert user.is_staff is False, (
+        'save_model left is_staff=True after Group lookup failed — '
+        'partial write not rolled back. Wrap in transaction.atomic().'
+    )
 
-        # Make Group.objects.filter(name=role).first() return None AND then
-        # raise when groups.add is called. We patch at the queryset level
-        # to simulate a DB failure after the user has been saved.
-        from django.db import IntegrityError
 
-        with patch(
-            'core.admin.Group.objects.filter',
-            side_effect=IntegrityError('DB connection lost'),
-        ):
-            try:
-                model_admin.save_model(request, user, form, change=True)
-            except IntegrityError:
-                pass  # Expected — what matters is the rollback
+@pytest.mark.django_db
+def test_save_model_happy_path_unchanged(superuser):
+    """Verify normal save_model still works correctly after adding atomic."""
+    _ensure_groups_exist()
 
-        user.refresh_from_db()
-        # Without transaction.atomic(), is_staff=True (partial write from step 2)
-        # With transaction.atomic(), is_staff=False (full rollback)
-        assert user.is_staff is False, (
-            'save_model left is_staff=True after Group lookup failed — '
-            'partial write not rolled back. Wrap in transaction.atomic().'
-        )
+    user = User.objects.create_user(
+        username='atomic_happy_test',
+        password='testpass123',
+        is_staff=False,
+    )
 
-    def test_save_model_happy_path_unchanged(self, superuser, db):
-        """Verify normal save_model still works correctly after adding atomic."""
-        _ensure_groups_exist()
+    form = type(
+        'MockForm',
+        (),
+        {
+            'cleaned_data': {'role': BackOfficeRole.ANALISTA},
+        },
+    )()
+    model_admin = _get_model_admin()
+    request = _build_post_request(superuser)
 
-        user = User.objects.create_user(
-            username='atomic_happy_test',
-            password='testpass123',
-            is_staff=False,
-        )
+    model_admin.save_model(request, user, form, change=True)
 
-        form = type(
-            'MockForm',
-            (),
-            {
-                'cleaned_data': {'role': BackOfficeRole.ANALISTA},
-            },
-        )()
-        model_admin = _get_model_admin()
-        request = _build_post_request(superuser)
-
-        model_admin.save_model(request, user, form, change=True)
-
-        user.refresh_from_db()
-        assert user.is_staff is True
-        assert user.groups.filter(name=BackOfficeRole.ANALISTA).exists()
+    user.refresh_from_db()
+    assert user.is_staff is True
+    assert user.groups.filter(name=BackOfficeRole.ANALISTA).exists()
 
 
 # ---------------------------------------------------------------------------
@@ -145,111 +138,100 @@ class TestSaveModelAtomicity:
 # ---------------------------------------------------------------------------
 
 
-class TestAsignarRolAtomicity:
-    """Verify asignar_rol view rolls back on failure.
+@pytest.mark.django_db
+def test_asignar_rol_rollback_on_save_failure(superuser):
+    """If user.save() fails mid-batch, no users should be modified."""
+    _ensure_groups_exist()
 
-    asignar_rol iterates over users and for each:
-      1. Removes old RBAC groups
-      2. Sets is_staff/is_superuser
-      3. Adds new group
-      4. Saves the user
+    user1 = User.objects.create_user(
+        username='batch_user_1',
+        password='testpass123',
+        is_staff=False,
+    )
+    user2 = User.objects.create_user(
+        username='batch_user_2',
+        password='testpass123',
+        is_staff=False,
+    )
 
-    If user.save() fails for user N, users 1..N-1 should be rolled back.
-    """
+    # Pre-assign a role to user1 so we can verify rollback
+    group = Group.objects.get(name=BackOfficeRole.COORDINADOR)
+    user1.groups.add(group)
+    user1.is_staff = True
+    user1.save()
 
-    def test_asignar_rol_rollback_on_save_failure(self, superuser, db):
-        """If user.save() fails mid-batch, no users should be modified."""
-        _ensure_groups_exist()
+    # Store original save counts
+    original_user1_staff = user1.is_staff
+    original_user1_groups = set(user1.groups.values_list('name', flat=True))
 
-        user1 = User.objects.create_user(
-            username='batch_user_1',
-            password='testpass123',
-            is_staff=False,
-        )
-        user2 = User.objects.create_user(
-            username='batch_user_2',
-            password='testpass123',
-            is_staff=False,
-        )
+    # Prepare request simulating the view's POST path
+    request = _build_post_request(
+        superuser,
+        data={
+            'role': BackOfficeRole.ANALISTA,
+        },
+    )
+    request.session['selected_user_ids'] = [user1.pk, user2.pk]
 
-        # Pre-assign a role to user1 so we can verify rollback
-        group = Group.objects.get(name=BackOfficeRole.COORDINADOR)
-        user1.groups.add(group)
-        user1.is_staff = True
-        user1.save()
+    # Mock user.save() to fail on second call
+    original_save = User.save
+    call_count = 0
 
-        # Store original save counts
-        original_user1_staff = user1.is_staff
-        original_user1_groups = set(user1.groups.values_list('name', flat=True))
+    def failing_save(user_instance, *args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:
+            raise Exception('DB connection lost on second user')
+        return original_save(user_instance, *args, **kwargs)
 
-        # Prepare request simulating the view's POST path
-        request = _build_post_request(
-            superuser,
-            data={
-                'role': BackOfficeRole.ANALISTA,
-            },
-        )
-        request.session['selected_user_ids'] = [user1.pk, user2.pk]
-
-        # Mock user.save() to fail on second call
-        original_save = User.save
-        call_count = 0
-
-        def failing_save(user_instance, *args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 2:
-                raise Exception('DB connection lost on second user')
-            return original_save(user_instance, *args, **kwargs)
-
-        with patch.object(User, 'save', failing_save):
-            from core.views import asignar_rol
-
-            try:
-                asignar_rol(request)
-            except Exception:
-                pass  # Expected
-
-        user1.refresh_from_db()
-        user2.refresh_from_db()
-
-        # Without atomicity, user1 was already saved but user2 wasn't
-        assert user1.is_staff == original_user1_staff, (
-            'asignar_rol partially modified user1 before failing on user2 — '
-            'needs transaction.atomic().'
-        )
-        assert set(user1.groups.values_list('name', flat=True)) == original_user1_groups, (
-            'asignar_rol partially modified user1 groups before failing — '
-            'needs transaction.atomic().'
-        )
-        assert user2.is_staff is False, 'user2 should remain unmodified after rollback'
-
-    def test_asignar_rol_happy_path_unchanged(self, superuser, db):
-        """Verify normal asignar_rol still works after adding atomic."""
-        _ensure_groups_exist()
-
-        user = User.objects.create_user(
-            username='batch_happy_user',
-            password='testpass123',
-            is_staff=False,
-        )
-
-        request = _build_post_request(
-            superuser,
-            data={
-                'role': BackOfficeRole.ANALISTA,
-            },
-        )
-        request.session['selected_user_ids'] = [user.pk]
-
+    with patch.object(User, 'save', failing_save):
         from core.views import asignar_rol
 
-        asignar_rol(request)
+        try:
+            asignar_rol(request)
+        except Exception:
+            pass  # Expected
 
-        user.refresh_from_db()
-        assert user.is_staff is True
-        assert user.groups.filter(name=BackOfficeRole.ANALISTA).exists()
-        assert user.is_superuser is False
+    user1.refresh_from_db()
+    user2.refresh_from_db()
+
+    # Without atomicity, user1 was already saved but user2 wasn't
+    assert user1.is_staff == original_user1_staff, (
+        'asignar_rol partially modified user1 before failing on user2 — needs transaction.atomic().'
+    )
+    assert set(user1.groups.values_list('name', flat=True)) == original_user1_groups, (
+        'asignar_rol partially modified user1 groups before failing — needs transaction.atomic().'
+    )
+    assert user2.is_staff is False, 'user2 should remain unmodified after rollback'
+
+
+@pytest.mark.django_db
+def test_asignar_rol_happy_path_unchanged(superuser):
+    """Verify normal asignar_rol still works after adding atomic."""
+    _ensure_groups_exist()
+
+    user = User.objects.create_user(
+        username='batch_happy_user',
+        password='testpass123',
+        is_staff=False,
+    )
+
+    request = _build_post_request(
+        superuser,
+        data={
+            'role': BackOfficeRole.ANALISTA,
+        },
+    )
+    request.session['selected_user_ids'] = [user.pk]
+
+    from core.views import asignar_rol
+
+    asignar_rol(request)
+
+    user.refresh_from_db()
+    assert user.is_staff is True
+    assert user.groups.filter(name=BackOfficeRole.ANALISTA).exists()
+    assert user.is_superuser is False
 
 
 # ---------------------------------------------------------------------------
@@ -257,119 +239,111 @@ class TestAsignarRolAtomicity:
 # ---------------------------------------------------------------------------
 
 
-class TestModificarAsignacionAtomicity:
-    """Verify modificar_asignacion handles batch failures correctly.
+@pytest.mark.django_db
+def test_batch_assign_partial_failure_reports_errors(superuser):
+    """When some trámites fail in batch, errors are reported via messages."""
 
-    Note: modificar_asignacion uses a try/except PER trámite, implementing
-    best-effort batch processing. This is intentional — it processes as many
-    trámites as possible and reports errors for the rest.
+    from django.contrib import admin as django_admin
 
-    transaction.atomic() would be needed only if we switch to all-or-nothing
-    semantics. The test below documents the current behavior.
-    """
+    from tramites.models import Tramite
+    from tramites.models.catalogos import TramiteEstatus
 
-    def test_batch_assign_partial_failure_reports_errors(self, superuser, db):
-        """When some trámites fail in batch, errors are reported via messages."""
+    model_admin = django_admin.site._registry.get(Tramite)
+    if model_admin is None:
+        pytest.skip('Tramite not registered in admin')
 
-        from django.contrib import admin as django_admin
+    analista = User.objects.create_user(
+        username='batch_analista',
+        password='testpass123',
+    )
 
-        from tramites.models import Tramite
-        from tramites.models.catalogos import TramiteEstatus
+    # Build two trámites in memory
+    tramite1 = Tramite(
+        id=100,
+        folio='BATCH-001',
+        tramite_id=1,
+        tramite_nombre='Batch Test 1',
+        ultima_actividad_estatus_id=TramiteEstatus.Estatus.PRESENTADO,
+        ultima_actividad_estatus='PRESENTADO',
+        tramite_categoria_id=1,
+        tramite_categoria_nombre='General',
+        urgente=False,
+        es_propietario=True,
+        creado='2024-01-01 00:00:00',
+    )
 
-        model_admin = django_admin.site._registry.get(Tramite)
-        if model_admin is None:
-            pytest.skip('Tramite not registered in admin')
+    tramite2 = Tramite(
+        id=200,
+        folio='BATCH-002',
+        tramite_id=2,
+        tramite_nombre='Batch Test 2',
+        ultima_actividad_estatus_id=TramiteEstatus.Estatus.PRESENTADO,
+        ultima_actividad_estatus='PRESENTADO',
+        tramite_categoria_id=1,
+        tramite_categoria_nombre='General',
+        urgente=False,
+        es_propietario=True,
+        creado='2024-01-01 00:00:00',
+    )
 
-        analista = User.objects.create_user(
-            username='batch_analista',
-            password='testpass123',
-        )
+    # First asignar succeeds, second raises
+    call_count = 0
+    original_asignar = Tramite.asignar
 
-        # Build two trámites in memory
-        tramite1 = Tramite(
-            id=100,
-            folio='BATCH-001',
-            tramite_id=1,
-            tramite_nombre='Batch Test 1',
-            ultima_actividad_estatus_id=TramiteEstatus.Estatus.PRESENTADO,
-            ultima_actividad_estatus='PRESENTADO',
-            tramite_categoria_id=1,
-            tramite_categoria_nombre='General',
-            urgente=False,
-            es_propietario=True,
-            creado='2024-01-01 00:00:00',
-        )
+    def asignar_with_failure(self, *args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:
+            raise Exception('SFTP connection lost')
 
-        tramite2 = Tramite(
-            id=200,
-            folio='BATCH-002',
-            tramite_id=2,
-            tramite_nombre='Batch Test 2',
-            ultima_actividad_estatus_id=TramiteEstatus.Estatus.PRESENTADO,
-            ultima_actividad_estatus='PRESENTADO',
-            tramite_categoria_id=1,
-            tramite_categoria_nombre='General',
-            urgente=False,
-            es_propietario=True,
-            creado='2024-01-01 00:00:00',
-        )
+    queryset = [tramite1, tramite2]
 
-        # First asignar succeeds, second raises
-        call_count = 0
-        original_asignar = Tramite.asignar
+    request = _build_post_request(
+        superuser,
+        data={
+            'analista': str(analista.pk),
+            'observacion': 'Batch test',
+        },
+    )
 
-        def asignar_with_failure(self, *args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 2:
-                raise Exception('SFTP connection lost')
-
-        queryset = [tramite1, tramite2]
-
-        request = _build_post_request(
-            superuser,
-            data={
-                'analista': str(analista.pk),
-                'observacion': 'Batch test',
-            },
-        )
-
-        with patch.object(Tramite, 'asignar', asignar_with_failure):
-            response = model_admin.modificar_asignacion(request, queryset)
-
-        # Should redirect (not crash)
-        assert response.status_code == 302
-
-        # Error should be in messages
-        messages_list = list(request._messages)
-        error_msgs = [str(m) for m in messages_list if 'No se pudieron asignar' in str(m)]
-        assert len(error_msgs) > 0, 'Batch failure should be reported in messages'
-
-    def test_batch_assign_happy_path(self, superuser, db):
-        """Verify normal batch assign still works after adding atomic."""
-        from django.contrib import admin as django_admin
-
-        from tramites.models import Tramite
-
-        model_admin = django_admin.site._registry.get(Tramite)
-        if model_admin is None:
-            pytest.skip('Tramite not registered in admin')
-
-        analista = User.objects.create_user(
-            username='happy_analista',
-            password='testpass123',
-        )
-
-        # Use empty queryset — just verify no crash
-        queryset = Tramite.objects.none()
-
-        request = _build_post_request(
-            superuser,
-            data={
-                'analista': str(analista.pk),
-                'observacion': 'Happy path test',
-            },
-        )
-
+    with patch.object(Tramite, 'asignar', asignar_with_failure):
         response = model_admin.modificar_asignacion(request, queryset)
-        assert response.status_code == 302, 'Should redirect after successful batch'
+
+    # Should redirect (not crash)
+    assert response.status_code == 302
+
+    # Error should be in messages
+    messages_list = list(request._messages)
+    error_msgs = [str(m) for m in messages_list if 'No se pudieron asignar' in str(m)]
+    assert len(error_msgs) > 0, 'Batch failure should be reported in messages'
+
+
+@pytest.mark.django_db
+def test_batch_assign_happy_path(superuser):
+    """Verify normal batch assign still works after adding atomic."""
+    from django.contrib import admin as django_admin
+
+    from tramites.models import Tramite
+
+    model_admin = django_admin.site._registry.get(Tramite)
+    if model_admin is None:
+        pytest.skip('Tramite not registered in admin')
+
+    analista = User.objects.create_user(
+        username='happy_analista',
+        password='testpass123',
+    )
+
+    # Use empty queryset — just verify no crash
+    queryset = Tramite.objects.none()
+
+    request = _build_post_request(
+        superuser,
+        data={
+            'analista': str(analista.pk),
+            'observacion': 'Happy path test',
+        },
+    )
+
+    response = model_admin.modificar_asignacion(request, queryset)
+    assert response.status_code == 302, 'Should redirect after successful batch'
