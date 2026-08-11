@@ -8,6 +8,7 @@ Uses PostgreSQL with schema separation:
 """
 
 import importlib.util
+import tomllib
 import warnings
 from pathlib import Path
 
@@ -24,6 +25,10 @@ from .tenancy import configure_tenancy
 # settings/ is now a package, so we need to go up 3 levels instead of 2
 # From: sanfelipe/settings/__init__.py -> sanfelipe/ -> project root
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Project version (single source of truth: pyproject.toml [project].version)
+with (BASE_DIR / 'pyproject.toml').open('rb') as _f:
+    VERSION = tomllib.load(_f).get('project', {}).get('version', 'dev')
 
 # Environment configuration
 env = environ.Env()
@@ -150,7 +155,7 @@ TEMPLATES = [
                 # CSP context processor - provides csp_nonce for inline scripts/styles
                 'django.template.context_processors.csp',
                 # Custom context processors
-                'sanfelipe.context_processors.image_tag',
+                'sanfelipe.context_processors.version',
                 'sanfelipe.context_processors.active_department',
             ],
         },
@@ -346,6 +351,7 @@ CSRF_FAILURE_VIEW = 'core.views.custom_csrf_failure'
 # No server-side storage needed, fast and simple
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 SESSION_COOKIE_AGE = env.int('DJANGO_SESSION_COOKIE_AGE', default=3600)  # 1 hour
+SESSION_SAVE_EVERY_REQUEST = env.bool('DJANGO_SESSION_SAVE_EVERY_REQUEST', default=True)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_NAME = env('SESSION_COOKIE_NAME', default='sessionid')

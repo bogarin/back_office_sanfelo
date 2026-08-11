@@ -7,10 +7,10 @@ Provides global variables to all template contexts.
 from django.conf import settings
 
 
-def image_tag(request):
-    """Expose IMAGE_TAG_BACKOFFICE to all templates."""
+def version(request):
+    """Expose BACKOFFICE_VERSION (from pyproject.toml) to all templates."""
     return {
-        'IMAGE_TAG_BACKOFFICE': getattr(settings, 'IMAGE_TAG_BACKOFFICE', 'dev'),
+        'BACKOFFICE_VERSION': getattr(settings, 'VERSION', 'dev'),
     }
 
 

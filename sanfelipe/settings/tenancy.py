@@ -52,7 +52,4 @@ def configure_tenancy(env: Env) -> dict:
             'BACKOFFICE_COPYRIGHT',
             default='Municipio de San Felipe - Todos los derechos reservados',
         ),
-        # Build ID for footer (Docker image tag)
-        'IMAGE_TAG_BACKOFFICE': env('IMAGE_TAG_BACKOFFICE', default='dev'),
     }
-

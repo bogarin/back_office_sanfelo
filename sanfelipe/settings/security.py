@@ -9,12 +9,13 @@ This module contains all security-related configuration including:
 
 import math
 from collections import Counter
+from typing import Any
 
 from django.utils.csp import CSP
 from environ import Env
 
 
-def configure_security(env: Env) -> dict:
+def configure_security(env: Env) -> dict[str, Any]:
     """
     Configure and return all security-related settings.
 
