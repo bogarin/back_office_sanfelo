@@ -32,7 +32,7 @@ def configure_logging(env: Env, BASE_DIR: Path, DEBUG: bool) -> dict:
     django_handlers = ['console', 'file'] if not DEBUG else ['console']
     app_handlers = ['console', 'file'] if not DEBUG else ['console']
 
-    logging_settings = {
+    return {
         'LOG_LEVEL': log_level,
         'DEBUG_SQL': debug_sql,
         'LOGGING': {
@@ -109,5 +109,3 @@ def configure_logging(env: Env, BASE_DIR: Path, DEBUG: bool) -> dict:
             },
         },
     }
-
-    return logging_settings

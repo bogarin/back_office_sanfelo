@@ -22,14 +22,6 @@ class TramiteCatalogoCategoria(models.Model):
     Routed to backend database with read-only access.
     """
 
-    objects = ReadOnlyManager()
-
-    class Meta:
-        managed = False
-        db_table = 'rel_tmt_categoria'
-        verbose_name = 'Relación Trámite-Categoría'
-        verbose_name_plural = 'Relaciones Trámite-Categoría'
-
     id = models.AutoField(primary_key=True)
     tramite_catalogo = models.ForeignKey(
         'TramiteCatalogo',
@@ -46,6 +38,14 @@ class TramiteCatalogoCategoria(models.Model):
         verbose_name='Categoría',
     )
 
+    objects = ReadOnlyManager()
+
+    class Meta:
+        managed = False
+        db_table = 'rel_tmt_categoria'
+        verbose_name = 'Relación Trámite-Categoría'
+        verbose_name_plural = 'Relaciones Trámite-Categoría'
+
     def __str__(self) -> str:
         return f'Trámite {self.tramite_catalogo_id} - Categoría {self.categoria_id}'
 
@@ -58,14 +58,6 @@ class TramiteCatalogoRequisito(models.Model):
 
     Routed to backend database with read-only access.
     """
-
-    objects = ReadOnlyManager()
-
-    class Meta:
-        managed = False
-        db_table = 'rel_tmt_cate_req'
-        verbose_name = 'Relación Trámite-Requisito-Categoría'
-        verbose_name_plural = 'Relaciones Trámite-Requisito-Categoría'
 
     id = models.AutoField(primary_key=True)
     tramite_catalogo = models.ForeignKey(
@@ -92,6 +84,14 @@ class TramiteCatalogoRequisito(models.Model):
         verbose_name='Categoría',
     )
 
+    objects = ReadOnlyManager()
+
+    class Meta:
+        managed = False
+        db_table = 'rel_tmt_cate_req'
+        verbose_name = 'Relación Trámite-Requisito-Categoría'
+        verbose_name_plural = 'Relaciones Trámite-Requisito-Categoría'
+
     def __str__(self) -> str:
         return f'Trámite {self.tramite_catalogo_id} - Requisito {self.requisito_id}'
 
@@ -104,14 +104,6 @@ class TramiteCatalogoTipoRequisito(models.Model):
 
     Routed to backend database with read-only access.
     """
-
-    objects = ReadOnlyManager()
-
-    class Meta:
-        managed = False
-        db_table = 'rel_tmt_tipo_req'
-        verbose_name = 'Relación Tipo-Trámite-Requisito'
-        verbose_name_plural = 'Relaciones Tipo-Trámite-Requisito'
 
     id = models.AutoField(primary_key=True)
     tipo = models.ForeignKey(
@@ -136,6 +128,14 @@ class TramiteCatalogoTipoRequisito(models.Model):
         verbose_name='Requisito',
     )
 
+    objects = ReadOnlyManager()
+
+    class Meta:
+        managed = False
+        db_table = 'rel_tmt_tipo_req'
+        verbose_name = 'Relación Tipo-Trámite-Requisito'
+        verbose_name_plural = 'Relaciones Tipo-Trámite-Requisito'
+
     def __str__(self) -> str:
         return (
             f'Tipo {self.tipo_id} - '
@@ -153,14 +153,6 @@ class TramiteCatalogoActividad(models.Model):
     Routed to backend database with read-only access.
     """
 
-    objects = ReadOnlyManager()
-
-    class Meta:
-        managed = False
-        db_table = 'rel_tmt_actividad'
-        verbose_name = 'Relación Trámite-Actividad'
-        verbose_name_plural = 'Relaciones Trámite-Actividad'
-
     id = models.AutoField(primary_key=True)
     tramite_catalogo = models.ForeignKey(
         'TramiteCatalogo',
@@ -176,6 +168,14 @@ class TramiteCatalogoActividad(models.Model):
         related_name='tramites_catalogo',
         verbose_name='Actividad',
     )
+
+    objects = ReadOnlyManager()
+
+    class Meta:
+        managed = False
+        db_table = 'rel_tmt_actividad'
+        verbose_name = 'Relación Trámite-Actividad'
+        verbose_name_plural = 'Relaciones Trámite-Actividad'
 
     def __str__(self) -> str:
         return f'Trámite {self.tramite_catalogo_id} - Actividad {self.actividad_id}'

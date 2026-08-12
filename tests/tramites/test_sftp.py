@@ -604,14 +604,14 @@ def download_url():
     return reverse('tramites:download-pdf', kwargs={'pk': 1, 'filename': VALID_FILENAME})
 
 
-def test_download_view_redirects_anonymous_user(client, db, download_url):  # noqa: ARG001
+def test_download_view_redirects_anonymous_user(client, db, download_url):
     """Anonymous users are redirected to login (staff_member_required)."""
     response = client.get(download_url)
     assert response.status_code == 302
     assert '/login/' in response['Location']
 
 
-def test_download_view_rejects_non_staff_user(client, db, download_url):  # noqa: ARG001
+def test_download_view_rejects_non_staff_user(client, db, download_url):
     """Non-staff authenticated users are also redirected to login."""
     User = get_user_model()
     user = User.objects.create_user(username='regular', password='pass')
@@ -624,7 +624,7 @@ def test_download_view_rejects_non_staff_user(client, db, download_url):  # noqa
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_rejects_invalid_filename(_mock_log, mock_serve, admin_client, db):  # noqa: ARG001, PT019
+def test_download_view_rejects_invalid_filename(_mock_log, mock_serve, admin_client, db):  # noqa: PT019
     """Invalid filename is rejected before any DB or SFTP access.
 
     The view calls validate_filename() which raises SFTPConnectionError for
@@ -644,7 +644,7 @@ def test_download_view_rejects_invalid_filename(_mock_log, mock_serve, admin_cli
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_returns_404_for_missing_tramite(_mock_log, mock_serve, admin_client, db):  # noqa: ARG001, PT019
+def test_download_view_returns_404_for_missing_tramite(_mock_log, mock_serve, admin_client, db):  # noqa: PT019
     """Non-existent tramite PK returns 404.
 
     Tramite is a managed=False model backed by a DB view, so we must
@@ -659,7 +659,7 @@ def test_download_view_returns_404_for_missing_tramite(_mock_log, mock_serve, ad
 
 
 @patch('tramites.views._log_download')
-def test_download_view_rejects_unauthorized_user(_mock_log, superuser, client, db, download_url):  # noqa: ARG001, PT019
+def test_download_view_rejects_unauthorized_user(_mock_log, superuser, client, db, download_url):  # noqa: PT019
     """PermissionDenied when tramite.can_download() returns False."""
     client.force_login(superuser)
 
@@ -677,7 +677,7 @@ def test_download_view_rejects_unauthorized_user(_mock_log, superuser, client, d
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_success_logs_download(  # noqa: PLR0913
+def test_download_view_success_logs_download(  # noqa: PLR0913, PLR0917
     mock_log,
     mock_serve,
     superuser,
@@ -704,13 +704,13 @@ def test_download_view_success_logs_download(  # noqa: PLR0913
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_sftp_error_logs_failure(  # noqa: PLR0913
+def test_download_view_sftp_error_logs_failure(  # noqa: PLR0913, PLR0917
     mock_log,
     mock_serve,
     superuser,
     client,
     db,
-    download_url,  # noqa: ARG001
+    download_url,
 ):
     """SFTPConnectionError is logged with success=False and re-raised."""
     mock_serve.side_effect = SFTPConnectionError('connection failed')
@@ -733,8 +733,8 @@ def test_download_view_sftp_error_logs_failure(  # noqa: PLR0913
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_passes_correct_args_to_service(
-    _mock_log,
+def test_download_view_passes_correct_args_to_service(  # noqa: PLR0913, PLR0917
+    mock_log,
     mock_serve,
     superuser,
     client,
@@ -1418,7 +1418,7 @@ def test_download_with_cache_miss_downloads_and_renames(mock_download, tmp_path)
     folio_dir = cache_dir / 'DAU-260420-AAAE-B'
 
     # Simulate _download_file creating the temp file
-    def fake_download(folio, filename, local_path):  # noqa: ARG001
+    def fake_download(folio, filename, local_path):
         local_path.parent.mkdir(parents=True, exist_ok=True)
         local_path.write_bytes(b'%PDF-1.4 new content')
 
@@ -1473,7 +1473,7 @@ def test_download_with_cache_temp_filename_format(mock_download, tmp_path):
 
     captured_temp_path = None
 
-    def capture_download(folio, filename, local_path):  # noqa: ARG001
+    def capture_download(folio, filename, local_path):
         nonlocal captured_temp_path
         captured_temp_path = local_path
         local_path.parent.mkdir(parents=True, exist_ok=True)

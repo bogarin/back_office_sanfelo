@@ -157,8 +157,7 @@ class ReadOnlyQuerySet(models.QuerySet):
         Returns:
             A cloned ReadOnlyQuerySet instance.
         """
-        clone = super()._clone()
-        return clone
+        return super()._clone()
 
     def all(self) -> ReadOnlyQuerySet:
         """
@@ -325,8 +324,7 @@ class ReadOnlyManager(models.Manager.from_queryset(ReadOnlyQuerySet)):  # type: 
 
         # Not in cache or cache miss - fetch from database
         try:
-            obj = self.get(pk=pk)
-            return obj
+            return self.get(pk=pk)
         except self.model.DoesNotExist:
             return None
 
@@ -420,8 +418,7 @@ class CreateOnlyQuerySet(models.QuerySet):
         Returns:
             A cloned CreateOnlyQuerySet instance.
         """
-        clone = super()._clone()
-        return clone
+        return super()._clone()
 
     def _wrap_instance_for_read_only(self, instance: T) -> T:
         """
@@ -436,7 +433,6 @@ class CreateOnlyQuerySet(models.QuerySet):
         Returns:
             The same instance with save method overridden.
         """
-        original_save = instance.save
 
         def read_only_save(
             force_insert: bool = False,

@@ -70,8 +70,7 @@ class CustomUserAddForm(AdminUserCreationForm):
 
     def save(self, commit=True):
         """Save user with role assignment."""
-        user = super().save(commit=False)
-        return user
+        return super().save(commit=False)
 
 
 class CustomUserChangeForm(UserChangeForm):
@@ -126,9 +125,10 @@ class CustomUserChangeForm(UserChangeForm):
         if self.instance and self.instance.pk:
             if self.instance.is_superuser:
                 self.fields['role'].initial = BackOfficeRole.ANALISTA
-                self.fields['role'].choices = [('superusuario', 'Superusuario')] + self.fields[
-                    'role'
-                ].choices[1:]
+                self.fields['role'].choices = [
+                    ('superusuario', 'Superusuario'),
+                    *self.fields['role'].choices[1:],
+                ]
             elif self.instance.is_administrador:
                 self.fields['role'].initial = BackOfficeRole.ADMINISTRADOR
             elif self.instance.is_coordinador:

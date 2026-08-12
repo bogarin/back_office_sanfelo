@@ -85,8 +85,6 @@ class Tramite(models.Model):
     Esta vista unifica información de trámites con sus actividades, usuarios asignados y categorías.
     """
 
-    objects = models.Manager.from_queryset(TramiteQuerySet)()
-
     id = models.IntegerField(primary_key=True)
     folio = models.CharField(max_length=50, help_text='Folio del trámite')
     tramite_id = models.IntegerField()
@@ -162,6 +160,8 @@ class Tramite(models.Model):
         blank=True,
         help_text='Fecha y hora de la última actualización del trámite',
     )
+
+    objects = models.Manager.from_queryset(TramiteQuerySet)()
 
     class Meta:
         managed = False

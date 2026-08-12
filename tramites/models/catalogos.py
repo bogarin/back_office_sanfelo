@@ -10,6 +10,8 @@ delete) at the ORM level to ensure data integrity.
 DTOs (RequisitoFile, ActividadFile, TimelineEntry) live in actividades.py.
 """
 
+from typing import ClassVar
+
 from django.db import models
 
 from core.managers import ReadOnlyManager
@@ -25,15 +27,6 @@ class TramiteCatalogo(models.Model):
     are prevented to maintain data integrity of this reference table.
     """
 
-    objects = ReadOnlyManager()
-
-    class Meta:
-        managed = False
-        db_table = 'cat_tramite'
-        verbose_name = 'Catálogo Trámite'
-        verbose_name_plural = 'Catálogo Trámites'
-        ordering = ('nombre',)
-
     id = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=255, verbose_name='Nombre')
     descripcion = models.CharField(
@@ -46,6 +39,15 @@ class TramiteCatalogo(models.Model):
     pago_inicial = models.BooleanField(null=True, blank=True, verbose_name='Pago Inicial')
     url = models.CharField(max_length=512, blank=True, null=True, verbose_name='URL')
     activo = models.BooleanField(null=True, verbose_name='Activo')
+
+    objects = ReadOnlyManager()
+
+    class Meta:
+        managed = False
+        db_table = 'cat_tramite'
+        verbose_name = 'Catálogo Trámite'
+        verbose_name_plural = 'Catálogo Trámites'
+        ordering = ('nombre',)
 
     def __str__(self) -> str:
         return self.nombre
@@ -100,6 +102,13 @@ class TramiteEstatus(models.Model):
                 cls.PAGO_EXPIRADO,
             )
 
+    id = models.AutoField(primary_key=True)
+    estatus = models.CharField(max_length=30, verbose_name='Estatus')
+    responsable = models.CharField(max_length=64, blank=True, null=True, verbose_name='Responsable')
+    descripcion = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name='Descripción'
+    )
+
     objects = ReadOnlyManager()
 
     class Meta:
@@ -108,13 +117,6 @@ class TramiteEstatus(models.Model):
         verbose_name = 'Estatus de Trámite'
         verbose_name_plural = 'Estatus de Trámites'
         ordering = ('id',)
-
-    id = models.AutoField(primary_key=True)
-    estatus = models.CharField(max_length=30, verbose_name='Estatus')
-    responsable = models.CharField(max_length=64, blank=True, null=True, verbose_name='Responsable')
-    descripcion = models.CharField(
-        max_length=255, blank=True, null=True, verbose_name='Descripción'
-    )
 
     def __str__(self) -> str:
         return self.estatus
@@ -140,15 +142,6 @@ class Perito(models.Model):
     are prevented to maintain data integrity of this reference table.
     """
 
-    objects = ReadOnlyManager()
-
-    class Meta:
-        managed = False
-        db_table = 'cat_perito'
-        verbose_name = 'Perito'
-        verbose_name_plural = 'Peritos'
-        ordering = ('paterno', 'materno', 'nombre')
-
     id = models.AutoField(primary_key=True)
     paterno = models.CharField(
         max_length=30, blank=True, null=True, verbose_name='Apellido Paterno'
@@ -168,6 +161,18 @@ class Perito(models.Model):
     estatus = models.BooleanField(verbose_name='Estatus')
     cedula = models.CharField(max_length=19, blank=True, null=True, verbose_name='Cédula')
 
+    objects = ReadOnlyManager()
+
+    class Meta:
+        managed = False
+        db_table = 'cat_perito'
+        verbose_name = 'Perito'
+        verbose_name_plural = 'Peritos'
+        ordering = ('paterno', 'materno', 'nombre')
+
+    def __str__(self) -> str:
+        return self.nombre_completo
+
     @property
     def nombre_completo(self) -> str:
         """Get full name of the perito."""
@@ -178,9 +183,6 @@ class Perito(models.Model):
         ]
         return ' '.join(p for p in parts if p)
 
-    def __str__(self) -> str:
-        return self.nombre_completo
-
 
 @register_model('backend', AccessPattern.READ_ONLY, False)
 class Actividad(models.Model):
@@ -190,6 +192,9 @@ class Actividad(models.Model):
     are prevented to maintain data integrity of this reference table.
     """
 
+    id = models.AutoField(primary_key=True)
+    actividad = models.CharField(max_length=250, verbose_name='Actividad')
+
     objects = ReadOnlyManager()
 
     class Meta:
@@ -197,10 +202,7 @@ class Actividad(models.Model):
         db_table = 'cat_actividad'
         verbose_name = 'Actividad'
         verbose_name_plural = 'Actividades'
-        ordering = ['actividad']
-
-    id = models.AutoField(primary_key=True)
-    actividad = models.CharField(max_length=250, verbose_name='Actividad')
+        ordering: ClassVar[list[str]] = ['actividad']
 
     def __str__(self) -> str:
         return self.actividad
@@ -214,6 +216,9 @@ class Categoria(models.Model):
     are prevented to maintain data integrity of this reference table.
     """
 
+    id = models.AutoField(primary_key=True)
+    categoria = models.CharField(max_length=120, blank=True, null=True, verbose_name='Categoría')
+
     objects = ReadOnlyManager()
 
     class Meta:
@@ -221,10 +226,7 @@ class Categoria(models.Model):
         db_table = 'cat_categoria'
         verbose_name = 'Categoría'
         verbose_name_plural = 'Categorías'
-        ordering = ['categoria']
-
-    id = models.AutoField(primary_key=True)
-    categoria = models.CharField(max_length=120, blank=True, null=True, verbose_name='Categoría')
+        ordering: ClassVar[list[str]] = ['categoria']
 
     def __str__(self) -> str:
         return self.categoria or ''
@@ -238,6 +240,9 @@ class Requisito(models.Model):
     are prevented to maintain data integrity of this reference table.
     """
 
+    id = models.AutoField(primary_key=True)
+    requisito = models.CharField(max_length=480, verbose_name='Requisito')
+
     objects = CachedReadOnlyManager()
 
     class Meta:
@@ -245,10 +250,7 @@ class Requisito(models.Model):
         db_table = 'cat_requisito'
         verbose_name = 'Requisito'
         verbose_name_plural = 'Requisitos'
-        ordering = ['requisito']
-
-    id = models.AutoField(primary_key=True)
-    requisito = models.CharField(max_length=480, verbose_name='Requisito')
+        ordering: ClassVar[list[str]] = ['requisito']
 
     def __str__(self) -> str:
         return self.requisito
@@ -262,6 +264,9 @@ class Tipo(models.Model):
     are prevented to maintain data integrity of this reference table.
     """
 
+    id = models.AutoField(primary_key=True)
+    tipo = models.CharField(max_length=120, verbose_name='Tipo')
+
     objects = ReadOnlyManager()
 
     class Meta:
@@ -269,10 +274,7 @@ class Tipo(models.Model):
         db_table = 'cat_tipo'
         verbose_name = 'Tipo'
         verbose_name_plural = 'Tipos'
-        ordering = ['tipo']
-
-    id = models.AutoField(primary_key=True)
-    tipo = models.CharField(max_length=120, verbose_name='Tipo')
+        ordering: ClassVar[list[str]] = ['tipo']
 
     def __str__(self) -> str:
         return self.tipo

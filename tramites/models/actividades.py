@@ -13,7 +13,7 @@ Schema matches PostgreSQL actividades table:
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
 from django.db import models
@@ -89,17 +89,6 @@ class Actividades(models.Model):
     quién la hizo, qué estatus resultó, y cuándo.
     """
 
-    objects = CreateOnlyManager()
-
-    class Meta:
-        managed = getattr(
-            settings, 'TESTING', False
-        )  # True for tests (SQLite), False for prod (PostgreSQL)
-        db_table = 'actividades'
-        verbose_name = 'Actividad de Trámite'
-        verbose_name_plural = 'Actividades de Trámite'
-        ordering = ['-timestamp']
-
     id = models.AutoField(primary_key=True)
 
     tramite = models.ForeignKey(
@@ -137,6 +126,17 @@ class Actividades(models.Model):
         verbose_name='Fecha/Hora',
         editable=False,
     )
+
+    objects = CreateOnlyManager()
+
+    class Meta:
+        managed = getattr(
+            settings, 'TESTING', False
+        )  # True for tests (SQLite), False for prod (PostgreSQL)
+        db_table = 'actividades'
+        verbose_name = 'Actividad de Trámite'
+        verbose_name_plural = 'Actividades de Trámite'
+        ordering: ClassVar[list[str]] = ['-timestamp']
 
     def __str__(self) -> str:
         return f'Actividad {self.id} - Trámite {self.tramite_id}'

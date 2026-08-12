@@ -64,7 +64,7 @@ class Command(BaseCommand):
         try:
             tramite = Tramite.objects.get(folio=folio)
         except Tramite.DoesNotExist:
-            raise CommandError(f'No se encontró ningún trámite con folio "{folio}".')
+            raise CommandError(f'No se encontró ningún trámite con folio "{folio}".') from None
 
         # ── Advertencia y confirmación ──────────────────────────────
         self.stdout.write(self.style.WARNING(BANNER_ADVERTENCIA))

@@ -189,15 +189,14 @@ class ModelBasedRouter:
         model = hints.get('model')
 
         # If model not in hints or not a valid model class, try to look it up
-        if model is None or not isinstance(model, type):
-            if model_name:
-                try:
-                    from django.apps import apps
+        if (model is None or not isinstance(model, type)) and model_name:
+            try:
+                from django.apps import apps
 
-                    model = apps.get_model(app_label, model_name)
-                except LookupError:
-                    # Model not found, allow default behavior
-                    return True
+                model = apps.get_model(app_label, model_name)
+            except LookupError:
+                # Model not found, allow default behavior
+                return True
 
         # Get model configuration
         if model is not None and isinstance(model, type):

@@ -27,7 +27,7 @@ User = get_user_model()
 
 
 @pytest.fixture
-def analista(django_db_setup):  # noqa: ARG001
+def analista(django_db_setup):
     """Create an analyst user."""
     return User.objects.create_user(
         username='analista_test',
@@ -39,7 +39,7 @@ def analista(django_db_setup):  # noqa: ARG001
 
 
 @pytest.fixture
-def coordinador(django_db_setup):  # noqa: ARG001
+def coordinador(django_db_setup):
     """Create a coordinator user."""
     return User.objects.create_user(
         username='coordinador_test',
@@ -51,7 +51,7 @@ def coordinador(django_db_setup):  # noqa: ARG001
 
 
 @pytest.fixture
-def tramite_en_revision(django_db_blocker):  # noqa: ARG001
+def tramite_en_revision(django_db_blocker):
     """Create a tramite in memory with estatus 202 (EN_REVISION), unassigned."""
     return Tramite(
         id=3,
@@ -72,7 +72,7 @@ def tramite_en_revision(django_db_blocker):  # noqa: ARG001
 
 
 @pytest.fixture
-def tramite_no_activo(django_db_blocker):  # noqa: ARG001
+def tramite_no_activo(django_db_blocker):
     """Create a non-active tramite in memory (estatus 301 - POR_RECOGER)."""
     return Tramite(
         id=2,
@@ -90,7 +90,7 @@ def tramite_no_activo(django_db_blocker):  # noqa: ARG001
 
 
 @pytest.fixture
-def tramite_activo(django_db_blocker):  # noqa: ARG001
+def tramite_activo(django_db_blocker):
     """Create an active tramite in memory (estatus 201 - PRESENTADO)."""
     return Tramite(
         id=1,
@@ -111,7 +111,7 @@ def tramite_activo(django_db_blocker):  # noqa: ARG001
 
 
 @pytest.fixture
-def tramite_en_revision_asignado(analista, django_db_blocker):  # noqa: ARG001
+def tramite_en_revision_asignado(analista, django_db_blocker):
     """Create a tramite in EN_REVISION assigned to the shared analyst."""
     return Tramite(
         id=1,
@@ -137,7 +137,7 @@ def tramite_en_revision_asignado(analista, django_db_blocker):  # noqa: ARG001
 
 
 @pytest.fixture
-def tramite_ya_asignado(analista, django_db_blocker):  # noqa: ARG001
+def tramite_ya_asignado(analista, django_db_blocker):
     """Create a tramite in memory already assigned to an analyst."""
     return Tramite(
         id=4,
@@ -158,7 +158,7 @@ def tramite_ya_asignado(analista, django_db_blocker):  # noqa: ARG001
 
 
 @pytest.fixture
-def tramite_borrador(django_db_blocker):  # noqa: ARG001
+def tramite_borrador(django_db_blocker):
     """Create a tramite in estatus BORRADOR (101)."""
     return Tramite(
         id=5,
@@ -176,7 +176,7 @@ def tramite_borrador(django_db_blocker):  # noqa: ARG001
 
 
 @pytest.fixture
-def tramite_pendiente_pago(django_db_blocker):  # noqa: ARG001
+def tramite_pendiente_pago(django_db_blocker):
     """Create a tramite in estatus PENDIENTE_PAGO (102)."""
     return Tramite(
         id=6,
@@ -194,7 +194,7 @@ def tramite_pendiente_pago(django_db_blocker):  # noqa: ARG001
 
 
 @pytest.fixture
-def tramite_rechazado(django_db_blocker):  # noqa: ARG001
+def tramite_rechazado(django_db_blocker):
     """Create a tramite in estatus RECHAZADO (302)."""
     return Tramite(
         id=7,
@@ -212,7 +212,7 @@ def tramite_rechazado(django_db_blocker):  # noqa: ARG001
 
 
 @pytest.fixture
-def tramite_finalizado(django_db_blocker):  # noqa: ARG001
+def tramite_finalizado(django_db_blocker):
     """Create a tramite in estatus FINALIZADO (303)."""
     return Tramite(
         id=8,

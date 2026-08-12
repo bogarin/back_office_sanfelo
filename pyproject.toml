@@ -113,6 +113,68 @@ ignore = [
     "PLR0915",
     "SIM105",
 ]
+# ---------------------------------------------------------------------------
+# Grandfathered debt (batch 2): same policy as above. Long-standing lint
+# violations whose fix would be risky (legacy DB schemas, Django API contracts,
+# settings globals() injection) or trivial noise (print-based health-check
+# scripts). Kept green via per-file ignores; tracked for incremental cleanup.
+# ---------------------------------------------------------------------------
+"core/apps.py" = [
+    "PLC0415",  # import inside AppConfig.ready (Django-recommended lazy pattern)
+]
+"core/db_router.py" = [
+    "ARG002",   # DatabaseRouter hooks keep Django's **hints signature
+    "PLC0415",  # lazy import to avoid heavy django.apps import
+]
+"core/forms.py" = [
+    "ARG002",   # UserCreationForm.save(commit) contract
+    "S105",     # relative admin password URL, not a real password
+]
+"core/management/commands/audit_tests.py" = [
+    "ARG002",   # BaseCommand.handle(*args, **options) signature
+]
+"core/management/commands/setup_roles.py" = [
+    "ARG002",   # BaseCommand.handle(*args, **options) signature
+]
+"core/management/commands/simular_pago.py" = [
+    "ARG002",   # BaseCommand.handle(*args, **options) signature
+]
+"core/managers.py" = [
+    "ARG001",   # QuerySet/Manager overrides keep Django's API signature
+    "ARG002",
+    "PLR0913",  # bulk_create() must mirror Django's full signature
+    "PLR0917",
+]
+"core/model_config.py" = ["E501"]
+"core/signals.py" = [
+    "ARG001",   # signal receiver signature (sender, **kwargs)
+    "BLE001",   # broad except in signal wrapper
+]
+"core/views.py" = [
+    "ARG001",   # Django view/cbv handler signatures
+]
+"docker/healthcheck.py" = [
+    "S310",     # urllib on known http(s) health endpoints
+    "T201",     # CLI health-check script intentionally uses print
+]
+"manage.py" = ["PLC0415"]  # import inside main() (standard manage.py pattern)
+"sanfelipe/apps.py" = ["PLC0415"]
+"sanfelipe/context_processors.py" = ["ARG001"]  # context processor request arg
+"sanfelipe/settings/__init__.py" = [
+    "ARG005",   # lambda used elsewhere; request arg unused
+    "E501",
+    "F821",     # names injected dynamically via globals() (environ pattern)
+]
+"sanfelipe/settings/security.py" = ["E501"]
+"sanfelipe/settings_test.py" = [
+    "F403",  # star import from settings is the intended test override pattern
+    "F405",
+]
+"tests/tramites/test_models.py" = ["ARG001"]
+"tests/tramites/test_sftp.py" = ["ARG001"]
+"tramites/models/actividades.py" = ["DJ001"]  # legacy DB uses null=True on texts
+"tramites/models/catalogos.py" = ["DJ001"]    # managed=False legacy tables
+"tramites/models/tramite.py" = ["DJ001"]      # legacy DB schema; changing would need data migration
 
 [tool.ruff.lint.isort]
 # Known-first-party for Django apps
