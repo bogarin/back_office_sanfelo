@@ -5,14 +5,22 @@ This module contains main views for Backoffice San Felipe.
 Following Django's best practices with proper separation of concerns.
 """
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
-from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, HttpResponseRedirect
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    HttpResponseForbidden,
+    HttpResponseRedirect,
+    JsonResponse,
+)
 from django.shortcuts import render
 from django.urls import reverse
+from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_POST
 
 from core.rbac.constants import BackOfficeRole
@@ -41,6 +49,51 @@ def health_check(request: HttpRequest) -> HttpResponse:
         HttpResponse: Simple 'OK' response with status 200.
     """
     return HttpResponse('OK', status=200)
+
+
+@cache_control(max_age=3600)
+def pwa_manifest(request: HttpRequest) -> JsonResponse:
+    department = settings.ACTIVE_DEPARTMENT.lower()
+    icon_base = f'{settings.STATIC_URL}{department}'
+    icons = [
+        {
+            'src': f'{icon_base}/icon.png',
+            'sizes': '512x512',
+            'type': 'image/png',
+            'purpose': 'any maskable',
+        },
+        {
+            'src': f'{icon_base}/icon-192.png',
+            'sizes': '192x192',
+            'type': 'image/png',
+            'purpose': 'any maskable',
+        },
+    ]
+    return JsonResponse(
+        {
+            'id': f'{settings.ACTIVE_DEPARTMENT}/v1',
+            'name': f'{settings.ACTIVE_DEPARTMENT} - {settings.BACKOFFICE_SITE_TITLE}',
+            'short_name': f'Backoffice {settings.ACTIVE_DEPARTMENT}',
+            'description': settings.BACKOFFICE_WELCOME_SIGN,
+            'display': 'minimal-ui',
+            'start_url': '/admin/',
+            'scope': '/',
+            'background_color': '#9d2638',
+            'theme_color': '#9d2638',
+            'categories': ['productivity', 'government'],
+            'icons': icons,
+            'shortcuts': [
+                {
+                    'name': 'Mis trámites',
+                    'url': '/admin/tramites/buzon/',
+                },
+                {
+                    'name': 'Trámites disponibles',
+                    'url': '/admin/tramites/disponible/',
+                },
+            ],
+        }
+    )
 
 
 @staff_member_required

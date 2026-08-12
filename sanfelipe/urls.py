@@ -16,13 +16,20 @@ from core.views import (
     asignar_rol,
     health_check,
     invalidate_catalog_cache,
+    pwa_manifest,
     test_errors,
     test_rendering,
 )
 
+# PWA head (manifest + icons) on the login page, which uses
+# registration/base.html instead of admin/base_site.html
+admin.site.login_template = 'admin/pwa_login.html'
+
 urlpatterns = [
     # Health check
     path('health/', health_check, name='health-check'),
+    # PWA manifest
+    path('manifest.json', pwa_manifest, name='pwa-manifest'),
     # Custom admin views - must be before admin.site.urls
     path('admin/auth/user/asignar-rol/', asignar_rol, name='asignar-rol'),
     # Maintenance: invalidate catalog cache (Administrador only)
