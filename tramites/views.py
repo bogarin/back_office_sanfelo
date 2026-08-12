@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import PermissionDenied
-from django.http import HttpRequest, HttpResponse
+from django.http import FileResponse, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
@@ -72,7 +72,7 @@ def download_pdf(
     request: HttpRequest,
     pk: int,
     filename: str,
-) -> HttpResponse:
+) -> HttpResponse | FileResponse:
     """Download a PDF file from SFTP server.
 
     Supports both requisito files (DAU-*.pdf) and actividad files

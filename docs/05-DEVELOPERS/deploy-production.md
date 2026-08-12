@@ -3,7 +3,7 @@
 > **Para:** Sysadmins y equipo de operaciones
 > **Última actualización:** 25 de abril de 2026
 
----
+______________________________________________________________________
 
 ## Resumen
 
@@ -13,7 +13,7 @@ Esta guía describe cómo desplegar el Backoffice de Trámites en un servidor de
 - **1 contenedor de PostgreSQL 16** (con dos schemas)
 - **1 servidor SFTP externo** (para archivos PDF)
 
----
+______________________________________________________________________
 
 ## Requisitos Previos
 
@@ -41,7 +41,7 @@ Esta guía describe cómo desplegar el Backoffice de Trámites en un servidor de
 - Certificado SSL (si se usará HTTPS)
 - Llave SSH privada para conectarse al servidor SFTP
 
----
+______________________________________________________________________
 
 ## Paso 1: Preparar la Base de Datos
 
@@ -61,6 +61,7 @@ POSTGRES_PORT=5432
 Si ya tienes un servidor PostgreSQL:
 
 1. **Crear la base de datos y el schema `backoffice`:**
+
    ```sql
    CREATE DATABASE backoffice_tramites;
    CREATE USER backoffice_user WITH PASSWORD 'STRONG_PASSWORD';
@@ -70,14 +71,15 @@ Si ya tienes un servidor PostgreSQL:
    CREATE SCHEMA IF NOT EXISTS backoffice AUTHORIZATION backoffice_user;
    ```
 
-2. **Verificar que el schema `public` existe** (default en PostgreSQL).
+1. **Verificar que el schema `public` existe** (default en PostgreSQL).
 
-3. **Configurar la URL en `.env`:**
+1. **Configurar la URL en `.env`:**
+
    ```bash
    POSTGRESQL_DB_URL=postgres://backoffice_user:STRONG_PASSWORD@db-host:5432/backoffice_tramites
    ```
 
-4. **Eliminar el servicio postgres del docker-compose.yml** y apuntar la URL al servidor externo.
+1. **Eliminar el servicio postgres del docker-compose.yml** y apuntar la URL al servidor externo.
 
 ### Verificar conectividad
 
@@ -87,7 +89,7 @@ psql postgres://backoffice_user:STRONG_PASSWORD@HOST:5432/backoffice_tramites -c
 
 Debes ver los schemas `backoffice` y `public`.
 
----
+______________________________________________________________________
 
 ## Paso 2: Transferir la Imagen al Servidor
 
@@ -108,14 +110,15 @@ just container-push
 ```
 
 Este comando:
+
 1. Copia la imagen comprimida via `scp` al servidor
-2. La carga en Docker (`docker load`)
-3. Re-taggea a `sanfelipe-backoffice:latest` (sin prefijo de registry)
-4. Elimina el archivo temporal
+1. La carga en Docker (`docker load`)
+1. Re-taggea a `sanfelipe-backoffice:latest` (sin prefijo de registry)
+1. Elimina el archivo temporal
 
 > **Nota:** El servidor destino (`sanfelo.stage`) debe estar configurado en `~/.ssh/config` o ser accesible directamente.
 
----
+______________________________________________________________________
 
 ## Paso 3: Configurar Variables de Entorno
 
@@ -139,16 +142,19 @@ DJANGO_ALLOWED_HOSTS=backoffice.sanfelipe.gob.mx
 > **`DJANGO_ALLOWED_HOSTS`**: Agregar el dominio o IP del servidor tal como se accede desde el navegador. Si usas puerto (ej. 8080), no se incluye aquí — este setting ignora el puerto. Separar múltiples valores con coma.
 
 # === BASE DE DATOS ===
+
 POSTGRESQL_DB_URL=postgres://backoffice_user:STRONG_PASSWORD@postgres:5432/backoffice_tramites
 BACKOFFICE_DB_SCHEMA=backoffice
 BACKEND_DB_SCHEMA=public
 
 # === GUNICORN ===
+
 GUNICORN_PORT=8081
 GUNICORN_WORKERS=4
 GUNICORN_TIMEOUT=60
 
 # === SEGURIDAD (con HTTPS) ===
+
 DJANGO_SECURE_SSL_REDIRECT=True
 DJANGO_SESSION_COOKIE_SECURE=True
 DJANGO_CSRF_COOKIE_SECURE=True
@@ -157,9 +163,11 @@ DJANGO_SECURE_BROWSER_XSS_FILTER=True
 DJANGO_CSRF_TRUSTED_ORIGINS=https://backoffice.sanfelipe.gob.mx
 
 # === LOGGING ===
+
 DJANGO_LOG_LEVEL=INFO
 
 # === SFTP ===
+
 SFTP_HOST=sftp.example.com
 SFTP_PORT=22
 SFTP_USERNAME=backoffice_user
@@ -170,7 +178,8 @@ SFTP_PDF_DIR=pdfs
 SFTP_CACHE_DIR=/app/.sftp_cache
 SFTP_CACHE_TTL=3600
 SFTP_CACHE_MAX_SIZE_MB=500
-```
+
+````
 
 > **`DJANGO_CSRF_TRUSTED_ORIGINS`**: Debe incluir la URL completa (con protocolo y puerto si no es 80/443) que los usuarios ven en el navegador. Sin esta variable, el login falla con error CSRF 403. Si usas HTTP sin dominio: `DJANGO_CSRF_TRUSTED_ORIGINS=http://192.168.1.50:8090`.
 
@@ -178,7 +187,7 @@ SFTP_CACHE_MAX_SIZE_MB=500
 
 ```bash
 python3 -c "import secrets; print(secrets.token_urlsafe(50))"
-```
+````
 
 Pegar el resultado como valor de `DJANGO_SECRET_KEY`. No usar el prefijo `django-insecure-`.
 
@@ -204,7 +213,7 @@ BACKOFFICE_COPYRIGHT="Municipio de San Felipe - Todos los derechos reservados"
 
 > **Referencia completa:** [Variables de Entorno](./environment-vars.md)
 
----
+______________________________________________________________________
 
 ## Paso 4: Configurar Volúmenes y Archivos Montados
 
@@ -222,11 +231,13 @@ services:
 ```
 
 **Requisitos**:
+
 - El archivo debe ser legible por `appuser` (uid 1000)
 - El modo `:ro` (read-only) es obligatorio por seguridad
 - El path en el contenedor debe coincidir con `SFTP_SSH_KEY_PATH` en el `.env`
 
 **Permisos correctos**:
+
 ```bash
 chmod 600 secrets/id_ed25519_sf_demo
 chown 1000:1000 secrets/id_ed25519_sf_demo
@@ -244,6 +255,7 @@ services:
 ```
 
 **Cuándo montar una config custom**:
+
 - Necesitas restringir el `server_name` a un dominio específico
 - Quieres ajustar rate limits o timeouts
 - Agregar ubicaciones adicionales (monitoring, etc.)
@@ -290,7 +302,7 @@ volumes:
   pgdata:
 ```
 
----
+______________________________________________________________________
 
 ## Paso 5: Desplegar
 
@@ -319,15 +331,15 @@ La respuesta debe ser `200 OK`.
 Cuando el contenedor inicia, el `entrypoint.sh` ejecuta:
 
 1. **Activa el virtualenv** (`. /app/.venv/bin/activate`)
-2. **Recolecta archivos estáticos** (`manage.py collectstatic --no-input --clear`)
-3. **Corrige permisos** de directorios generados en runtime (`chown appuser:appuser`)
-4. **Inicia Nginx** en puerto 8080 (corre como root para bind)
-5. **Inicia Gunicorn** en puerto 8081 como `appuser` (no-root)
-6. **Maneja señales** TERM/INT para apagado graceful de ambos servicios
+1. **Recolecta archivos estáticos** (`manage.py collectstatic --no-input --clear`)
+1. **Corrige permisos** de directorios generados en runtime (`chown appuser:appuser`)
+1. **Inicia Nginx** en puerto 8080 (corre como root para bind)
+1. **Inicia Gunicorn** en puerto 8081 como `appuser` (no-root)
+1. **Maneja señales** TERM/INT para apagado graceful de ambos servicios
 
 > **Las migraciones NO se ejecutan automáticamente.** Ver Paso 6 para ejecutarlas manualmente.
 
----
+______________________________________________________________________
 
 ## Paso 6: Post-Instalación
 
@@ -356,6 +368,7 @@ docker compose exec backoffice .venv/bin/python manage.py setup_roles
 ```
 
 Esto crea los grupos de Django:
+
 - **Administrador** — Acceso completo
 - **Coordinador** — Puede asignar/reasignar trámites
 - **Analista** — Ve sus trámites asignados + disponibles
@@ -365,9 +378,9 @@ Esto crea los grupos de Django:
 Desde el admin de Django (`https://DOMINIO/admin/`):
 
 1. Ir a **Autenticación y Autorización → Usuarios**
-2. Seleccionar un usuario
-3. En la sección **Grupos**, agregar al grupo correspondiente
-4. Guardar
+1. Seleccionar un usuario
+1. En la sección **Grupos**, agregar al grupo correspondiente
+1. Guardar
 
 ### 6.5 Verificar conectividad SFTP
 
@@ -377,7 +390,7 @@ docker compose exec backoffice .venv/bin/python manage.py sftp ping
 
 Debe responder sin errores.
 
----
+______________________________________________________________________
 
 ## Paso 7: Configurar HTTPS (Recomendado)
 
@@ -418,7 +431,7 @@ apt install certbot python3-certbot-nginx
 certbot --nginx -d backoffice.sanfelipe.gob.mx
 ```
 
----
+______________________________________________________________________
 
 ## Verificación Final
 
@@ -444,13 +457,14 @@ curl -I https://backoffice.sanfelipe.gob.mx/admin/
 ```
 
 Debes ver:
+
 ```
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
 X-XSS-Protection: 1; mode=block
 ```
 
----
+______________________________________________________________________
 
 ## Operaciones Comunes
 
@@ -483,12 +497,14 @@ docker compose restart backoffice
 ### Actualizar la aplicación
 
 En la máquina de desarrollo:
+
 ```bash
 just container-build
 just container-push
 ```
 
 En el servidor:
+
 ```bash
 docker compose up -d backoffice
 ```
@@ -514,13 +530,14 @@ cat backup_20260423.sql | docker compose exec -T postgres psql -U postgres backo
 ### Escalar workers de Gunicorn
 
 Editar `.env`:
+
 ```bash
 GUNICORN_WORKERS=8
 ```
 
 Luego reiniciar: `docker compose restart backoffice`
 
----
+______________________________________________________________________
 
 ## Troubleshooting
 
@@ -540,7 +557,7 @@ Luego reiniciar: `docker compose restart backoffice`
 | "Environment file not found: /app/.env" | Esperado — el contenedor recibe vars via `env_file` de docker-compose, no desde un archivo interno. No es un error |
 | Inspeccionar variables de entorno | `docker exec backoffice env` para ver las vars cargadas, o `docker inspect backoffice --format '{{range .Config.Env}}{{println .}}{{end}}'` |
 
----
+______________________________________________________________________
 
 ## Estructura del Contenedor
 
@@ -568,7 +585,7 @@ Contenedor (root para nginx, appuser para gunicorn)
 | `/etc/nginx/nginx.conf` | root | Config Nginx (montable via volumen) |
 | `/home/appuser/.ssh/` | — | Llaves SSH (montable via volumen) |
 
----
+______________________________________________________________________
 
 ## Ver también
 

@@ -49,11 +49,13 @@ tests/
 ## How to Run Tests
 
 ### Run all tests
+
 ```bash
 just test
 ```
 
 ### Run tests for a specific app
+
 ```bash
 just test-app core
 just test-app catalogos
@@ -64,31 +66,37 @@ just test-app sanfelipe
 ```
 
 ### Run tests with coverage
+
 ```bash
 just test-cov
 ```
 
 ### Run tests skipping slow tests
+
 ```bash
 just test-fast
 ```
 
 ### Run tests re-creating database
+
 ```bash
 just test-create-db
 ```
 
 ### Run specific test file
+
 ```bash
 just test tests/core/test_permissions.py
 ```
 
 ### Run specific test
+
 ```bash
 just test tests/core/test_permissions.py::TestRoleBasedAccessMixin::test_superuser_has_full_access
 ```
 
 ### Run tests with verbose output
+
 ```bash
 TESTING=1 uv run pytest tests/ -v
 ```
@@ -118,6 +126,7 @@ markers = [
 ### Database Configuration
 
 Tests use `sanfelipe.settings_test` which:
+
 - Uses SQLite for all databases
 - Routes all apps to `default` database via `TestRouter`
 - Enables `managed=True` for business models during testing
@@ -252,6 +261,7 @@ from tests.factories import (
 ```
 
 Each factory provides sensible defaults:
+
 - Uses `Sequence` for unique fields
 - Uses `Faker` for realistic data
 - Handles IntegerField relationships correctly
@@ -261,6 +271,7 @@ Each factory provides sensible defaults:
 Current test suite includes:
 
 - **Core tests (31 tests):**
+
   - Permission mixin tests
   - Audit trail tests
   - Admin site tests
@@ -269,22 +280,27 @@ Current test suite includes:
   - Error handling tests
 
 - **Sanfelipe tests (7 tests):**
+
   - Database router tests
   - CSP configuration tests
 
 - **Catalogos tests (18 tests):**
+
   - Model tests for all catalog models
   - Admin configuration tests
 
 - **Costos tests (6 tests):**
+
   - Model tests for Costo and Uma
   - Admin configuration tests
 
 - **Bitacora tests (6 tests):**
+
   - Model tests
   - Admin configuration tests
 
 - **Tramites tests (13 tests):**
+
   - Model tests
   - Admin configuration tests
   - View tests (placeholder)
@@ -295,12 +311,12 @@ Current test suite includes:
 
 1. **Preserved class-based tests** - All tests use `django.test.TestCase` class-based structure as required
 
-2. **TestRouter for testing** - Uses `TestRouter` which routes all databases to SQLite, simplifying multi-database testing
+1. **TestRouter for testing** - Uses `TestRouter` which routes all databases to SQLite, simplifying multi-database testing
 
-3. **Migrations for testing** - Migrations are created for testing purposes but won't run in production due to `MultiDatabaseRouter.allow_migrate()` returning `False` for business apps
+1. **Migrations for testing** - Migrations are created for testing purposes but won't run in production due to `MultiDatabaseRouter.allow_migrate()` returning `False` for business apps
 
-4. **managed=True during testing** - Business models use `managed = getattr(settings, 'TESTING', False)` to enable table creation during tests
+1. **managed=True during testing** - Business models use `managed = getattr(settings, 'TESTING', False)` to enable table creation during tests
 
-5. **factory-boy integration** - All test data creation uses factory-boy for consistency and maintainability
+1. **factory-boy integration** - All test data creation uses factory-boy for consistency and maintainability
 
-6. **Shared fixtures** - Common fixtures (superuser, admin_user, operador_user, etc.) are available in `tests/conftest.py`
+1. **Shared fixtures** - Common fixtures (superuser, admin_user, operador_user, etc.) are available in `tests/conftest.py`

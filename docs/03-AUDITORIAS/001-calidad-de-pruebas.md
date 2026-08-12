@@ -4,7 +4,7 @@
 > **Tipo:** Calidad
 > **Estado:** Completada
 
----
+______________________________________________________________________
 
 ## 1. Objetivo
 
@@ -13,6 +13,7 @@ Evaluar la calidad y efectividad de todas las pruebas unitarias y de integració
 ## 2. Alcance
 
 **Incluye:**
+
 - Todos los archivos bajo `tests/` (13 archivos, 307 tests)
 - Modelos de trámite: workflow, transiciones de estado, permisos
 - Core: RBAC, middleware, señales, protección de superusuario
@@ -20,6 +21,7 @@ Evaluar la calidad y efectividad de todas las pruebas unitarias y de integració
 - Fixtures compartidos en `tests/conftest.py`
 
 **Excluye:**
+
 - Tests E2E (no existen aún)
 - Cobertura de código por rutas (no se evaluó con `--cov`)
 - Performance benchmarks
@@ -51,14 +53,17 @@ Análisis manual de cada archivo de test contra criterios de calidad: duplicaci�
 > Los que degradaban significativamente la calidad o mantenibilidad.
 
 - **H-001-002:** 3 archivos de test completamente duplicados (`test_management.py`, `test_integration.py`, `test_views.py`) — ~45 tests redundantes
+
   - **Severidad:** Alto
   - **Evidencia:** Tests idénticos entre archivos: `test_setup_roles_creates_acceso_perms`, `test_user_with_role_can_access_admin[3]`, `assertTrue(True)`
 
 - **H-001-003:** Bug en `_liberar(asignado_por=None)` — `AttributeError` silencioso en producción
+
   - **Severidad:** Alto
   - **Evidencia:** `tramites/models/tramite.py` línea 401: `liberado_por.get_full_name()` cuando `liberado_por` es `None`
 
 - **H-001-004:** Test CSP con assertion incorrecta — validaba `CSP.NONCE` en vez de `CSP.SELF`
+
   - **Severidad:** Alto
   - **Evidencia:** `tests/sanfelipe/test_csp.py` línea 42-51
 
@@ -67,18 +72,22 @@ Análisis manual de cada archivo de test contra criterios de calidad: duplicaci�
 > Los que deberían corregirse en el corto plazo.
 
 - **H-001-005:** `test_error_handling.py` usaba `try/except Exception` sin verificar condición real
+
   - **Severidad:** Medio
   - **Evidencia:** Líneas 19-25, pasaba sin importar el resultado
 
 - **H-001-006:** Fixtures duplicados en `test_models.py`: `analista` definido 5x, `coordinador` 2x, `tramite_en_revision` 4x
+
   - **Severidad:** Medio
   - **Evidencia:** Múltiples `@pytest.fixture` con mismo nombre en distintas clases
 
 - **H-001-007:** 3 archivos usaban `TestCase` en vez de pytest (`test_csp.py`, `test_db_router.py`, `test_error_handling.py`)
+
   - **Severidad:** Medio
   - **Evidencia:** `from django.test import TestCase` + `class TestX(TestCase)`
 
 - **H-001-008:** `test_admin_generic.py` solo verificaba 2 de 5 modelos registrados en admin
+
   - **Severidad:** Medio
   - **Evidencia:** Solo `Tramite` y `User`, faltaban `Buzon`, `Disponible`, `Cerrado`
 
@@ -87,18 +96,22 @@ Análisis manual de cada archivo de test contra criterios de calidad: duplicaci�
 > Mejoras deseables pero no urgentes.
 
 - **H-001-009:** 4 de 5 tests CSP tenían `if hasattr` guards que pasaban silenciosamente
+
   - **Severidad:** Bajo
   - **Evidencia:** `test_csp_blocks_plugins`, `test_csp_blocks_frames`
 
 - **H-001-010:** Sin tests de middleware (`CacheUserRolesMiddleware`)
+
   - **Severidad:** Bajo
   - **Evidencia:** No existe archivo `test_signals_middleware.py` ni equivalente
 
 - **H-001-011:** Sin tests de señales (`post_migrate` → `setup_roles`)
+
   - **Severidad:** Bajo
   - **Evidencia:** No hay tests que verifiquen el handler de señal directamente
 
-- **H-001-012:** Sin tests de validaciones del modelo Trámite (state machine, TRANSITIONS, permisos can_*)
+- **H-001-012:** Sin tests de validaciones del modelo Trámite (state machine, TRANSITIONS, permisos can\_\*)
+
   - **Severidad:** Bajo
   - **Evidencia:** No existía `test_validations.py`
 

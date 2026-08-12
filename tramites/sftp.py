@@ -193,7 +193,7 @@ class SFTPService:
         cls,
         tramite: Tramite,
         filename: str,
-    ) -> HttpResponse:
+    ) -> HttpResponse | FileResponse:
         """Full download pipeline: validate → cache → download → build response.
 
         Validates folio and filename (supports both requisito and actividad

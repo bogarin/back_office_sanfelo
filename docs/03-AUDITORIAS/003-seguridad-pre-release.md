@@ -4,7 +4,7 @@
 > **Tipo:** Seguridad
 > **Estado:** Completada
 
----
+______________________________________________________________________
 
 ## 1. Objetivo
 
@@ -13,6 +13,7 @@ Evaluar la postura de seguridad del código de la aplicación Backoffice de Trá
 ## 2. Alcance
 
 **Incluye:**
+
 - Todo el código Python (models, views, admin, middleware, forms, SFTP service, settings)
 - Configuración de nginx (`nginx/nginx.conf`) — template base (en producción se sobreescribe con config más restrictiva)
 - Script de entrypoint Docker (`docker/entrypoint.sh`)
@@ -25,6 +26,7 @@ Evaluar la postura de seguridad del código de la aplicación Backoffice de Trá
 - Manejo de errores y fuga de información
 
 **Excluye:**
+
 - Archivo `.env` (no accesible en el repositorio)
 - `Dockerfile` (excluido por decisión del equipo)
 - `docker-compose.yml` (excluido por decisión del equipo)
@@ -32,13 +34,14 @@ Evaluar la postura de seguridad del código de la aplicación Backoffice de Trá
 - Configuración de producción de `.env` (se asume HTTPS, ALLOWED_HOSTS, SECRET_KEY correctos)
 
 **Suposiciones de producción:**
+
 1. HTTPS habilitado via nginx/proxy externo
-2. El `nginx.conf` se sobreescribe con configuración más restrictiva en producción
-3. `DJANGO_SECRET_KEY` apropiado configurado
-4. `ALLOWED_HOSTS` correctamente configurado (sin wildcard)
-5. `DJANGO_DEBUG=False`
-6. Variables de entorno correctamente protegidas
-7. Credenciales de base de datos gestionadas apropiadamente
+1. El `nginx.conf` se sobreescribe con configuración más restrictiva en producción
+1. `DJANGO_SECRET_KEY` apropiado configurado
+1. `ALLOWED_HOSTS` correctamente configurado (sin wildcard)
+1. `DJANGO_DEBUG=False`
+1. Variables de entorno correctamente protegidas
+1. Credenciales de base de datos gestionadas apropiadamente
 
 ## 3. Metodología y Criterios de Evaluación
 
@@ -76,6 +79,7 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
 > Los que deberían corregirse en el corto plazo.
 
 - **H-003-002:** CSP permite `unsafe-inline` para scripts — Protección XSS debilitada
+
   - **Severidad:** Medio
   - **Estado:** Pendiente — requiere migración gradual
   - **Evidencia:** `sanfelipe/settings/security.py:84` — `'script-src': [CSP.SELF, CSP.UNSAFE_INLINE]` neutraliza la protección XSS de CSP.
@@ -83,12 +87,14 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
   - **Tests:** `tests/sanfelipe/test_security_audit.py::TestCSPSecurityDirectives` (6 tests validan directivas SÍ configuradas)
 
 - **H-003-003:** ~~`assert` usado para verificación de seguridad~~ ✅ **Corregido**
+
   - **Severidad:** Medio
   - **Evidencia:** `tramites/sftp.py:225-227` — `assert '..' not in cache_path_for_nginx` se eliminaba con `PYTHONOPTIMIZE=1`.
   - **Corrección:** Reemplazado con `if '..' in cache_path_for_nginx: raise SFTPConnectionError(...)`.
   - **Tests:** `tests/sanfelipe/test_security_audit.py::TestPathTraversalDefenseInDepth` (3 tests)
 
 - **H-003-004:** ~~Nginx location blocks sobreescriben headers de seguridad~~ ✅ **Corregido**
+
   - **Severidad:** Medio
   - **Evidencia:** `nginx/nginx.conf:147-151, 159-163` — Los bloques `/static/` y `/media/` usaban `add_header Cache-Control` sin re-incluir headers de seguridad.
   - **Corrección:** Agregados `X-Content-Type-Options nosniff always` y `X-Frame-Options DENY always` en ambos location blocks.
@@ -99,12 +105,14 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
 > Mejoras deseables pero no urgentes.
 
 - **H-003-005:** Race condition (TOCTOU) en transiciones de estado del workflow
+
   - **Severidad:** Bajo
   - **Estado:** Riesgo aceptado
   - **Evidencia:** `tramites/models/tramite.py:359-395` — Las acciones de workflow siguen un patrón check-then-act sin locking a nivel base de datos.
   - **Justificación:** Aceptable para un backoffice gubernamental con baja concurrencia. Considerar `select_for_update()` si escala.
 
 - **H-003-006:** Vista `asignar_rol` carece de verificación explícita de permisos
+
   - **Severidad:** Bajo
   - **Estado:** Pendiente
   - **Evidencia:** `core/views.py:46` — Solo usa `@staff_member_required`, no verifica que el usuario tenga permisos de gestión de roles.
@@ -112,6 +120,7 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
   - **Tests:** `tests/sanfelipe/test_security_audit.py::TestAsignarRolPermissionCheck` (1 test)
 
 - **H-003-007:** `X-Forwarded-For` confiado sin validación de proxy
+
   - **Severidad:** Bajo
   - **Estado:** Mitigado por arquitectura
   - **Evidencia:** `tramites/views.py:209-226` — `_get_client_ip` confía en el header sin validar que la request vino a través de un proxy confiable.
@@ -119,12 +128,14 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
   - **Tests:** `tests/sanfelipe/test_security_audit.py::TestGetClientIP` (4 tests)
 
 - **H-003-008:** ~~Excepción no manejada en `modificar_asignacion` para ID de analista inválido~~ ✅ **Corregido**
+
   - **Severidad:** Bajo
   - **Evidencia:** `tramites/admin.py:408` — `User.objects.get(id=analista_id)` sin try/except generaba 500.
   - **Corrección:** Agregado try/except con `User.DoesNotExist, ValueError` → redirect con mensaje de error.
   - **Tests:** `tests/sanfelipe/test_security_audit.py::TestModificarAsignacionErrorHandling` (1 test)
 
 - **H-003-009:** ~~`SESSION_COOKIE_SECURE` y `CSRF_COOKIE_SECURE` por defecto en `False` incluso en producción~~ ✅ **Corregido**
+
   - **Severidad:** Bajo
   - **Evidencia:** `sanfelipe/settings/security.py:53-55` — Los defaults eran `False` en producción.
   - **Corrección:** Cambiados defaults a `True` para producción.
@@ -198,21 +209,21 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
 - [`001-calidad-de-pruebas.md`](001-calidad-de-pruebas.md) — Auditoría de calidad de pruebas (344 tests, 100% pass rate)
 - [`tests/sanfelipe/test_security_audit.py`](../../tests/sanfelipe/test_security_audit.py) — Tests de regresión de seguridad (30 tests)
 
----
+______________________________________________________________________
 
 ## Hallazgos Positivos (Fortalezas de Seguridad)
 
 1. **Defensa SFTP Path Traversal ejemplar** — Regex anclado, caracteres prohibidos, `O_NOFOLLOW`, `_is_within_cache()`, archivos atómicos, límite de tamaño, verificación de host key.
-2. **Protección IDOR completa** — Todas las views validan permisos a nivel objeto (`can_view`, `can_download`, `can_execute_action`).
-3. **Protección de superusuarios en admin** — Non-superusers no pueden editar, eliminar ni cambiar passwords de superusuarios.
-4. **Validación de SECRET_KEY con entropía Shannon** — Impide que la app arranque con clave débil en producción.
-5. **Zero raw queries** — Todo el acceso a BD usa Django ORM (SQL injection imposible).
-6. **Verificación de host key SFTP** — `RejectPolicy` obligatorio en producción.
-7. **Rate limiting en nginx** — Login (5 req/min) y tramites (10 req/min).
-8. **Sesiones con cookies firmadas** — Sin almacenamiento server-side, 1 hora de expiración, HttpOnly + SameSite=Lax.
-9. **Argon2 como hasher primario** — Ganador del Password Hashing Competition, mínimo 10 caracteres.
-10. **Máquina de estados de workflow** — `TRANSITIONS` dict valida todas las transiciones de estado.
-11. **Gunicorn como non-root** — Entrypoint ejecuta gunicorn como `appuser`.
-12. **Headers Content-Disposition seguros** — Filename validado por regex estricto.
-13. **Páginas de error sin fuga de información** — Custom handlers sin stack traces.
-14. **Logging de auditoría** — Descargas y acciones de workflow registradas con user, tramite, IP, estado.
+1. **Protección IDOR completa** — Todas las views validan permisos a nivel objeto (`can_view`, `can_download`, `can_execute_action`).
+1. **Protección de superusuarios en admin** — Non-superusers no pueden editar, eliminar ni cambiar passwords de superusuarios.
+1. **Validación de SECRET_KEY con entropía Shannon** — Impide que la app arranque con clave débil en producción.
+1. **Zero raw queries** — Todo el acceso a BD usa Django ORM (SQL injection imposible).
+1. **Verificación de host key SFTP** — `RejectPolicy` obligatorio en producción.
+1. **Rate limiting en nginx** — Login (5 req/min) y tramites (10 req/min).
+1. **Sesiones con cookies firmadas** — Sin almacenamiento server-side, 1 hora de expiración, HttpOnly + SameSite=Lax.
+1. **Argon2 como hasher primario** — Ganador del Password Hashing Competition, mínimo 10 caracteres.
+1. **Máquina de estados de workflow** — `TRANSITIONS` dict valida todas las transiciones de estado.
+1. **Gunicorn como non-root** — Entrypoint ejecuta gunicorn como `appuser`.
+1. **Headers Content-Disposition seguros** — Filename validado por regex estricto.
+1. **Páginas de error sin fuga de información** — Custom handlers sin stack traces.
+1. **Logging de auditoría** — Descargas y acciones de workflow registradas con user, tramite, IP, estado.

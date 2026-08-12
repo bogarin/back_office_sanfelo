@@ -69,6 +69,7 @@ iniciar sesión en el admin.
 #### Administrador
 
 **Apps con acceso completo** (`ADMINISTRADOR_APPS`): `auth`, `core`, `tramites`
+
 - Recibe TODOS los permisos (add, change, delete, view) para todas las modelos de estas apps
 - Permisos custom: `acceso_analista`, `acceso_coordinador`
 
@@ -105,10 +106,10 @@ Adicionalmente, el link "Usuarios" en el sidebar requiere `core.view_user`
 **Flujo de setup:**
 
 1. `setup_all_roles()` llama a `setup_administrador()`, `setup_coordinador()`, `setup_analista()`
-2. Cada función crea el `Group` via `get_or_create_group()`
-3. Limpia permisos existentes (`group.permissions.clear()`)
-4. Administrador: asigna todos los permisos estándar de `ADMINISTRADOR_APPS` + permisos custom
-5. Coordinador/Analista: solo asigna permisos custom para sidebar
+1. Cada función crea el `Group` via `get_or_create_group()`
+1. Limpia permisos existentes (`group.permissions.clear()`)
+1. Administrador: asigna todos los permisos estándar de `ADMINISTRADOR_APPS` + permisos custom
+1. Coordinador/Analista: solo asigna permisos custom para sidebar
 
 **Middleware:** `CacheUserRolesMiddleware` — Carga roles del usuario una vez por request en `request.user.roles` (set[str])
 
@@ -141,7 +142,7 @@ La auditoría NO se implementa con una tabla de bitácora separada. En su lugar:
 
 ### Negativas
 
-- **~~Sin control a nivel de objeto:** Los permisos son por modelo, no por instancia individual~~** — Resuelto por ADR-014: permission methods en `Tramite` (`can_view`, `can_download`, etc.)
+- **~~Sin control a nivel de objeto:** Los permisos son por modelo, no por instancia individual~~\*\* — Resuelto por ADR-014: permission methods en `Tramite` (`can_view`, `can_download`, etc.)
 - **Coordinador sin permisos estándar:** No puede hacer CRUD directo, solo ver y asignar via acciones custom
 - **Middleware de cache:** Los roles se cachean por request — cambios de grupo requieren nuevo login
 

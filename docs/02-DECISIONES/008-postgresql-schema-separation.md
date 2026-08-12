@@ -13,6 +13,7 @@ The Backoffice Trámites project uses a PostgreSQL database with schema separati
 - **public schema** (formerly "backend" database): Business legacy tables (tramites, catalogos, costos, bitacora, actividades)
 
 This separation provides:
+
 - Single PostgreSQL server with logical data isolation
 - Simplified backup and maintenance
 - Cross-schema joins are still prevented to maintain data integrity
@@ -38,6 +39,7 @@ The project defines three access patterns for database models:
 ### Per-Model Migration and Access Rules
 
 #### 1. Actividades (`tramites/models/actividades.py`)
+
 - **Database:** `backend` (public schema)
 - **Access:** APPEND_ONLY (Read and Create permitted, Updates and Delete forbidden)
 - **Migrations:** FORBIDDEN
@@ -46,6 +48,7 @@ The project defines three access patterns for database models:
 - **Use Case:** Transactional logging for tramite status changes
 
 #### 2. AsignacionTramite (`tramites/models/asignacion.py`)
+
 - **Database:** `default` (backoffice schema)
 - **Access:** Full read/write
 - **Migrations:** ALLOWED
@@ -55,6 +58,7 @@ The project defines three access patterns for database models:
 - **Special Notes:** Only Django model in default schema besides auth tables
 
 #### 3. Catalog Models (`tramites/models/catalogos.py`)
+
 Includes: `TramiteCatalogo`, `TramiteEstatus`, `Perito`, `Actividad`, `Categoria`, `Requisito`, `Tipo`
 
 - **Database:** `backend` (public schema)
@@ -65,6 +69,7 @@ Includes: `TramiteCatalogo`, `TramiteEstatus`, `Perito`, `Actividad`, `Categoria
 - **Use Case:** Reference data managed externally, cached in process memory
 
 #### 4. Relationship Models (`tramites/models/relaciones.py`)
+
 Includes: `TramiteCatalogoCategoria`, `TramiteCatalogoRequisito`, `TramiteCatalogoTipoRequisito`, `TramiteCatalogoActividad`
 
 - **Database:** `backend` (public schema)
@@ -75,6 +80,7 @@ Includes: `TramiteCatalogoCategoria`, `TramiteCatalogoRequisito`, `TramiteCatalo
 - **Use Case:** Many-to-many pivot tables for catalog relationships
 
 #### 5. Tramite (`tramites/models/tramite.py`)
+
 - **Database:** `backend` (public schema)
 - **Access:** STRICTLY READ-ONLY (status derived from Actividades)
 - **Migrations:** FORBIDDEN
@@ -83,6 +89,7 @@ Includes: `TramiteCatalogoCategoria`, `TramiteCatalogoRequisito`, `TramiteCatalo
 - **Use Case:** Main business entity, status derived from latest `Actividades` record
 
 #### 6. Django Built-in Apps
+
 Includes: `auth`, `contenttypes`, `admin`, `sessions`, `messages`, `staticfiles`, `debug_toolbar`
 
 - **Database:** `default` (backoffice schema)
@@ -104,13 +111,14 @@ A migration guard overrides the standard `makemigrations` command to check each 
 The `core.db_router.ModelBasedRouter` enforces these rules:
 
 1. **Read operations:** Routes to configured database via `@register_model` decorator
-2. **Write operations:** Routes to same database as read operations (consistency)
-3. **Migration permissions:** Controlled by ModelConfig.allow_migrations flag
-4. **Relation permissions:** Relations allowed only within same schema (same db_alias)
+1. **Write operations:** Routes to same database as read operations (consistency)
+1. **Migration permissions:** Controlled by ModelConfig.allow_migrations flag
+1. **Relation permissions:** Relations allowed only within same schema (same db_alias)
 
 ### Cross-Schema References
 
 **AsignacionTramite pattern:**
+
 - Stores `tramite_id` as `IntegerField` (no Django FK to Tramite)
 - Stores `analista` and `asignado_por` as real Django FKs to User (same database)
 - Allows safe cross-schema lookups without FK constraints
@@ -119,10 +127,12 @@ The `core.db_router.ModelBasedRouter` enforces these rules:
 ### Cache Configuration
 
 **Production:**
+
 - **Backend:** LocMemCache (in-memory cache)
 - **Catalog data:** ReadOnlyManager enforces access, data loaded from fixtures in tests
 
 **Testing:**
+
 - **Backend:** In-memory SQLite for all tests
 - **Fixture loading:** `catalog_fixtures` fixture loads test data from `fixtures/backend.json`
 
@@ -158,43 +168,50 @@ The `core.db_router.ModelBasedRouter` enforces these rules:
 ## Migration Strategy from Dual-Database Architecture
 
 ### Phase 1: Code Updates
+
 1. Update `managed` attributes in catalog models to `False` (production)
-2. Update `managed` attributes in relationship models to `False` (production)
-3. Verify `managed` in Actividades is conditionally `True` (testing) / `False` (production)
-4. Verify `managed` in Tramite is conditionally `True` (testing) / `False` (production)
-5. Update all code comments and documentation to reflect PostgreSQL schema separation
+1. Update `managed` attributes in relationship models to `False` (production)
+1. Verify `managed` in Actividades is conditionally `True` (testing) / `False` (production)
+1. Verify `managed` in Tramite is conditionally `True` (testing) / `False` (production)
+1. Update all code comments and documentation to reflect PostgreSQL schema separation
 
 ### Phase 2: Configuration Updates
+
 1. Update `.env.example` with PostgreSQL URLs and schema parameters
-2. Update `.env` with actual PostgreSQL server URLs
-3. Update cache configuration to use LocMemCache instead of DatabaseCache
-4. Delete deprecated `db/db.sqlite3` file
+1. Update `.env` with actual PostgreSQL server URLs
+1. Update cache configuration to use LocMemCache instead of DatabaseCache
+1. Delete deprecated `db/db.sqlite3` file
 
 ### Phase 3: Database Migration
+
 1. Export existing auth/admin data from SQLite (if any exists)
-2. Create backoffice schema in PostgreSQL (if not exists)
-3. Import auth/admin data to backoffice schema
-4. Run migrations on default database only (backoffice schema)
+1. Create backoffice schema in PostgreSQL (if not exists)
+1. Import auth/admin data to backoffice schema
+1. Run migrations on default database only (backoffice schema)
 
 ### Phase 4: Documentation Updates
+
 1. Update README.md architecture table
-2. Update ADR-002 to reference this new architecture
-3. Update environment variables documentation
-4. Update all code comments and docstrings
+1. Update ADR-002 to reference this new architecture
+1. Update environment variables documentation
+1. Update all code comments and docstrings
 
 ## Alternatives Considered
 
 ### Alternative 1: Separate PostgreSQL Databases (Rejected)
+
 - **Description:** Use two separate PostgreSQL databases instead of schemas
 - **Rejected because:** Adds complexity to backups, connection pooling, and maintenance
 - **Current approach:** Schema separation is cleaner and maintains same benefits
 
 ### Alternative 2: Single Schema (Rejected)
+
 - **Description:** Put all tables in single schema, use Django for all migrations
 - **Rejected because:** Legacy tables must remain externally managed, cannot risk accidental modifications
 - **Current approach:** Schema separation with `managed=False` provides necessary protection
 
 ### Alternative 3: Foreign Keys Across Schemas (Rejected)
+
 - **Description:** Allow real Django FKs between AsignacionTramite and Tramite
 - **Rejected because:** Django doesn't support cross-database FK joins, would cause runtime errors
 - **Current approach:** IntegerField pattern with explicit `.using()` calls is safe and documented

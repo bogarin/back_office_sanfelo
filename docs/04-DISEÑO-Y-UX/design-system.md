@@ -3,7 +3,7 @@
 > Documentación de referencia del sistema de diseño visual y de componentes del Backoffice.
 > Incluye paleta de colores, tipografía, modo oscuro, componentes reutilizables y convenciones CSS.
 
----
+______________________________________________________________________
 
 ## Stack de UI
 
@@ -32,7 +32,7 @@ El Backoffice se construye sobre el ecosistema **Jazzmin**, que integra múltipl
 | `core/admin_utils.py` | Funciones `render_status_badge()`, `render_activo_badge()`, `render_quick_action()` |
 | `templates/admin/` | Templates personalizados que extienden Jazzmin |
 
----
+______________________________________________________________________
 
 ## Paleta de Colores
 
@@ -81,7 +81,7 @@ El Backoffice se construye sobre el ecosistema **Jazzmin**, que integra múltipl
 | Válido (dark) | `#70d5b3` | `--bs-form-valid-color` |
 | Inválido (dark) | `#f58f8f` | `--bs-form-invalid-color` |
 
----
+______________________________________________________________________
 
 ## Tipografía
 
@@ -106,7 +106,7 @@ El Backoffice se construye sobre el ecosistema **Jazzmin**, que integra múltipl
 | Texto pequeño | `0.875rem` | Normal | `.small`, `.form-text`, `.text-muted` |
 | Código de error | `6rem` | `800` | `.error-page .error-code` |
 
----
+______________________________________________________________________
 
 ## Modo Oscuro
 
@@ -115,8 +115,8 @@ El Backoffice se construye sobre el ecosistema **Jazzmin**, que integra múltipl
 El sistema soporta dos modos de tema: **light** (por defecto) y **dark**.
 
 1. **Jazzmin** controla el tema activo mediante el atributo `data-bs-theme` en el elemento `<html>`.
-2. La preferencia del usuario se persiste en `localStorage` bajo la clave `jazzmin-theme-mode`.
-3. El tema por defecto se configura en `JAZZMIN_UI_TWEAKS["default_theme_mode"]` (valor actual: `"light"`).
+1. La preferencia del usuario se persiste en `localStorage` bajo la clave `jazzmin-theme-mode`.
+1. El tema por defecto se configura en `JAZZMIN_UI_TWEAKS["default_theme_mode"]` (valor actual: `"light"`).
 
 ### CSS Custom Properties por tema
 
@@ -156,7 +156,7 @@ Jazzmin fuerza `data-bs-theme="dark"` y la clase `sidebar-dark-primary` en `#jaz
 
 > **Todos los colores en CSS personalizado deben usar `var(--bs-*)`** para que funcionen en ambos temas. Nunca hardcodear valores que ya existen como variables Bootstrap.
 
----
+______________________________________________________________________
 
 ## Componentes
 
@@ -243,7 +243,7 @@ render_status_badge(estatus_id, estatus_text) → HTML <span class="badge ...">
 render_activo_badge(is_activo)               → HTML <span class="badge badge-activo|badge-inactivo">
 ```
 
----
+______________________________________________________________________
 
 ### Cards
 
@@ -297,7 +297,7 @@ Variantes de header usadas:
 | `bg-primary text-white` | Panel de acciones disponibles |
 | `bg-danger text-white` | Acciones destructivas (cerrar trámite) |
 
----
+______________________________________________________________________
 
 ### Sidebar
 
@@ -343,7 +343,7 @@ La sidebar es controlada por Jazzmin/AdminLTE con personalizaciones en `backoffi
 
 Toda la navegación se controla exclusivamente via `custom_links` con permisos. Ningún modelo se registra directamente en el sidebar.
 
----
+______________________________________________________________________
 
 ### Timeline (Historial del Trámite)
 
@@ -388,7 +388,7 @@ Componente CSS puro que muestra el historial de actividades de un trámite en la
 
 > El timeline usa **exclusivamente** `var(--bs-*)` para compatibilidad con ambos temas (light/dark).
 
----
+______________________________________________________________________
 
 ### Quick Actions (Botones de Acción Rápida)
 
@@ -407,9 +407,9 @@ Botones individuales por fila en las listas de trámites (changelist) que ejecut
 Usa **event delegation** sobre `#changelist-form` para capturar clicks en elementos `.quick-action`:
 
 1. Previene la acción por defecto.
-2. Establece el valor del dropdown `<select name="action">` con `data-action` del botón.
-3. Crea un `<input type="hidden" name="_selected_action">` con `data-pk`.
-4. Envía el formulario.
+1. Establece el valor del dropdown `<select name="action">` con `data-action` del botón.
+1. Crea un `<input type="hidden" name="_selected_action">` con `data-pk`.
+1. Envía el formulario.
 
 > **CSP-safe**: Sin inline handlers. Servido como archivo estático (`script-src 'self'`).
 
@@ -420,7 +420,7 @@ render_quick_action(label, attrs, target)
 # Retorna: <button> o <a> con clase btn-outline-primary + btn-sm
 ```
 
----
+______________________________________________________________________
 
 ## Iconografía
 
@@ -467,7 +467,7 @@ El sistema utiliza **Font Awesome 5** (incluido por Jazzmin). Todos los íconos 
 | 📋 Tareas | `fas fa-tasks` | "Acciones Disponibles" |
 | 👁️ Vista | `fas fa-eye` | Preview en debug |
 
----
+______________________________________________________________________
 
 ## Templates Personalizados
 
@@ -533,7 +533,7 @@ Todos los templates extienden `admin/base_site.html`, que a su vez extiende el l
 {% endblock %}
 ```
 
----
+______________________________________________________________________
 
 ## Reglas de Diseño
 

@@ -565,7 +565,10 @@ def test_asignar_usuario_con_id_none_devuelve_silenciosamente(
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
 def test_asignar_reasignar_a_diferente_analista(
-    mock_registrar, analista, coordinador, tramite_ya_asignado  # noqa: ARG001
+    mock_registrar,
+    analista,
+    coordinador,
+    tramite_ya_asignado,
 ):
     """
     Edge case: Reassign to a different analyst.
@@ -1208,7 +1211,9 @@ def test_cerrar_estatus_no_activo_raises_no_asignable(analista, tramite_no_activ
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
 def test_cerrar_usuario_no_asignado_raises_permission_denied(
-    mock_registrar, analista, tramite_en_revision_asignado  # noqa: ARG001
+    mock_registrar,
+    analista,
+    tramite_en_revision_asignado,
 ):
     """
     Edge case: Try to close tramite not assigned to this analyst.

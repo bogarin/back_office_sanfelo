@@ -1,8 +1,6 @@
----
-Title: [Cómo X]
-Role: [operator|admin|developer|sysadmin]
-Related: [enlaces a conceptos relacionados]
----
+______________________________________________________________________
+
+## Title: [Cómo X] Role: [operator|admin|developer|sysadmin] Related: [enlaces a conceptos relacionados]
 
 ## Resumen
 
@@ -19,6 +17,7 @@ Related: [enlaces a conceptos relacionados]
 [Instrucciones prescriptivas y directas]
 
 **Comando**:
+
 ```bash
 [Comando o código]
 ```
@@ -30,6 +29,7 @@ Related: [enlaces a conceptos relacionados]
 [Instrucciones prescriptivas y directas]
 
 **Comando**:
+
 ```bash
 [Comando o código]
 ```
@@ -53,7 +53,8 @@ Related: [enlaces a conceptos relacionados]
 - [Enlace a conceptos relacionados]
 - [Enlace a tutoriales relacionados]
 
----
+______________________________________________________________________
 
 **¿Necesitas más ayuda?**
+
 - [Enlace a documentación de soporte]

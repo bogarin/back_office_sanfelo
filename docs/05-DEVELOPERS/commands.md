@@ -3,13 +3,13 @@
 > **Comandos de desarrollo y administración del proyecto**
 > Última actualización: 23 de abril de 2026
 
----
+______________________________________________________________________
 
 ## Resumen
 
 Todos los comandos de desarrollo se ejecutan con `just` (task runner). Los comandos de Django se ejecutan con `uv run manage.py`.
 
----
+______________________________________________________________________
 
 ## Comandos Justfile
 
@@ -56,7 +56,7 @@ Todos los comandos de desarrollo se ejecutan con `just` (task runner). Los coman
 | `just deploy` | Desplegar (build + push) |
 | `just check-nginx` | Verificar configuración de nginx |
 
----
+______________________________________________________________________
 
 ## Comandos Django (Management Commands)
 
@@ -126,7 +126,7 @@ uv run manage.py simular_pago
 El comando nativo `makemigrations` está sobrecargado con un guard que:
 
 1. Solo permite crear migraciones para apps del schema `backoffice` (`core`, `auth`, etc.)
-2. Bloquea intentos de crear migraciones para apps del schema `public` (gestionado externamente)
+1. Bloquea intentos de crear migraciones para apps del schema `public` (gestionado externamente)
 
 ```bash
 # Correcto: crear migración para app del schema backoffice
@@ -136,7 +136,7 @@ uv run manage.py makemigrations core
 uv run manage.py makemigrations tramites  # → Error
 ```
 
----
+______________________________________________________________________
 
 ## Docker Compose
 
@@ -157,7 +157,7 @@ docker compose exec backoffice python manage.py setup_roles
 docker compose down
 ```
 
----
+______________________________________________________________________
 
 ## Notas importantes
 
@@ -176,7 +176,7 @@ El proyecto usa un solo PostgreSQL con routing automático por schema:
 
 No hay flag `--database` — el router determina automáticamente la conexión.
 
----
+______________________________________________________________________
 
 ## Ver también
 

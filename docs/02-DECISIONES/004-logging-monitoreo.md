@@ -6,12 +6,14 @@
 ## Contexto
 
 El microservicio requiere un sistema de logging robusto para:
+
 - Trazabilidad de operaciones críticas
 - Depuración de errores en producción
 - Monitoreo del rendimiento y comportamiento
 - Auditoría de cambios en datos sensibles
 
 Se necesita una configuración que:
+
 - Proporcione logs detallados sin overhead excesivo
 - Sea configurable por entorno (desarrollo vs producción)
 - Permita rotación de logs para gestión de espacio
@@ -22,33 +24,39 @@ Se necesita una configuración que:
 Se ha decidido utilizar la siguiente configuración de logging:
 
 1. **Configuración de LOGGING** en settings.py con:
+
    - Formatters para logs detallados y simples
    - Handlers para consola y archivo con rotación
    - Loggers específicos por aplicación (tramites, catalogos, costos, bitacora, core)
 
-2. **Niveles de logging configurables**:
+1. **Niveles de logging configurables**:
+
    - `DEBUG` en desarrollo para depuración detallada
    - `INFO` o `WARNING` en producción para logs esenciales
    - `ERROR` para errores críticos
 
-3. **Rotación de logs**:
+1. **Rotación de logs**:
+
    - Archivos de log rotativos con tamaño máximo (10MB)
    - Retención de 10 archivos de backup
    - Formato de timestamp y metadata
 
-4. **Logs por aplicación**:
+1. **Logs por aplicación**:
+
    - Separación lógica de logs por módulo funcional
    - Configuración individual de niveles por aplicación
 
 ## Consequences
 
 **Positivas:**
+
 - Mejora significativa en la depuración y monitoreo
 - Trazabilidad completa de operaciones
 - Gestión eficiente del espacio de logs
 - Aislamiento de logs por aplicación
 
 **Negativas:**
+
 - Overhead adicional en producción
 - Complejidad en la configuración inicial
 - Necesidad de gestión de logs externa

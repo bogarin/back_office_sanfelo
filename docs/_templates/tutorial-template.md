@@ -1,10 +1,6 @@
----
-Title: [Título del Tutorial]
-Role: [operator|admin|developer|sysadmin]
-Time: [X minutos]
-Level: [beginner|intermediate|advanced]
-Prerequisites: [Lo que necesitan saber antes]
----
+______________________________________________________________________
+
+## Title: [Título del Tutorial] Role: [operator|admin|developer|sysadmin] Time: [X minutos] Level: [beginner|intermediate|advanced] Prerequisites: [Lo que necesitan saber antes]
 
 ## Resumen
 
@@ -26,6 +22,7 @@ Prerequisites: [Lo que necesitan saber antes]
 [Explicación del paso con contexto claro]
 
 **Instrucciones**:
+
 ```bash
 [Comando o código]
 ```
@@ -39,6 +36,7 @@ Prerequisites: [Lo que necesitan saber antes]
 [Explicación del paso con contexto claro]
 
 **Instrucciones**:
+
 ```bash
 [Comando o código]
 ```
@@ -61,7 +59,7 @@ Prerequisites: [Lo que necesitan saber antes]
 - [Enlace a guías relacionadas]
 - [Enlace a documentación de referencia]
 
----
+______________________________________________________________________
 
 ## Problemas Comunes
 
@@ -70,8 +68,9 @@ Prerequisites: [Lo que necesitan saber antes]
 | Problema 1 | Solución 1 |
 | Problema 2 | Solución 2 |
 
----
+______________________________________________________________________
 
 **¿Necesitas ayuda?**
+
 - [Enlace a troubleshooting]
 - [Enlace a documentación de soporte]

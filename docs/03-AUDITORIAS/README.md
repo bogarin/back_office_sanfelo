@@ -7,11 +7,13 @@
 Una **auditoría técnica** es una evaluación sistemática de un aspecto del sistema contra criterios objetivos y medibles. No es opinión — es evidencia.
 
 **Beneficios para el Equipo:**
+
 - **Visibilidad real:** Saber si las pruebas realmente protegen el código, si la seguridad tiene huecos, o si la documentación miente.
 - **Toma de decisiones con datos:** En lugar de "creo que las pruebas están bien", tener métricas concretas (cobertura 23%, 15 hallazgos críticos).
 - **Prevención:** Detectar problemas antes de que lleguen a producción.
 
 **Beneficios para Agentes LLM:**
+
 - **Contexto de calidad:** Cuando un agente deba escribir código, tests o documentación, las auditorías le indican qué estándares se exigen y qué errores ya se detectaron.
 - **Criterios verificables:** Los criterios de evaluación de cada auditoría son reglas que un agente puede verificar automáticamente.
 
@@ -32,7 +34,7 @@ El proceso es simple, no hay excusas:
 1. **Copiar** el archivo [`audit-template.md`](audit-template.md) a un nuevo archivo con el formato `NNN-descripcion-y-alcance.md` dentro de este directorio (`docs/07-AUDITORIAS`).
    - `NNN` es el número consecutivo (ej. 001, 002).
    - `descripcion-y-alcance` es una descripción corta en kebab-case del objetivo y alcance de la auditoría. Omitir la palabra "auditoria" en este nombre.
-2. **Rellenar las 8 secciones** del template:
+1. **Rellenar las 8 secciones** del template:
    - **Objetivo** — Qué se audita y por qué.
    - **Alcance** — Qué está dentro y fuera de la revisión.
    - **Metodología y Criterios** — Estándares medibles contra los que se evalúa.
@@ -41,7 +43,7 @@ El proceso es simple, no hay excusas:
    - **Métricas** — Datos cuantitativos antes/después (baseline y post-corrección).
    - **Decisiones Derivadas** — ADRs o cambios de arquitectura generados por esta auditoría.
    - **Documentos Relacionados** — ADRs, guías o referencia técnica afectada.
-3. **Actualizar el índice** de este README. Los más recientes van primero.
+1. **Actualizar el índice** de este README. Los más recientes van primero.
 
 ### Convenciones
 
@@ -50,5 +52,6 @@ El proceso es simple, no hay excusas:
 - **Métricas siempre:** Toda auditoría debe incluir al menos una métrica cuantitativa. Sin datos no hay auditoría.
 - **Formato:** Markdown, enlaces relativos, en español.
 
----
+______________________________________________________________________
+
 *Mantengan este directorio limpio y ordenado. Una auditoría sin hallazgos documentados es una auditoría que nunca existió.*

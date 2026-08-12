@@ -3,6 +3,7 @@
 ## Contexto y Planteamiento del Problema
 
 El sistema de backoffice de San Felipe para la gestión de trámites gubernamentales requiere un sistema robusto de control de acceso que:
+
 - Defina claramente roles y permisos para diferentes tipos de usuarios
 - Implemente auditoría automática de operaciones críticas
 - Mantenga trazabilidad de todos los cambios en el sistema
@@ -11,27 +12,32 @@ El sistema de backoffice de San Felipe para la gestión de trámites gubernament
 - Cumpla con estándares de seguridad para sistemas gubernamentales
 
 El proyecto utiliza Django 6.0 con múltiples bases de datos:
+
 - SQLite para datos de autenticación (users, groups, permissions)
 - PostgreSQL para datos de negocio (catalogos, costos, bitacora, tramites)
 
 **Requisitos específicos:**
+
 1. **Roles definidos:** Operador (lectura limitada) y Administrador (acceso completo)
-2. **Auditoría automática:** Registro de CREATE, UPDATE, DELETE en bitacora
-3. **Seguridad:** Operadores no deben modificar datos, administradores control total
-4. **Django 6.0 features:** Aprovechar nuevas capacidades del framework
-5. **Multi-database:** Routing apropiado entre auth y business data
+1. **Auditoría automática:** Registro de CREATE, UPDATE, DELETE en bitacora
+1. **Seguridad:** Operadores no deben modificar datos, administradores control total
+1. **Django 6.0 features:** Aprovechar nuevas capacidades del framework
+1. **Multi-database:** Routing apropiado entre auth y business data
 
 ## Opciones Consideradas
 
 ### Opción 1: Uso de Django Admin Simple con Permissions por Defecto
+
 **Descripción:** Utilizar únicamente el sistema de permisos por defecto de Django (add, change, delete, view) sin customización adicional.
 
 **Ventajas:**
+
 - Implementación más simple y rápida
 - Sistema de permisos Django es maduro y bien documentado
 - Menos código personalizado que mantener
 
 **Desventajas:**
+
 - No hay control granular por rol (Operador vs Administrador)
 - Auditoría debe implementarse manualmente en cada modelo
 - Dificultad para implementar reglas específicas de negocio
@@ -40,13 +46,16 @@ El proyecto utiliza Django 6.0 con múltiples bases de datos:
 **Conclusión:** No cumple con requisitos de trazabilidad y control de roles específicos.
 
 ### Opción 2: Paquetes de Terceros (django-guardian, django-rules)
+
 **Descripción:** Utilizar paquetes como django-guardian para control granular a nivel de objeto.
 
 **Ventajas:**
+
 - Control muy granular a nivel de instancia de objeto
 - Comunidad activa y documentación extensa
 
 **Desventajas:**
+
 - Añade dependencias externas complejas
 - Requiere configuración y mantenimiento de infraestructura adicional
 - Curva de aprendizaje para el equipo
@@ -61,6 +70,7 @@ El proyecto utiliza Django 6.0 con múltiples bases de datos:
 **Descripción:** Implementar sistema RBAC utilizando características nativas de Django 6.0 combinadas con customizaciones bien diseñadas.
 
 **Ventajas:**
+
 - ✅ **Sin dependencias externas:** Usa solamente Django y sus características nativas
 - ✅ **Mantenibilidad alta:** Código Pythonic, bien documentado, siguiendo PEP 8
 - ✅ **Performance:** Usa Django 6.0 Background Tasks para auditoría asíncrona (10-40x más rápido)
@@ -74,6 +84,7 @@ El proyecto utiliza Django 6.0 con múltiples bases de datos:
 - ✅ **Escalabilidad:** Sistema modular fácil de extender con nuevos roles
 
 **Desventajas:**
+
 - Requiere desarrollo inicial más substancial que opciones simples
 - Necesita documentación y entrenamiento del equipo
 - Configuración inicial más compleja
@@ -85,17 +96,18 @@ El proyecto utiliza Django 6.0 con múltiples bases de datos:
 Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Features"**, porque:
 
 1. **Mejor balance de seguridad y mantenibilidad:** Proporciona control de acceso robusto mientras mantiene el código limpio y documentado.
-2. **Aprovecha características Django 6.0:** Implementa CSP, Background Tasks, y otras mejoras del framework.
-3. **Sin dependencias externas:** Reduce superfície técnica y riesgo de vendor lock-in.
-4. **Auditoría asíncrona:** Usa Django 6.0 Background Tasks para mejor performance (10-40x más rápido).
-5. **Documentación exhaustiva:** 1,612+ líneas de documentación creadas para onboarding, desarrollo y troubleshooting.
-6. **Type safety y Pythonic code:** Full type hints y adherence a PEP 8 para mejor calidad de código.
-7. **Multi-database routing:** Infraestructura propia para SQLite (auth) y PostgreSQL (business).
-8. **Escalabilidad y extensibilidad:** Sistema modular fácil de extender con nuevos roles en el futuro.
+1. **Aprovecha características Django 6.0:** Implementa CSP, Background Tasks, y otras mejoras del framework.
+1. **Sin dependencias externas:** Reduce superfície técnica y riesgo de vendor lock-in.
+1. **Auditoría asíncrona:** Usa Django 6.0 Background Tasks para mejor performance (10-40x más rápido).
+1. **Documentación exhaustiva:** 1,612+ líneas de documentación creadas para onboarding, desarrollo y troubleshooting.
+1. **Type safety y Pythonic code:** Full type hints y adherence a PEP 8 para mejor calidad de código.
+1. **Multi-database routing:** Infraestructura propia para SQLite (auth) y PostgreSQL (business).
+1. **Escalabilidad y extensibilidad:** Sistema modular fácil de extender con nuevos roles en el futuro.
 
 ## Componentes Implementados
 
 ### 1. Custom Permission Mixins (`core/admin.py`)
+
 - **OperatorPermissionMixin:** Control de permisos para usuarios Operador (solo lectura)
 - **AdministradorPermissionMixin:** Permisos completos para administradores
 - **ReadOnlyModelAdmin:** Base para modelos de solo lectura (bitacora)
@@ -103,23 +115,27 @@ Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Featu
 - **BackofficeAdminSite:** Custom admin site con reordenamiento de apps por prioridad
 
 **Características:**
+
 - Usa constantes de settings (`OPERADOR_GROUP_NAME`, `ADMINISTRADOR_GROUP_NAME`) en lugar de strings hardcoded
 - Helper methods para checks de grupo: `_is_operador()`, `_is_administrador()`
 - Override de `has_module_permission()` para control de visibilidad de módulos en admin index
 - Override de `get_queryset()` para control de visibilidad de datos
 
 ### 2. Async Audit Logging (Django 6.0 Background Tasks)
+
 - **Task decorator:** `@task` para definir operaciones asíncronas
 - **log_audit_entry_async:** Función asíncrona para crear registros en bitacora
 - **Enqueue pattern:** Usa `task.enqueue()` para queuear operaciones sin bloquear respuestas HTTP
 - **Performance gain:** 10-40x más rápido que logging síncrono
 
 **Benefits:**
+
 - HTTP responses no bloqueadas por escrituras de base de datos
 - Transient failures no afectan operaciones de admin
 - Better user experience bajo carga
 
 ### 3. Database Router (`sanfelipe/db_router.py`)
+
 - **MultiDatabaseRouter:** Controla routing entre SQLite y PostgreSQL
 - **Auth apps (SQLite):** auth, contenttypes, admin, sessions, messages, staticfiles
 - **Business apps (PostgreSQL):** catalogos, costos, bitacora, tramites, core
@@ -130,6 +146,7 @@ Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Featu
   - `allow_migrate()`: Control de routing de migraciones
 
 ### 4. Content Security Policy - Django 6.0 CSP
+
 - **SECURE_CSP configuration:** 13 security directives
 - **Middleware:** `ContentSecurityPolicyMiddleware` agregado
 - **Directives:**
@@ -144,6 +161,7 @@ Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Featu
   - `form-action 'self'`: Previene form hijacking
 
 **Security Benefits:**
+
 - XSS mitigation
 - Content injection prevention
 - Clickjacking prevention
@@ -151,6 +169,7 @@ Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Featu
 - Data exfiltration prevention
 
 ### 5. Management Command: setup_roles (`core/management/commands/setup_roles.py`)
+
 - **Explicit permission assignment:** No más `Permission.objects.all()`
 - **Admin group:** Auth permissions (user/group management) + all permissions for business apps
 - **Operador group:** View-only permissions for catalogos, costos, bitacora
@@ -158,6 +177,7 @@ Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Featu
 - **Logging:** Información detallada de qué permisos fueron asignados a quién
 
 ### 6. Code Quality Improvements
+
 - **DRY principle:** Eliminadas 260 líneas de código duplicado
 - **Type hints:** Full type annotations en APIs públicas
 - **PEP 8 compliance:** Código sigue estándares Django Pythonic
@@ -168,38 +188,44 @@ Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Featu
 
 ### Positivas
 
-* **Seguridad mejorada:**
+- **Seguridad mejorada:**
+
   - CSP previene ataques XSS, injection, clickjacking
   - Permisos explícitos mejor que implícitos (principle of least privilege)
   - Auditoría automática completa de todas las operaciones
   - Module visibility control oculta auth/admin modules de operadores
 
-* **Performance optimizada:**
+- **Performance optimizada:**
+
   - Auditoría asíncrona: 10-40x más rápido que logging síncrono
   - Non-blocking database operations
   - Better scalability y user experience
 
-* **Mantenibilidad excelente:**
+- **Mantenibilidad excelente:**
+
   - Código centralizado en mixins (OperatorPermissionMixin, AuditTrailMixin)
   - Uso de settings constants evita hardcoded strings
   - DRY principle aplicado (260 líneas de duplicación eliminadas)
   - Type hints mejoran IDE support y static analysis
   - Comprehensiva documentación (1,612+ líneas)
 
-* **Django 6.0 compliance:**
+- **Django 6.0 compliance:**
+
   - Implementa todas las nuevas características del framework
   - Aprovecha CSP para seguridad moderna
   - Usa Background Tasks para operaciones asíncronas
   - Preparado para Template Partials cuando necesario
   - Multi-database routing proper
 
-* **Arquitectura robusta:**
+- **Arquitectura robusta:**
+
   - Separación clara entre auth data (SQLite) y business data (PostgreSQL)
   - Database router automático y transparente
   - Module-level visibility control
   - Role-based access control granular
 
-* **Team enablement:**
+- **Team enablement:**
+
   - Documentación extensiva para onboarding (1,612+ líneas)
   - Tutorials para admins, operators y developers
   - Quick reference guides
@@ -208,16 +234,19 @@ Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Featu
 
 ### Negativas
 
-* **Complejidad inicial más alta:**
+- **Complejidad inicial más alta:**
+
   - Requiere desarrollo inicial más substancial que opciones simples
   - Configuración inicial más compleja (settings, mixins, router, CSP)
 
-* **Mantenimiento de documentación:**
+- **Mantenimiento de documentación:**
+
   - Necesita mantener documentación sincronizada con código
   - Entrenamiento del equipo requerido para entender arquitectura completa
   - ADRs deben crearse y actualizarse regularmente
 
-* **Overhead de auditoría:**
+- **Overhead de auditoría:**
+
   - Auditoría asíncrona añade complejidad (background task infrastructure)
   - Requiere monitoreo de task queue en producción
   - Bitácora crece con el tiempo (requiere estrategia de archivado)
@@ -233,9 +262,9 @@ Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Featu
 
 ## Alternatives Considered
 
-* **Sistema de permisos simple:** Descartado por necesidad de auditoría y control granular.
-* **Sistemas externos de auth:** Descartado por complejidad y dependencias adicionales.
-* **No RBAC:** Descartado por requisitos de seguridad gubernamental.
+- **Sistema de permisos simple:** Descartado por necesidad de auditoría y control granular.
+- **Sistemas externos de auth:** Descartado por complejidad y dependencias adicionales.
+- **No RBAC:** Descartado por requisitos de seguridad gubernamental.
 
 ## Superseded by
 
@@ -250,5 +279,6 @@ Opción elegida: **"Implementación RBAC Personalizada con Django Built-in Featu
 - [Principle of Least Privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege)
 - [Content Security Policy (CSP) Level 3](https://www.w3.org/TR/CSP3/)
 
----
+______________________________________________________________________
+
 **Estado:** Accepted | **Fecha:** 28 de febrero de 2026 | **Autores:** Noe Nieto, OpenCode Agentes

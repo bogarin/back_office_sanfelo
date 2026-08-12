@@ -17,17 +17,17 @@ Con la adición de soporte multi-departamento (ADR-018), la complejidad aumenta:
 ### Restricciones arquitectónicas
 
 1. **`Tramite` es read-only.** Mapea a la vista `v_tramites_unificado` (`managed=False`). Jamás se llama `tramite.save()`.
-2. **Los cambios de estado ocurren vía `Actividades.objects.create()`.** Cada acción inserta un registro en la tabla append-only `actividades`.
-3. **`TRANSITIONS` dict funciona.** ADR-014 evaluó alternativas (django-fsm, tabla en BD) y eligió el dict. No se necesita cambiar la estructura de datos.
-4. **`django-lifecycle` no aplica.** Intercepta `save()`/`delete()` — incompatible con un modelo que nunca se guarda.
-5. **Los métodos `can_*` son del dominio del modelo.** Responden "puede este usuario realizar esta acción sobre este trámite?" — son consultas, no mutaciones.
+1. **Los cambios de estado ocurren vía `Actividades.objects.create()`.** Cada acción inserta un registro en la tabla append-only `actividades`.
+1. **`TRANSITIONS` dict funciona.** ADR-014 evaluó alternativas (django-fsm, tabla en BD) y eligió el dict. No se necesita cambiar la estructura de datos.
+1. **`django-lifecycle` no aplica.** Intercepta `save()`/`delete()` — incompatible con un modelo que nunca se guarda.
+1. **Los métodos `can_*` son del dominio del modelo.** Responden "puede este usuario realizar esta acción sobre este trámite?" — son consultas, no mutaciones.
 
 ## Opciones Consideradas
 
-* **A) Service layer** — Extraer workflow a `tramites/services.py` con clase `TramiteWorkflowService`
-* **B) django-fsm u otra librería FSM** — Decoradores `@transition` en métodos del modelo
-* **C) Mantener status quo** — Agregar DISABLED_TRANSITIONS directamente al God Model
-* **D) Multi-modelos especializados por departamento** — Abstract `TramiteBase` + concrete `TramiteDAU`/`TramiteSEC`/`TramiteTES` con modelo swappable vía `ACTIVE_TRAMITE_MODEL`
+- **A) Service layer** — Extraer workflow a `tramites/services.py` con clase `TramiteWorkflowService`
+- **B) django-fsm u otra librería FSM** — Decoradores `@transition` en métodos del modelo
+- **C) Mantener status quo** — Agregar DISABLED_TRANSITIONS directamente al God Model
+- **D) Multi-modelos especializados por departamento** — Abstract `TramiteBase` + concrete `TramiteDAU`/`TramiteSEC`/`TramiteTES` con modelo swappable vía `ACTIVE_TRAMITE_MODEL`
 
 ### Evaluación de Opción D: Multi-modelos especializados
 
@@ -37,15 +37,15 @@ Con la adición de soporte multi-departamento (ADR-018), la complejidad aumenta:
 
 1. **Vulnerabilidades de seguridad inherentes (2 CRITICAL, 1 HIGH):** `apps.get_model()` desde una variable de entorno sin validación de tipo permite resolver el modelo `Tramite` a cualquier modelo registrado (e.g., `core.User` con `FULL_ACCESS`). Los proxy models generados con `type()` bypassan el registry de `@register_model` (usa identity-based lookup), causando que el DB router caiga a defaults inseguros. No existe validación de que el modelo activo corresponda a la base de datos conectada.
 
-2. **Cero beneficio de seguridad vs. views PostgreSQL:** El aislamiento de datos por departamento ya se logra a nivel de base de datos (instancias separadas con DBs separadas) + views PostgreSQL que retornan `NULL`/`FALSE` para campos no aplicables. Modelos Django separados no agregan ninguna capa adicional de protección.
+1. **Cero beneficio de seguridad vs. views PostgreSQL:** El aislamiento de datos por departamento ya se logra a nivel de base de datos (instancias separadas con DBs separadas) + views PostgreSQL que retornan `NULL`/`FALSE` para campos no aplicables. Modelos Django separados no agregan ninguna capa adicional de protección.
 
-3. **Incompatibilidad con el metaclass de Django:** `type()` no invoca `ModelBase.__new__()` — los proxies no se registran en `ContentType`, app registry, ni admin. `apps.get_model()` a nivel de módulo causa `AppRegistryNotReady`.
+1. **Incompatibilidad con el metaclass de Django:** `type()` no invoca `ModelBase.__new__()` — los proxies no se registran en `ContentType`, app registry, ni admin. `apps.get_model()` a nivel de módulo causa `AppRegistryNotReady`.
 
-4. **Violación de Open/Closed Principle:** Agregar un departamento requiere crear un nuevo modelo concreto + actualizar imports + actualizar `__init__.py` vs. copiar `.env` + crear DB + deploy Docker container (cero cambios de código con la arquitectura actual).
+1. **Violación de Open/Closed Principle:** Agregar un departamento requiere crear un nuevo modelo concreto + actualizar imports + actualizar `__init__.py` vs. copiar `.env` + crear DB + deploy Docker container (cero cambios de código con la arquitectura actual).
 
-5. **TramiteSEC y TramiteTES no tienen diferenciación:** Ambas tendrían cero campos extra, métodos `can_*` idénticos (role-based, no department-based), y `TRANSITIONS` dict idéntico. Clases sin diferenciación de comportamiento o estructura son configuración, no clases.
+1. **TramiteSEC y TramiteTES no tienen diferenciación:** Ambas tendrían cero campos extra, métodos `can_*` idénticos (role-based, no department-based), y `TRANSITIONS` dict idéntico. Clases sin diferenciación de comportamiento o estructura son configuración, no clases.
 
-6. **Los 6 campos DAU-specific ya existen con `null=True`:** `tramite_categoria_id`, `tramite_categoria_nombre`, `clave_catastral`, `es_propietario`, `perito_id`, `perito_nombre` ya están en el modelo único. La view SEC retorna `NULL`/`FALSE` para estos campos. No hay cambio necesario.
+1. **Los 6 campos DAU-specific ya existen con `null=True`:** `tramite_categoria_id`, `tramite_categoria_nombre`, `clave_catastral`, `es_propietario`, `perito_id`, `perito_nombre` ya están en el modelo único. La view SEC retorna `NULL`/`FALSE` para estos campos. No hay cambio necesario.
 
 **Revisión de seguridad (l337-lady):** 11 hallazgos en primera ronda. 4 son inherentes al enfoque multi-modelo (CRITICAL-001: resolución arbitraria, CRITICAL-002: proxies bypass router, HIGH-002: sin validación model↔DB, MEDIUM-001: isinstance() se rompe). Todos se evitan con modelo único.
 
@@ -125,6 +125,7 @@ tramites/models/tramite.py   ← ADELGAZADO
 ### Integración con DISABLED_TRANSITIONS
 
 Las funciones `_get_disabled_transitions()` y `_is_transition_allowed()` viven en `services.py`. El service las usa internamente para:
+
 - `_validate_transition()` — rechazar transiciones deshabilitadas
 - `available_actions()` — ocultar botones de acciones deshabilitadas
 - Logging de auditoría al instanciar el service
@@ -159,21 +160,21 @@ Los tests existentes de workflow (37 en `test_models.py`) se migran a `test_serv
 
 ## Consecuencias
 
-* **Bueno, porque** resuelve H-002-001 (God Model) — el modelo baja de ~484 a ~200 líneas
-* **Bueno, porque** resuelve H-002-002 (service layer) — la lógica de negocio ya no está atrapada en el ORM
-* **Bueno, porque** el workflow es testeable sin instanciar el modelo — solo se necesita un mock del tramite
-* **Bueno, porque** `DISABLED_TRANSITIONS` se encapsula en el service — el modelo no conoce departamentos
-* **Bueno, porque** no agrega dependencias externas
-* **Bueno, porque** los consumidores existentes solo cambian la forma de invocación, no la lógica
-* **Malo, porque** agrega una capa de indirección — `TramiteWorkflowService(tramite, user)` en vez de `tramite.metodo(user)`
-* **Malo, porque** requiere migrar 37+ tests de workflow de `test_models.py` a `test_services.py`
-* **Malo, porque** las transiciones de liberación (`_liberar`) siguen siendo una excepción que no está en `TRANSITIONS`
+- **Bueno, porque** resuelve H-002-001 (God Model) — el modelo baja de ~484 a ~200 líneas
+- **Bueno, porque** resuelve H-002-002 (service layer) — la lógica de negocio ya no está atrapada en el ORM
+- **Bueno, porque** el workflow es testeable sin instanciar el modelo — solo se necesita un mock del tramite
+- **Bueno, porque** `DISABLED_TRANSITIONS` se encapsula en el service — el modelo no conoce departamentos
+- **Bueno, porque** no agrega dependencias externas
+- **Bueno, porque** los consumidores existentes solo cambian la forma de invocación, no la lógica
+- **Malo, porque** agrega una capa de indirección — `TramiteWorkflowService(tramite, user)` en vez de `tramite.metodo(user)`
+- **Malo, porque** requiere migrar 37+ tests de workflow de `test_models.py` a `test_services.py`
+- **Malo, porque** las transiciones de liberación (`_liberar`) siguen siendo una excepción que no está en `TRANSITIONS`
 
----
+______________________________________________________________________
 
 ## Ver también
 
-* [ADR-014: Custom User, Workflow, Permissions](014-custom-user-workflow-permissions.md) — Decisión original del dict TRANSITIONS (parcialmente superseded en implementación, no en diseño)
-* [ADR-018: Backoffice Multi-Departamento](018-backoffice-multi-departamento.md) — DISABLED_TRANSITIONS
-* [AUDIT-002: Limpieza de Código](../03-AUDITORIAS/002-limpieza-de-codigo.md) — H-002-001, H-002-002
-* [PLAN.md](../../PLAN.md) — Fase de implementación
+- [ADR-014: Custom User, Workflow, Permissions](014-custom-user-workflow-permissions.md) — Decisión original del dict TRANSITIONS (parcialmente superseded en implementación, no en diseño)
+- [ADR-018: Backoffice Multi-Departamento](018-backoffice-multi-departamento.md) — DISABLED_TRANSITIONS
+- [AUDIT-002: Limpieza de Código](../03-AUDITORIAS/002-limpieza-de-codigo.md) — H-002-001, H-002-002
+- [PLAN.md](../../PLAN.md) — Fase de implementación

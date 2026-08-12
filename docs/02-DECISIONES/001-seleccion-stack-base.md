@@ -24,11 +24,13 @@ Se ha decidido utilizar el siguiente stack tecnológico:
 ## Consequences
 
 **Positivas:**
+
 - Rapida entrega de producto funcional gracias a Django Admin
 - Expertise del equipo en Python
 - Simplificación del desarrollo con herramientas modernas (uv, justfile)
 
 **Negativas:**
+
 - Posibles limitaciones de rendimiento con múltiples bases de datos
 - Complejidad en la gestión de configuraciones
 

@@ -3,7 +3,7 @@
 > **Fuente única de verdad** para todas las variables de entorno del proyecto.
 > Última actualización: 23 de abril de 2026
 
----
+______________________________________________________________________
 
 ## Resumen Rápido
 
@@ -12,11 +12,11 @@
 | [Django Core](#django-core) | 4 | Sí |
 | [Debug & Dev](#debug--desarrollo) | 3 | No |
 | [Base de Datos](#base-de-datos) | 3 | Sí |
-| [Seguridad](#seguridad-producción) | 6 | En producción |
+| [Seguridad](#seguridad-producci%C3%B3n) | 6 | En producción |
 | [CSP](#content-security-policy) | 1 | No |
 | [CSRF](#csrf) | 1 | En producción |
-| [Sesión](#sesión) | 2 | No |
-| [Paginación](#paginación) | 1 | No |
+| [Sesión](#sesi%C3%B3n) | 2 | No |
+| [Paginación](#paginaci%C3%B3n) | 1 | No |
 | [Email](#email) | 7 | En producción |
 | [Docker](#dockerdeployment) | 1 | No |
 | [PostgreSQL (Docker Compose)](#postgresql-service-docker-compose) | 4 | Solo Docker |
@@ -27,7 +27,7 @@
 | [SFTP](#sftp-storage) | 13 | En producción |
 | [Gunicorn](#gunicorn-contenedor) | 4 | No |
 
----
+______________________________________________________________________
 
 ## Django Core
 
@@ -68,12 +68,13 @@ Lista de hosts/válidos separados por coma. Previene ataques de host header.
 ### `TESTING`
 
 Indica si se están ejecutando tests. Cuando es `True`:
+
 - Deshabilita Debug Toolbar
 - Usa DummyCache (sin cache real)
 - Carga la app `tests` con modelos de prueba
 - Cambia `managed=False` a `True` en modelos de negocio
 
----
+______________________________________________________________________
 
 ## Debug & Desarrollo
 
@@ -100,7 +101,7 @@ Nivel de logging. Valores: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
 - **Desarrollo:** `DEBUG` (ver todo)
 - **Producción:** `INFO` (solo importantes y errores)
 
----
+______________________________________________________________________
 
 ## Base de Datos
 
@@ -117,6 +118,7 @@ URL de conexión PostgreSQL. **Una sola conexión** que se usa para ambos esquem
 Formato: `postgres://USUARIO:PASSWORD@HOST:PUERTO/BASE_DE_DATOS`
 
 Ejemplos:
+
 ```bash
 # Desarrollo local
 POSTGRESQL_DB_URL=postgres://postgres:mipassword@localhost:5432/backoffice_tramites
@@ -129,6 +131,7 @@ POSTGRESQL_DB_URL=postgres://backoffice_user:STRONG_PASSWORD@db.prod.internal:54
 ```
 
 El proyecto crea dos conexiones lógicas con `search_path`:
+
 - `default` → `search_path={BACKOFFICE_DB_SCHEMA}` (auth, admin, AsignacionTramite)
 - `backend` → `search_path={BACKEND_DB_SCHEMA}` (catálogos, trámites, actividades)
 
@@ -148,7 +151,7 @@ Nombre del schema PostgreSQL para datos de negocio (catálogos, trámites, activ
 - Default: `public`
 - Las tablas son gestionadas externamente (no por Django migrations)
 
----
+______________________________________________________________________
 
 ## Seguridad (Producción)
 
@@ -178,7 +181,7 @@ DJANGO_SECURE_BROWSER_XSS_FILTER=True    # Activar filtro XSS del navegador
 - `False` (default): CSP se **ejecuta** — bloquea violaciones
 - `True`: CSP solo **reporta** violaciones sin bloquear — útil para diagnóstico inicial
 
----
+______________________________________________________________________
 
 ## CSRF
 
@@ -193,7 +196,7 @@ Orígenes confiables para protección CSRF. Incluir protocolo (`http://` o `http
 - **Desarrollo:** `http://localhost,http://127.0.0.1`
 - **Producción:** `https://backoffice.sanfelipe.gob.mx`
 
----
+______________________________________________________________________
 
 ## Sesión
 
@@ -221,7 +224,7 @@ Controla si la sesión se guarda (re-firma la cookie) en **cada petición** o so
 
 > **⚠️ Por qué importa con `signed_cookies`:** Los datos de sesión viajan firmados dentro de la cookie con un timestamp. Al cargar, Django verifica `max_age = SESSION_COOKIE_AGE`. Si la cookie no se re-firma en cada petición, el timestamp no se renueva y la firma caduca en tiempo absoluto. `True` fuerza el re-firma en cada request, produciendo un idle timeout real.
 
----
+______________________________________________________________________
 
 ## Paginación
 
@@ -233,7 +236,7 @@ Controla si la sesión se guarda (re-firma la cookie) en **cada petición** o so
 
 Cantidad de elementos por página en las vistas de lista del admin.
 
----
+______________________________________________________________________
 
 ## Email
 
@@ -264,7 +267,7 @@ DJANGO_EMAIL_HOST_PASSWORD=APP_PASSWORD
 DJANGO_DEFAULT_FROM_EMAIL=noreply@sanfelipe.gob.mx
 ```
 
----
+______________________________________________________________________
 
 ## Docker/Deployment
 
@@ -282,7 +285,7 @@ ports:
   - "${HTTP_PORT:-8090}:8080"
 ```
 
----
+______________________________________________________________________
 
 ## PostgreSQL Service (Docker Compose)
 
@@ -309,7 +312,7 @@ POSTGRES_PASSWORD=STRONG_PASSWORD
 POSTGRESQL_DB_URL=postgres://postgres:STRONG_PASSWORD@postgres:5432/backoffice_tramites
 ```
 
----
+______________________________________________________________________
 
 ## Tenancy/Multi-Departamento
 
@@ -337,7 +340,7 @@ BACKOFFICE_COPYRIGHT="Municipio X - Todos los derechos reservados"
 BACKOFFICE_SITE_LOGO=logo_municipio.png
 ```
 
----
+______________________________________________________________________
 
 ## Department
 
@@ -353,7 +356,7 @@ Código del departamento activo. Determina qué campos se muestran en las planti
 - Expuesta a plantillas via context processor `sanfelipe.context_processors.active_department`
 - Uso en templates: `{% if ACTIVE_DEPARTMENT == 'DAU' %}`
 
----
+______________________________________________________________________
 
 ## Workflow
 
@@ -369,7 +372,7 @@ Lista separada por comas de IDs de estatus *destino* a deshabilitar. Los valores
 - **Default:** vacío (todas las transiciones habilitadas)
 - Los IDs corresponden a `TramiteEstatus.Estatus` en `tramites/models/catalogos.py`
 
----
+______________________________________________________________________
 
 ## Session Isolation (Multi-Instance)
 
@@ -390,7 +393,7 @@ Cuando múltiples instancias corren en el mismo dominio, cada una debe tener coo
 
 > **⚠️ Seguridad:** Sin nombres únicos, un admin autenticado en DAU sería interpretado como usuario diferente en SEC (user ID collision entre DBs separadas).
 
----
+______________________________________________________________________
 
 ## SFTP Storage
 
@@ -414,12 +417,14 @@ Configuración para acceder a archivos PDF almacenados en un servidor SFTP remot
 Dos métodos, usar **uno solo**:
 
 1. **Password:**
+
    ```bash
    SFTP_USERNAME=backoffice_user
    SFTP_PASSWORD=STRONG_PASSWORD
    ```
 
-2. **Llave SSH:**
+1. **Llave SSH:**
+
    ```bash
    SFTP_USERNAME=backoffice_user
    SFTP_PRIVATE_KEY_PATH=~/.ssh/id_rsa
@@ -471,7 +476,7 @@ uv run manage.py sftp ping
 uv run manage.py sftp list FOLIO-123456
 ```
 
----
+______________________________________________________________________
 
 ## Gunicorn (Contenedor)
 
@@ -495,7 +500,7 @@ Estas variables se usan dentro del contenedor Docker. Configuran el servidor de 
 
 **Regla general:** `workers = (2 × CPUs) + 1`
 
----
+______________________________________________________________________
 
 ## Variables del Dockerfile (build-time)
 
@@ -509,7 +514,7 @@ Estas variables se configuran automáticamente en el Dockerfile y **no necesitan
 | `DJANGO_SECRET_KEY` | `dummy-build-time-secret` | Solo para `collectstatic` |
 | `BACKEND_DB_URL` | `postgresql://user:pass@localhost/db` | Solo para `collectstatic` |
 
----
+______________________________________________________________________
 
 ## Checklist de Producción
 
@@ -548,7 +553,7 @@ HTTP_PORT=8090
 # CSRF_COOKIE_NAME=csrftoken
 ```
 
----
+______________________________________________________________________
 
 ## Ver también
 

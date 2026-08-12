@@ -4,8 +4,8 @@ Provides reusable functions for displaying badges and status indicators
 in Django admin with consistent styling using CSS classes.
 """
 
-from django.utils.html import SafeString, format_html
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html, format_html_join
+from django.utils.safestring import SafeString
 
 
 def render_badge(text: str, badge_class: str) -> SafeString:
@@ -78,20 +78,22 @@ def render_quick_action(label: str, attrs: dict[str, str] | None = None, target:
         Safe HTML string for the quick action button
     """
     attrs = attrs or {}
-    data_attrs = ' '.join(str(format_html('data-{}="{}"', k, v)) for k, v in attrs.items())
+    data_attrs = format_html_join(' ', 'data-{}="{}"', attrs.items())
     if target and target != '#':
         return str(
             format_html(
-                '<a href="{}" role="button" class="btn btn-sm btn-outline-primary quick-action" {}>{}</a>',
+                '<a href="{}" role="button" class="btn btn-sm btn-outline-primary '
+                'quick-action" {}>{}</a>',
                 target,
-                mark_safe(data_attrs),
+                data_attrs,
                 label,
             )
         )
     return str(
         format_html(
-            '<button type="button" class="btn btn-sm btn-outline-primary quick-action" {}>{}</button>',
-            mark_safe(data_attrs),
+            '<button type="button" class="btn btn-sm btn-outline-primary quick-action" '
+            '{}>{}</button>',
+            data_attrs,
             label,
         )
     )

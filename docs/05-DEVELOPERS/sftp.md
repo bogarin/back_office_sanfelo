@@ -4,7 +4,7 @@
 **Status:** Implemented
 **Date:** 2026-04-22
 
----
+______________________________________________________________________
 
 ## Overview
 
@@ -15,18 +15,19 @@ This document describes the architecture for serving PDF files from a remote SFT
 For files ranging from 10-50 MB, serving them directly through Django would tie up a gunicorn worker for the entire download duration. With X-Accel-Redirect:
 
 1. Django authenticates and authorizes the request
-2. Django downloads the file from SFTP to a local cache (if needed)
-3. Django returns an empty response with an `X-Accel-Redirect` header pointing to the cached file
-4. Nginx intercepts this header and serves the file directly from disk
-5. Django worker is freed immediately — no blocking
+1. Django downloads the file from SFTP to a local cache (if needed)
+1. Django returns an empty response with an `X-Accel-Redirect` header pointing to the cached file
+1. Nginx intercepts this header and serves the file directly from disk
+1. Django worker is freed immediately — no blocking
 
 This architecture provides:
+
 - **Performance:** Nginx handles file I/O efficiently
 - **Scalability:** Multiple simultaneous downloads don't exhaust Django workers
 - **Security:** Django controls all access decisions; Nginx only serves files
 - **Reliability:** Django workers stay available for API requests
 
----
+______________________________________________________________________
 
 ## Architecture
 
@@ -72,7 +73,7 @@ This architecture provides:
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+______________________________________________________________________
 
 ## File Download Flow
 
@@ -130,7 +131,7 @@ Nginx serves file from cache
 Browser receives file
 ```
 
----
+______________________________________________________________________
 
 ## Security Measures
 
@@ -163,11 +164,13 @@ Browser receives file
 | **Tramite PK** | `get_object_or_404()` | Prevents enumeration of non-existent trámites |
 
 **Folio validation:**
+
 - Regex: `^[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]$`
 - Forbidden characters: `/\x00` (slash, null byte)
 - No relative paths, no `..`, no control characters
 
 **Filename validation:**
+
 - Regex: `^[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]-(?P<requisito_id>\d+)\.pdf$`
 - Forbidden characters: `/\x00` (slash, null byte)
 - Must start with tramite's folio: validates filename belongs to this tramite
@@ -182,6 +185,7 @@ Browser receives file
 | **Temp paths** | `/tmp/*` | nginx temp files isolated from application data |
 
 **Nginx location for SFTP files:**
+
 ```nginx
 location ~* ^/sftp-files/[^/]+/[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]-\d+\.pdf$ {
     internal;
@@ -190,9 +194,10 @@ location ~* ^/sftp-files/[^/]+/[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]-\d+\.pdf$ {
 ```
 
 This location:
+
 1. Matches only the exact filename format (prevents path traversal at nginx level)
-2. Uses `internal` directive (only accessible via X-Accel-Redirect from Django)
-3. Cannot be accessed directly from browsers even if filename is guessed
+1. Uses `internal` directive (only accessible via X-Accel-Redirect from Django)
+1. Cannot be accessed directly from browsers even if filename is guessed
 
 ### Cache Management
 
@@ -203,15 +208,18 @@ This location:
 | `SFTP_FILE_CACHE_MAX_SIZE_MB` | 500 | Maximum total cache size (enforced by cleanup command) |
 
 **Cache lifecycle:**
+
 1. Files are downloaded on first access
-2. Files are served from cache until TTL expires (1 hour)
-3. Expired files are re-downloaded from SFTP on next access
-4. Cleanup command removes files older than TTL and enforces size limit
+1. Files are served from cache until TTL expires (1 hour)
+1. Expired files are re-downloaded from SFTP on next access
+1. Cleanup command removes files older than TTL and enforces size limit
 
 **Unique temp file names:**
+
 ```
 /app/.sftp_cache/{folio}/.{filename}.{pid}.{uuid8}.tmp
 ```
+
 This prevents race conditions when multiple users download the same file simultaneously.
 
 ### Rate Limiting
@@ -239,6 +247,7 @@ logger.info(
 ```
 
 This provides:
+
 - **Accountability:** Who downloaded what and when
 - **Forensics:** IP address of downloader
 - **Compliance:** Audit trail for government records
@@ -251,7 +260,7 @@ This provides:
 | Max request body | 50 MB | Nginx: `client_max_body_size` |
 | Max cache size | 500 MB | Cleanup command |
 
----
+______________________________________________________________________
 
 ## Configuration
 
@@ -283,7 +292,7 @@ Configuration is added to `sanfelipe/settings/sftp.py`:
 ),
 ```
 
----
+______________________________________________________________________
 
 ## Docker Setup
 
@@ -292,11 +301,13 @@ Configuration is added to `sanfelipe/settings/sftp.py`:
 The application runs in a single Docker container with nginx and gunicorn managed by an entrypoint script:
 
 **Process hierarchy:**
+
 - **nginx:** Main process, binds to `0.0.0.0:8080` (public port)
 - **gunicorn:** Backend, binds to `127.0.0.1:8081` (localhost only)
 - **appuser:** All processes run as UID 1000 (non-root)
 
 **Why single container?**
+
 - Simpler deployment: one image to build and deploy
 - Easier monitoring: single container, single health check
 - Reduced attack surface: no exposed gunicorn port
@@ -306,13 +317,14 @@ The application runs in a single Docker container with nginx and gunicorn manage
 The `docker/entrypoint.sh` script:
 
 1. **Root guard:** Checks that container is NOT running as root
-2. **Starts nginx** in background
-3. **Starts gunicorn** in foreground (PID 1 for signal handling)
-4. **Monitors processes:** Detects if either process dies
-5. **Signal handling:** Graceful shutdown on SIGTERM/SIGINT
-6. **Cleanup:** Kills both processes and exits if one dies
+1. **Starts nginx** in background
+1. **Starts gunicorn** in foreground (PID 1 for signal handling)
+1. **Monitors processes:** Detects if either process dies
+1. **Signal handling:** Graceful shutdown on SIGTERM/SIGINT
+1. **Cleanup:** Kills both processes and exits if one dies
 
 **Signal flow:**
+
 ```
 SIGTERM received
     ↓
@@ -330,6 +342,7 @@ Container exits
 ### Nginx Configuration
 
 **Main features:**
+
 - Serves static files directly (offloads Django)
 - Serves cached SFTP files via X-Accel-Redirect
 - Proxies all other requests to gunicorn
@@ -337,6 +350,7 @@ Container exits
 - Security headers on SFTP file responses
 
 **Key directives:**
+
 ```nginx
 worker_processes 1;
 client_max_body_size 50m;
@@ -364,22 +378,24 @@ location /sftp-files/ {
 The `docker/healthcheck.py` script verifies:
 
 1. **Nginx is running:** Process check or HTTP request to nginx
-2. **Django is responding:** Request to `/health/` endpoint through nginx
+1. **Django is responding:** Request to `/health/` endpoint through nginx
 
 The `/health/` endpoint (defined in `core/views.py`) checks:
+
 - Database connectivity
 - Django application health
 - Returns HTTP 200 if healthy
 
 **Note:** SFTP connectivity is NOT checked in health check. If the SFTP server is down, the application remains healthy but file downloads will fail gracefully with user-friendly error messages.
 
----
+______________________________________________________________________
 
 ## Performance Considerations
 
 ### Connection Reuse
 
 SFTP connections are cached per-thread:
+
 - First request: Opens new SFTP connection
 - Subsequent requests: Reuses existing connection (if alive)
 - Connection lifecycle: Automatically closed on thread exit
@@ -389,6 +405,7 @@ This reduces connection overhead for multiple downloads within the same user ses
 ### Streaming Downloads
 
 Files are downloaded in chunks (64 KB) from SFTP to minimize memory usage:
+
 ```python
 while chunk := remote.read(65536):
     local.write(chunk)
@@ -405,17 +422,19 @@ This allows downloading large files (50 MB) without loading entire file into RAM
 | **Expired cache** | SFTP re-fetch + cache overwrite + serve (medium) |
 
 For a tramite with 10 PDF files, after the first user downloads all files:
+
 - **Initial access:** ~10 SFTP fetches
 - **Subsequent users:** ~10 cache hits (near-instant)
 
 ### Worker Availability
 
 Since Django workers are freed immediately after returning X-Accel-Redirect:
+
 - Workers are available for API requests (admin actions, data updates)
 - Concurrent downloads don't block workers
 - Nginx handles file I/O efficiently
 
----
+______________________________________________________________________
 
 ## Troubleshooting
 
@@ -424,13 +443,15 @@ Since Django workers are freed immediately after returning X-Accel-Redirect:
 **Symptom:** User clicks download link, browser shows error or hangs.
 
 **Diagnosis steps:**
+
 1. Check Django logs: Look for `SFTPConnectionError` messages
-2. Check SFTP settings: Verify `SFTP_HOST`, `SFTP_USERNAME`, `SFTP_HOST_KEY`
-3. Check Nginx logs: Look for errors in `/var/log/nginx/error.log`
-4. Check cache directory: Verify `/app/.sftp_cache` is writable by appuser
-5. Test SFTP manually: Run `python manage.py sftp ping`
+1. Check SFTP settings: Verify `SFTP_HOST`, `SFTP_USERNAME`, `SFTP_HOST_KEY`
+1. Check Nginx logs: Look for errors in `/var/log/nginx/error.log`
+1. Check cache directory: Verify `/app/.sftp_cache` is writable by appuser
+1. Test SFTP manually: Run `python manage.py sftp ping`
 
 **Common causes:**
+
 - SFTP server unreachable (firewall, network issue)
 - Wrong SSH key format in `SFTP_HOST_KEY`
 - Filename doesn't match expected format
@@ -441,12 +462,14 @@ Since Django workers are freed immediately after returning X-Accel-Redirect:
 **Symptom:** Files are re-downloaded from SFTP on every request.
 
 **Diagnosis:**
+
 1. Check `SFTP_FILE_CACHE_DIR` setting: Ensure path is correct
-2. Check cache directory permissions: `ls -la /app/.sftp_cache`
-3. Check file permissions: Cached files must be readable by appuser
-4. Verify TTL: Check `SFTP_FILE_CACHE_TTL_SECONDS` value
+1. Check cache directory permissions: `ls -la /app/.sftp_cache`
+1. Check file permissions: Cached files must be readable by appuser
+1. Verify TTL: Check `SFTP_FILE_CACHE_TTL_SECONDS` value
 
 **Fix:**
+
 ```bash
 # In container
 rm -rf /app/.sftp_cache/*
@@ -457,16 +480,18 @@ rm -rf /app/.sftp_cache/*
 **Symptom:** Container OOM killed.
 
 **Diagnosis steps:**
+
 1. Check gunicorn worker count: 4 workers × 2 threads = 8 Python threads
-2. Check file size: Large PDFs being downloaded simultaneously
-3. Check nginx buffers: Default buffer sizes may be too high
+1. Check file size: Large PDFs being downloaded simultaneously
+1. Check nginx buffers: Default buffer sizes may be too high
 
 **Fixes:**
+
 - Reduce gunicorn workers: `--workers 2 --threads 4`
 - Increase Docker memory limit in docker-compose.yml
 - Tune nginx buffers: `client_body_buffer_size`, `proxy_buffer_size`
 
----
+______________________________________________________________________
 
 ## File Structure
 
@@ -496,7 +521,7 @@ rm -rf /app/.sftp_cache/*
 └── Dockerfile                     # Added nginx, cache dir, entrypoint
 ```
 
----
+______________________________________________________________________
 
 ## Related Documentation
 

@@ -91,8 +91,8 @@ Ejecutar una limpieza completa con los siguientes criterios:
 ## Lecciones Aprendidas
 
 1. **No generar documentación antes de que el código exista** — Los agentes LLM generaron miles de líneas describiendo un sistema planeado, no construido
-2. **Los ADRs son la fuente de verdad** — Cuando el código cambia, los ADRs deben actualizarse primero
-3. **Documentación de proceso es desechable** — TASKS, PROGRESO, PLANS son útiles durante la ejecución pero no como documentación permanente
+1. **Los ADRs son la fuente de verdad** — Cuando el código cambia, los ADRs deben actualizarse primero
+1. **Documentación de proceso es desechable** — TASKS, PROGRESO, PLANS son útiles durante la ejecución pero no como documentación permanente
 
 ## Referencias
 

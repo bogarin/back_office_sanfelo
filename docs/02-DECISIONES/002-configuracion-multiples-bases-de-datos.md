@@ -7,10 +7,12 @@
 ## Contexto
 
 El microservicio requiere manejar dos bases de datos distintas:
+
 - **SQLite**: Para autenticación, permisos (RBAC) y Django Admin
 - **PostgreSQL**: Para datos de negocio (tramites, catalogos, costos, bitacora) que son parte de una base de datos legacy
 
 La configuración debe asegurar:
+
 - Que las aplicaciones de negocio usen PostgreSQL
 - Que Django admin y auth usen SQLite
 - Que no se ejecuten migraciones en PostgreSQL (datos managed externamente)
@@ -21,14 +23,17 @@ La configuración debe asegurar:
 Se ha decidido utilizar una configuración de múltiples bases de datos con routers personalizados:
 
 1. **Configuración de DATABASES** en settings.py con dos conexiones:
+
    - `default`: SQLite para auth/admin
    - `business`: PostgreSQL para datos de negocio
 
-2. **BusinessDatabaseRouter** para enrutar aplicaciones de negocio a PostgreSQL:
+1. **BusinessDatabaseRouter** para enrutar aplicaciones de negocio a PostgreSQL:
+
    - Apps: tramites, catalogos, costos, bitacora
    - Migraciones desactivadas para estas apps (`managed=False`)
 
-3. **Permisos de relación**:
+1. **Permisos de relación**:
+
    - Relaciones permitidas dentro de PostgreSQL (apps de negocio)
    - Relaciones permitidas dentro de SQLite (apps de auth)
    - No se permiten relaciones cruzadas entre BDs
@@ -36,11 +41,13 @@ Se ha decidido utilizar una configuración de múltiples bases de datos con rout
 ## Consequences
 
 **Positivas:**
+
 - Aislamiento lógico entre datos de sistema y negocio
 - Mantenimiento de la base de datos legacy sin modificaciones
 - Configuración clara de enrutamiento
 
 **Negativas:**
+
 - Complejidad en consultas que involucran múltiples BDs
 - Necesidad de manejar dos conexiones de base de datos
 - Posibles problemas de consistencia transaccional
@@ -50,20 +57,24 @@ Se ha decidido utilizar una configuración de múltiples bases de datos con rout
 Dado que PostgreSQL usa esquema externo gestionado por terceros, **es crítico mantener sincronizados los modelos Django con el esquema SQL**.
 
 **Herramienta de validación:**
+
 - **`core/schema_validator.py`**: Valida que los modelos Django coincidan con PostgreSQL
 - Documentación completa: ~~SCHEMA_VALIDATOR.md~~ (eliminado, ver ADR-009)
 
 **Cuándo ejecutar:**
+
 - Antes de cada commit que afecte modelos de negocio
 - Después de recibir scripts SQL actualizados del equipo externo
 - En pipeline de CI/CD para prevenir desincronización en producción
 
 **Comando:**
+
 ```bash
 uv run python -m core.schema_validator
 ```
 
 **Ejemplo de salida:**
+
 ```
 ============================================================
 SCHEMA VALIDATION REPORT

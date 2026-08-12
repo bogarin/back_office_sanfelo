@@ -8,6 +8,7 @@
 El proyecto incluía un modelo `AsignacionTramite` en `tramites/models/asignacion.py` que gestionaba las asignaciones de trámites a analistas. Este modelo fue diseñado durante la fase inicial del proyecto cuando existía una arquitectura de doble base de datos (SQLite + PostgreSQL) y era necesario almacenar las asignaciones en SQLite (`default`) mientras los trámites residían en PostgreSQL (`backend`).
 
 El modelo incluía:
+
 - Campos `tramite_id` (IntegerField), `analista` (FK a User), `asignado_por` (FK a User)
 - Métodos `asignar()` y `liberar()` con raw SQL y savepoints
 - UniqueConstraint para garantizar una sola asignación por trámite
@@ -18,18 +19,18 @@ El modelo incluía:
 Eliminar completamente el modelo `AsignacionTramite` y todas sus referencias, incluyendo:
 
 1. **Código fuente:** `tramites/models/asignacion.py` (286 líneas)
-2. **Migración:** `tramites/migrations/0003_asignaciontramite.py`
-3. **Imports:** En `tramites/admin.py` y `tramites/models/__init__.py`
-4. **Tests:** Referencias en `tests/sanfelipe/test_db_router.py`
+1. **Migración:** `tramites/migrations/0003_asignaciontramite.py`
+1. **Imports:** En `tramites/admin.py` y `tramites/models/__init__.py`
+1. **Tests:** Referencias en `tests/sanfelipe/test_db_router.py`
 
 ## Rationale
 
 El modelo `AsignacionTramite` es redundante porque la asignación de trámites ya se maneja completamente por el modelo `Tramite`:
 
 1. **Campos denormalizados:** La vista `v_tramites_unificado` ya expone `asignado_user_id`, `asignado_username` y `asignado_nombre` directamente en el modelo `Tramite`.
-2. **Método `Tramite.asignar()`:** Crea un registro en la tabla `Actividades` (estatus EN_REVISION) que actualiza automáticamente la vista materializada. No necesita una tabla intermedia.
-3. **Método `Tramite.liberar()`:** Igualmente opera vía `Actividades` (estatus PRESENTADO).
-4. **Arquitectura simplificada:** Con la migración a PostgreSQL con separación de esquemas (ADR-008), ya no hay necesidad de una tabla separada en SQLite para las asignaciones.
+1. **Método `Tramite.asignar()`:** Crea un registro en la tabla `Actividades` (estatus EN_REVISION) que actualiza automáticamente la vista materializada. No necesita una tabla intermedia.
+1. **Método `Tramite.liberar()`:** Igualmente opera vía `Actividades` (estatus PRESENTADO).
+1. **Arquitectura simplificada:** Con la migración a PostgreSQL con separación de esquemas (ADR-008), ya no hay necesidad de una tabla separada en SQLite para las asignaciones.
 
 ### Flujo actual (sin AsignacionTramite)
 

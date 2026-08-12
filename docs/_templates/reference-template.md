@@ -1,9 +1,6 @@
----
-Title: [Referencia]
-Component: [API|Model|Command|Configuration]
-Version: [Versión]
-Last Updated: [Fecha]
----
+______________________________________________________________________
+
+## Title: [Referencia] Component: [API|Model|Command|Configuration] Version: [Versión] Last Updated: [Fecha]
 
 ## Referencia Rápida
 
@@ -37,6 +34,7 @@ comando param1=valor1 param2=100
 ```
 
 **Output esperado**:
+
 ```
 [Resultado esperado del comando]
 ```
@@ -49,6 +47,7 @@ ejemplo_codigo()
 ```
 
 **Output esperado**:
+
 ```
 [Resultado esperado del código]
 ```
@@ -67,8 +66,9 @@ ejemplo_codigo()
 - [Referencia relacionada 2](path/to/related2.md)
 - [Concepto relacionado](path/to/concept.md)
 
----
+______________________________________________________________________
 
 **¿Necesitas ayuda?**
+
 - [Enlace a troubleshooting]
 - [Enlace a soporte]

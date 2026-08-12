@@ -4,13 +4,13 @@
 > **Tiempo estimado:** 30 minutos
 > **Última actualización:** 23 de abril de 2026
 
----
+______________________________________________________________________
 
 ## Resumen
 
 Este tutorial te guía paso a paso para levantar el Backoffice de Trámites en tu máquina local para desarrollo.
 
----
+______________________________________________________________________
 
 ## Prerequisitos
 
@@ -39,7 +39,7 @@ sudo apt install just
 sudo apt install postgresql-16
 ```
 
----
+______________________________________________________________________
 
 ## Paso 1: Clonar el repositorio
 
@@ -48,7 +48,7 @@ git clone <URL_DEL_REPOSITORIO> backoffice_tramites
 cd backoffice_tramites
 ```
 
----
+______________________________________________________________________
 
 ## Paso 2: Instalar dependencias
 
@@ -58,7 +58,7 @@ just setup
 
 Esto ejecuta `uv sync` que instala todas las dependencias del proyecto (Django, psycopg2, gunicorn, etc.) y crea el entorno virtual.
 
----
+______________________________________________________________________
 
 ## Paso 3: Crear la base de datos
 
@@ -79,7 +79,7 @@ CREATE SCHEMA IF NOT EXISTS backoffice AUTHORIZATION backoffice_user;
 \q
 ```
 
----
+______________________________________________________________________
 
 ## Paso 4: Configurar variables de entorno
 
@@ -102,7 +102,7 @@ BACKEND_DB_SCHEMA=public
 
 > **Referencia completa:** [Variables de Entorno](./environment-vars.md)
 
----
+______________________________________________________________________
 
 ## Paso 5: Cargar datos de negocio (fixtures)
 
@@ -114,7 +114,7 @@ uv run manage.py loaddata backend.json
 
 Esto carga los catálogos (tipos de trámite, estatus, peritos, etc.) en el schema `public`.
 
----
+______________________________________________________________________
 
 ## Paso 6: Ejecutar migraciones
 
@@ -124,7 +124,7 @@ just migrate
 
 Esto crea las tablas de Django (auth, sessions, admin, AsignacionTramite) en el schema `backoffice`.
 
----
+______________________________________________________________________
 
 ## Paso 7: Crear superusuario
 
@@ -134,7 +134,7 @@ uv run manage.py createsuperuser
 
 Sigue las instrucciones interactivas para crear tu usuario admin.
 
----
+______________________________________________________________________
 
 ## Paso 8: Configurar roles RBAC
 
@@ -144,7 +144,7 @@ just setup_roles
 
 Esto crea los 3 grupos: Administrador, Coordinador, Analista.
 
----
+______________________________________________________________________
 
 ## Paso 9: Iniciar el servidor
 
@@ -156,16 +156,16 @@ Abrir en el navegador: **http://localhost:8000/admin/**
 
 Deberías ver la pantalla de login de Django Admin con el tema jazzmin.
 
----
+______________________________________________________________________
 
 ## Verificar que todo funciona
 
 1. **Login:** Inicia sesión con el superusuario que creaste
-2. **Sidebar:** Deberías ver las secciones de Trámites y Autenticación
-3. **Trámites:** Navega a Tramites → Disponibles — deberías ver trámites si cargaste fixtures
-4. **Roles:** Ve a Autenticación → Grupos — deberías ver los 3 grupos
+1. **Sidebar:** Deberías ver las secciones de Trámites y Autenticación
+1. **Trámites:** Navega a Tramites → Disponibles — deberías ver trámites si cargaste fixtures
+1. **Roles:** Ve a Autenticación → Grupos — deberías ver los 3 grupos
 
----
+______________________________________________________________________
 
 ## Comandos útiles para desarrollo
 
@@ -182,7 +182,7 @@ just format           # Corregir y formatear código
 
 Ver: [Referencia de Comandos](./commands.md)
 
----
+______________________________________________________________________
 
 ## Datos de prueba
 
@@ -192,7 +192,7 @@ Para simular pagos y generar trámites con estatus "Presentado":
 uv run manage.py simular_pago
 ```
 
----
+______________________________________________________________________
 
 ## Estructura del proyecto
 
@@ -220,7 +220,7 @@ backoffice_tramites/
 └── docker-compose.yml       # Orquestación local
 ```
 
----
+______________________________________________________________________
 
 ## Problemas comunes
 
@@ -253,7 +253,7 @@ El schema `public` es gestionado externamente. Asegúrate de haber cargado los f
 uv run manage.py loaddata backend.json
 ```
 
----
+______________________________________________________________________
 
 ## Siguiente paso
 

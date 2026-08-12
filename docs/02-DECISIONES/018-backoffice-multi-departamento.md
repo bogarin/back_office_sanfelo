@@ -15,8 +15,8 @@ Cada departamento tiene tablas de negocio diferentes en su schema `public` (SEC 
 
 ## Opciones Consideradas
 
-* **Opción A:** Un solo backoffice multi-tenant (un Django, Router por depto)
-* **Opción B:** Instancias independientes por depto (mismo codebase, diferente `.env`, diferente DB)
+- **Opción A:** Un solo backoffice multi-tenant (un Django, Router por depto)
+- **Opción B:** Instancias independientes por depto (mismo codebase, diferente `.env`, diferente DB)
 
 ## Resultado de la Decisión
 
@@ -82,27 +82,27 @@ Todas devuelven las mismas columnas (mismos nombres, mismos tipos) para que el m
 Ver [ADR-017](017-migraciones-django-prohibidas-produccion.md). Las tablas del schema `backoffice` se crean vía migration SQL (no `manage.py migrate`). Procedimiento:
 
 1. Crear la DB con el schema `public` (tablas de negocio + seed data).
-2. Aplicar migration SQL que crea el schema `backoffice` con todas las tablas Django.
-3. Aplicar migration SQL que crea la vista `v_tramites_unificado` adaptada.
-4. Crear `.env.depto` con `POSTGRESQL_DB_URL` apuntando a la nueva DB.
-5. Levantar la instancia Docker con el `.env.depto`.
-6. Crear superuser y roles vía `manage.py createsuperuser` + `setup_roles`.
+1. Aplicar migration SQL que crea el schema `backoffice` con todas las tablas Django.
+1. Aplicar migration SQL que crea la vista `v_tramites_unificado` adaptada.
+1. Crear `.env.depto` con `POSTGRESQL_DB_URL` apuntando a la nueva DB.
+1. Levantar la instancia Docker con el `.env.depto`.
+1. Crear superuser y roles vía `manage.py createsuperuser` + `setup_roles`.
 
 ## Consecuencias
 
-* **Bueno, porque** cada departamento opera 100% independiente (sin shared state).
-* **Bueno, porque** levantar un nuevo depto es copiar `.env` + aplicar 3-4 scripts SQL.
-* **Bueno, porque** no hay refactor de código — solo configuración.
-* **Bueno, porque** el aislamiento de datos es físico (DBs separadas).
-* **Malo, porque** cada instancia consume memoria independiente (Gunicorn workers × 3).
-* **Malo, porque** bug fixes deben desplegarse en N instancias (misma imagen, distinto deploy).
-* **Malo, porque** reportes consolidados municipio requieren ETL externo.
+- **Bueno, porque** cada departamento opera 100% independiente (sin shared state).
+- **Bueno, porque** levantar un nuevo depto es copiar `.env` + aplicar 3-4 scripts SQL.
+- **Bueno, porque** no hay refactor de código — solo configuración.
+- **Bueno, porque** el aislamiento de datos es físico (DBs separadas).
+- **Malo, porque** cada instancia consume memoria independiente (Gunicorn workers × 3).
+- **Malo, porque** bug fixes deben desplegarse en N instancias (misma imagen, distinto deploy).
+- **Malo, porque** reportes consolidados municipio requieren ETL externo.
 
----
+______________________________________________________________________
 
 ## Ver también
 
-* [ADR-001 multi-departamento](../../../esquemas_de_dau/docs/adr/ADR-001-multi-departamento.md) — Decisión general de plataforma
-* [ADR-017 migraciones prohibidas](017-migraciones-django-prohibidas-produccion.md) — Sin migrate en producción
-* [ADR-008 PostgreSQL schema separation](008-postgresql-schema-separation.md) — Separación backoffice/public
-* [Variables de entorno](../05-DEVELOPERS/environment-vars.md) — Referencia completa de env vars
+- [ADR-001 multi-departamento](../../../esquemas_de_dau/docs/adr/ADR-001-multi-departamento.md) — Decisión general de plataforma
+- [ADR-017 migraciones prohibidas](017-migraciones-django-prohibidas-produccion.md) — Sin migrate en producción
+- [ADR-008 PostgreSQL schema separation](008-postgresql-schema-separation.md) — Separación backoffice/public
+- [Variables de entorno](../05-DEVELOPERS/environment-vars.md) — Referencia completa de env vars

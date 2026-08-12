@@ -11,7 +11,7 @@ El Backoffice de Trámites **no utiliza vistas personalizadas** para las operaci
 - **Permisos basados en roles**: `RoleCheckMixin` restringe cada vista de admin a los roles que deben acceder.
 - **Templates personalizados**: Las vistas de detalle (`change_view`) usan templates custom que muestran timeline, documentos SFTP y acciones de workflow.
 
----
+______________________________________________________________________
 
 ## Clases Admin Registradas
 
@@ -30,7 +30,7 @@ El Backoffice de Trámites **no utiliza vistas personalizadas** para las operaci
 |---|---|---|---|
 | `BackofficeUserAdmin` | `User` | Administrador (via permiso `core.view_user`) | Gestión de usuarios con asignación de roles |
 
----
+______________________________________________________________________
 
 ## TramiteBaseAdmin
 
@@ -109,7 +109,7 @@ Filtros adicionales por admin:
 - `acciones_disponibles`: botón "Modificar Asignación" por fila.
 - Queryset: solo trámites finalizados (estatus ≥ 300).
 
----
+______________________________________________________________________
 
 ## RoleCheckMixin
 
@@ -120,8 +120,8 @@ Mixin que restringe el acceso a vistas de admin basándose en las propiedades de
 ### Cómo funciona
 
 1. La subclase define `allowed_roles` como una tupla de nombres de propiedades del modelo User (e.g. `('is_analista', 'is_coordinador')`).
-2. Al importar, `__init_subclass__` valida que todos los roles estén en `VALID_ROLE_PROPERTIES` (`core/rbac/constants.py`). Si un rol es inválido, lanza `ImproperlyConfigured`.
-3. `has_change_permission()` solo permite acceso cuando `obj is None` (vista de listado/acciones) y el usuario tiene al menos uno de los roles permitidos. Los superusuarios siempre tienen acceso.
+1. Al importar, `__init_subclass__` valida que todos los roles estén en `VALID_ROLE_PROPERTIES` (`core/rbac/constants.py`). Si un rol es inválido, lanza `ImproperlyConfigured`.
+1. `has_change_permission()` solo permite acceso cuando `obj is None` (vista de listado/acciones) y el usuario tiene al menos uno de los roles permitidos. Los superusuarios siempre tienen acceso.
 
 ### Propiedades de rol válidas
 
@@ -139,7 +139,7 @@ Definidas en `core/rbac/constants.py`:
 - `obj is None` (changelist) → verifica roles.
 - `request.user.is_superuser` → bypass total.
 
----
+______________________________________________________________________
 
 ## Acciones de Admin (Batch Actions)
 
@@ -154,10 +154,10 @@ Definidas en `core/rbac/constants.py`:
 ### `modificar_asignacion` — flujo detallado
 
 1. **Primera visita** (sin `analista` en POST): renderiza `admin/modificar_asignacion.html` con la lista de analistas y los trámites seleccionados.
-2. **Envío del formulario**:
+1. **Envío del formulario**:
    - `analista_id == 'ninguno'` → **Liberar**: llama `tramite.asignar(analista=None, ...)` para cada trámite.
    - `analista_id != 'ninguno'` → **Asignar/Reasignar**: llama `tramite.asignar(analista=user, ...)` para cada trámite.
-3. Cada error se captura individualmente; los éxitos y errores se reportan por separado via `messages`.
+1. Cada error se captura individualmente; los éxitos y errores se reportan por separado via `messages`.
 
 ### `tomar_asignacion` — autoasignación
 
@@ -182,7 +182,7 @@ Verifica `tramite.can_release(user)` antes de liberar. Solo disponible para Coor
 
 La acción `delete_selected` se elimina de la lista de acciones. `delete_model` y `delete_queryset` implementan soft delete (`is_active=False`).
 
----
+______________________________________________________________________
 
 ## Templates Personalizados
 
@@ -269,7 +269,7 @@ Componente reutilizable para el dashboard del índice de admin.
 - Título y descripción
 - Enlace "Ver listado"
 
----
+______________________________________________________________________
 
 ## BackofficeUserAdmin (Gestión de Usuarios)
 
@@ -334,9 +334,9 @@ add_fieldsets = (
 Gestión atómica de usuarios:
 
 1. Establece `is_staff=True` si el rol es válido, `False` si no.
-2. Nuevos usuarios siempre `is_active=True`.
-3. Dentro de `transaction.atomic()`: remueve grupos de roles anteriores y agrega el nuevo grupo.
-4. Validación de defensa en profundidad: no-superusers no pueden modificar superusers.
+1. Nuevos usuarios siempre `is_active=True`.
+1. Dentro de `transaction.atomic()`: remueve grupos de roles anteriores y agrega el nuevo grupo.
+1. Validación de defensa en profundidad: no-superusers no pueden modificar superusers.
 
 ### Formularios
 
@@ -345,7 +345,7 @@ Gestión atómica de usuarios:
 | Crear usuario (`obj is None`) | `CustomUserAddForm` |
 | Editar usuario (`obj is not None`) | `CustomUserChangeForm` |
 
----
+______________________________________________________________________
 
 ## Configuración Jazzmin
 
@@ -416,7 +416,7 @@ Grupo **"Trámites"**:
 | `navigation_expanded` | `True` |
 | `related_modal_active` | `True` |
 
----
+______________________________________________________________________
 
 ## CSS Personalizado
 
@@ -506,7 +506,7 @@ Efecto hover en los enlaces de folio: ícono FontAwesome de flecha (`\f061`) apa
 
 Clase `.quick-action` con `margin-right: 4px` para espaciado entre botones.
 
----
+______________________________________________________________________
 
 ## URLs Personalizadas de Admin
 
@@ -521,7 +521,7 @@ Las URLs de trámites se montan bajo el prefijo `admin/tramites/` via `get_urls(
 | `sin_asignar/` | `tramites:sin-asignar` | `RedirectView` → changelist con filtro | Redirect legacy |
 | `<id>/password/` | `core_user_password_change` | `BackofficeUserAdmin.user_change_password` | Cambio de contraseña (registrada via `get_urls()`) |
 
----
+______________________________________________________________________
 
 ## Funciones Auxiliares de Renderizado
 

@@ -7,10 +7,12 @@
 Un **ADR (Architecture Decision Record)** es un documento corto que captura una decisión de arquitectura importante, junto con su contexto y sus consecuencias.
 
 **Beneficios para el Equipo:**
+
 - **Memoria Institucional:** Evita que tengamos las mismas discusiones una y otra vez. "Ya decidimos esto, mira el ADR-005".
 - **Onboarding:** Los nuevos desarrolladores pueden entender la evolución del sistema leyendo la historia de las decisiones.
 
 **Beneficios para Agentes LLM:**
+
 - **Contexto Crítico:** Cuando me pidan (o a cualquier otro agente) refactorizar o añadir features, los ADRs nos dicen qué restricciones existen y por qué. Sin esto, podríamos sugerir cambios que violen principios fundamentales que ustedes ya establecieron.
 
 ## Índice de ADRs
@@ -43,7 +45,7 @@ El proceso es simple, no hay excusas:
 1. **Copiar** el archivo `adr-template.md` a un nuevo archivo con el formato `NNN-titulo-de-la-decision.md` dentro de este directorio (`docs/decisiones`).
    - `NNN` es el número consecutivo (ej. 001, 002).
    - `titulo-de-la-decision` es una descripción corta en kebab-case.
-2. **Rellenar** los campos del documento explicando el contexto, las opciones y la decisión final.
+1. **Rellenar** los campos del documento explicando el contexto, las opciones y la decisión final.
 
 ## Cómo sustituir una decisión (Superseding)
 
@@ -51,11 +53,12 @@ La arquitectura evoluciona. Si una decisión anterior ya no es válida:
 
 1. **Crear el Nuevo ADR** (ej. `010-nueva-bd.md`).
    - En la sección de contexto o cabecera, añadir: "Sustituye a: [ADR-005](005-vieja-bd.md)".
-2. **Actualizar el Viejo ADR** (ej. `005-vieja-bd.md`).
+1. **Actualizar el Viejo ADR** (ej. `005-vieja-bd.md`).
    - Cambiar su estado a **Sustituido** (Superseded).
    - Añadir al principio: "Sustituido por: [ADR-010](010-nueva-bd.md)".
 
 **Regla de oro:** Nunca borren un ADR antiguo. Solo márquenlo como obsoleto. Necesitamos saber qué errores cometimos para no repetirlos.
 
----
+______________________________________________________________________
+
 *Mantengan este directorio limpio y ordenado. Un sistema sin documentación de decisiones es un crimen esperando suceder.*

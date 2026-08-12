@@ -3,7 +3,7 @@
 > **Fuente de verdad:** `tramites/models/tramite.py` (`TRANSITIONS` dict + métodos de acción)
 > Última actualización: 9 de mayo de 2026
 
----
+______________________________________________________________________
 
 ## Resumen
 
@@ -11,7 +11,7 @@ El workflow de trámites es una máquina de estados finitos implementada como un
 
 Este documento describe los estados, transiciones, acciones, permisos y el flujo típico de un trámite desde su creación hasta su cierre.
 
----
+______________________________________________________________________
 
 ## 1. Estados del Workflow
 
@@ -53,7 +53,7 @@ def es_activo(cls, estatus: int) -> bool:
     )
 ```
 
----
+______________________________________________________________________
 
 ## 2. Transiciones Válidas
 
@@ -141,7 +141,7 @@ def _validate_transition(self, to_status: int) -> None:
 
 **Agregar una transición nueva = agregar una línea al dict.** No se necesita modificar lógica en los métodos de acción.
 
----
+______________________________________________________________________
 
 ## 3. Acciones del Workflow
 
@@ -169,8 +169,8 @@ Método polimórfico que maneja tres casos según el valor de `analista`:
 **Validaciones:**
 
 1. `_assert_activo()` — el trámite debe estar en estado activo
-2. `_validate_transition(EN_REVISION)` — la transición debe existir en `TRANSITIONS` (solo para asignar/reasignar, no para liberar)
-3. Si ya está asignado al mismo analista, sale silenciosamente sin crear actividad
+1. `_validate_transition(EN_REVISION)` — la transición debe existir en `TRANSITIONS` (solo para asignar/reasignar, no para liberar)
+1. Si ya está asignado al mismo analista, sale silenciosamente sin crear actividad
 
 **Ejemplo de uso:**
 
@@ -192,8 +192,8 @@ Requiere documentos adicionales al ciudadano. Solo aplica cuando el trámite est
 **Validaciones:**
 
 1. `_assert_activo()` — estado activo
-2. `_validate_transition(REQUERIMIENTO)` — transición (202→203) válida
-3. `_assert_asignado_a(analista)` — el trámite debe estar asignado al usuario que ejecuta
+1. `_validate_transition(REQUERIMIENTO)` — transición (202→203) válida
+1. `_assert_asignado_a(analista)` — el trámite debe estar asignado al usuario que ejecuta
 
 **Ejemplo:**
 
@@ -226,10 +226,10 @@ Cierra el trámite con un estatus terminal. Es la acción más estricta: requier
 **Validaciones:**
 
 1. `observacion` debe ser texto no vacío (si no, `ValueError`)
-2. `estatus_cierre` debe ser `POR_RECOGER` (301), `RECHAZADO` (302) o `CANCELADO` (304)
-3. `_assert_activo()` — estado activo
-4. `_validate_transition(estatus_cierre)` — transición válida
-5. `_assert_asignado_a(analista)` — asignado al usuario que ejecuta
+1. `estatus_cierre` debe ser `POR_RECOGER` (301), `RECHAZADO` (302) o `CANCELADO` (304)
+1. `_assert_activo()` — estado activo
+1. `_validate_transition(estatus_cierre)` — transición válida
+1. `_assert_asignado_a(analista)` — asignado al usuario que ejecuta
 
 **Ejemplo:**
 
@@ -254,7 +254,7 @@ tramite.cerrar(
 
 **Excepción notada:** `_liberar()` usa `_assert_activo()` pero **no** `_validate_transition()`. La liberación es un "reset" que puede aplicarse desde cualquier estado activo, y la transición `(activo, 201)` no siempre está en `TRANSITIONS`. El sistema confía en que `_assert_activo()` es suficiente.
 
----
+______________________________________________________________________
 
 ## 4. Permisos por Estado
 
@@ -320,7 +320,7 @@ Si `can_execute_action(user)` retorna `False`, `available_actions` retorna `[]` 
 | `tramites/views.py` (download_requisito_pdf) | `can_download()` |
 | `templates/admin/tramite_detail.html` | `{% if 'accion' in available_actions %}` para botones condicionales |
 
----
+______________________________________________________________________
 
 ## 5. Flujo Típico
 
@@ -434,7 +434,7 @@ tramite.asignar(analista=analista_martinez, asignado_por=coordinador_garcia)
 tramite.asignar(analista=None, asignado_por=coordinador_garcia)
 ```
 
----
+______________________________________________________________________
 
 ## 6. Proxy Models en el Workflow
 
@@ -522,7 +522,7 @@ class Cerrado(Tramite):
         verbose_name_plural = 'Trámites finalizados'
 ```
 
----
+______________________________________________________________________
 
 ## 7. Personalización
 
@@ -552,7 +552,7 @@ def available_actions(self, user: User) -> list[str]:
 
 3. **Crear un ADR** en `docs/02-DECISIONES/` documentando la razón de la nueva transición.
 
-4. **Agregar tests** en `tests/tramites/test_models.py`:
+1. **Agregar tests** en `tests/tramites/test_models.py`:
 
 ```python
 def test_requerimiento_to_en_revision():
@@ -566,7 +566,7 @@ Los estados viven en la tabla legacy `cat_estatus` y en `TramiteEstatus.Estatus`
 
 1. **Insertar en la base de datos** (`cat_estatus`) — vía migración SQL o DBA
 
-2. **Agregar la constante** en `TramiteEstatus.Estatus` (`tramites/models/catalogos.py`):
+1. **Agregar la constante** en `TramiteEstatus.Estatus` (`tramites/models/catalogos.py`):
 
 ```python
 class Estatus(models.IntegerChoices):
@@ -591,9 +591,9 @@ def es_activo(cls, estatus: int) -> bool:
 
 4. **Agregar transiciones** al dict `TRANSITIONS` según corresponda
 
-5. **Crear un ADR** documentando la decisión (siguiendo el formato MADR en `docs/02-DECISIONES/`)
+1. **Crear un ADR** documentando la decisión (siguiendo el formato MADR en `docs/02-DECISIONES/`)
 
-6. **Actualizar tests y documentación**
+1. **Actualizar tests y documentación**
 
 ### Proceso ADR
 
@@ -606,7 +606,7 @@ Toda modificación al workflow (nueva transición, nuevo estado, cambio de permi
 
 > **Referencia:** [ADR-014: Custom User Model, Workflow Refactoring, Permission Methods](../02-DECISIONES/014-custom-user-workflow-permissions.md)
 
----
+______________________________________________________________________
 
 ## Ver también
 

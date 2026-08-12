@@ -7,11 +7,13 @@
 ## Contexto
 
 El microservicio necesita manejar un baseline de 50 usuarios simultáneos con buen rendimiento. Las operaciones principales son:
+
 - Lecturas frecuentes de catálogos y tramites (PostgreSQL)
 - Consultas de autenticación y permisos (SQLite)
 - Operaciones de administración (Django Admin)
 
 Se requiere una estrategia de caching que:
+
 - Mejore el rendimiento de lecturas frecuentes
 - Sea configurable por entorno (desarrollo vs producción)
 - No añada complejidad innecesaria
@@ -22,30 +24,36 @@ Se requiere una estrategia de caching que:
 Se ha decidido utilizar la siguiente estrategia de caching:
 
 1. **Caching por entorno**:
+
    - **Desarrollo y Testing**: `DummyCache` (sin almacenamiento, rápido para desarrollo)
    - **Producción**: `LocMemCache` (caching en memoria local, sin dependencias externas)
 
-2. **Optimización de SQLite**:
+1. **Optimización de SQLite**:
+
    - Configuración de parámetros de rendimiento para producción
    - Uso de índices optimizados en modelos
    - Mantener consultas simples en SQLite
 
-3. **Caching de Django**:
+1. **Caching de Django**:
+
    - Uso de cache para consultas frecuentes a catálogos
    - Posibilidad de integrar Redis en el futuro si es necesario
 
-4. **Escalado horizontal**:
+1. **Escalado horizontal**:
+
    - Uso de múltiples contenedores Docker con balanceo de carga
    - Configuración de gunicorn con múltiples workers y threads
 
 ## Consequences
 
 **Positivas:**
+
 - Mejora significativa del rendimiento para lecturas frecuentes
 - Simplificación del despliegue (sin dependencias de caching externas inicialmente)
 - Configuración adaptable a diferentes entornos
 
 **Negativas:**
+
 - Limitaciones de escalabilidad del caching en memoria local
 - Posible necesidad de migrar a Redis en el futuro
 - Complejidad en la invalidación de cache
@@ -73,6 +81,7 @@ Este ADR ha sido **parcialmente superseded** por [ADR-009: Vista PostgreSQL Unif
 **Detalles de la supersección parcial:**
 
 ### Componentes que permanecen válidos:
+
 - **Caching por entorno:** Configuración de DummyCache (desarrollo/testing) y LocMemCache (producción) sigue siendo el fundamento de la arquitectura
 - **Optimización de SQLite:** Aunque ADR-008 migró a PostgreSQL con esquemas, los principios de optimización de base de datos siguen aplicando
 - **Escalado horizontal:** Estrategia de múltiples contenedores Docker y configuración de gunicorn permanece válida
@@ -82,18 +91,21 @@ Este ADR ha sido **parcialmente superseded** por [ADR-009: Vista PostgreSQL Unif
 **Arquitectura de cache expandida de 1 nivel a 4 niveles:**
 
 1. **Process-level cache (`@lru_cache`)** - Nuevo en ADR-009
+
    - Manager: `CachedCatalogManager`
    - Uso: Catálogos read-only que cambian raramente
    - Alcance: Por worker process de Django
    - Timeout: Permanente (hasta reinicio del worker)
 
-2. **Django Cache Framework** - Expandido desde ADR-003
+1. **Django Cache Framework** - Expandido desde ADR-003
+
    - Manager: `CachedReadOnlyManager` (nuevo)
    - Backend: LocMemCache (mantiene configuración de ADR-003)
    - Timeout: 1 hora (3600 segundos) - más específico que ADR-003
    - Keys: `'sf_tramites:catalog:v1:{model_name}:all'`
 
-3. **Request-level cache** - Nuevo en ADR-009
+1. **Request-level cache** - Nuevo en ADR-009
+
    - Middleware: `CacheUserRolesMiddleware`
    - Carga roles de usuario una vez por request
    - Almacenamiento: `request.user.roles` como `set`
@@ -105,4 +117,5 @@ Este ADR ha sido **parcialmente superseded** por [ADR-009: Vista PostgreSQL Unif
 - **Trade-off "Limitaciones de escalabilidad del caching en memoria local"** en ADR-003 se acepta como trade-off: LocMemCache no escala horizontalmente pero es suficiente para ~50 usuarios concurrentes
 
 ### Recomendación:
+
 Para detalles completos de la implementación actual de cache, referirse a [ADR-009](009-vista-postgresql-para-tramites.md). Este documento se mantiene como referencia histórica de la arquitectura inicial de caching del proyecto.

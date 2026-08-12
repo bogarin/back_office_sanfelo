@@ -109,6 +109,7 @@ El esquema `backoffice` contiene tablas propias de Django para autenticación, s
 **Descripción:** Extensión de Django's AbstractUser con propiedades personalizadas para roles del sistema.
 
 **Campos base (heredados):**
+
 - `id` (INT, PK)
 - `username` (VARCHAR, UNIQUE)
 - `password` (VARCHAR)
@@ -163,6 +164,7 @@ def _get_roles(self) -> list[BackOfficeRole]:
 **Descripción:** Tabla estándar de Django para sesiones de usuario.
 
 **Campos:**
+
 - `session_key` (VARCHAR, PK)
 - `session_data` (TEXT)
 - `expire_date` (DATETIME)
@@ -175,6 +177,7 @@ def _get_roles(self) -> list[BackOfficeRole]:
 **Descripción:** Tabla de relación many-to-many entre User y Tramite para rastrear asignaciones.
 
 **Campos:**
+
 - `id` (INT, PK, AUTO_INCREMENT)
 - `user_id` (INT, FK → auth_user.id)
 - `tramite_id` (INT, FK → tramite.id)
@@ -182,6 +185,7 @@ def _get_roles(self) -> list[BackOfficeRole]:
 - `fecha_liberacion` (DATETIME, nullable)
 
 **Índices:**
+
 - `idx_user_tramite` (user_id, tramite_id)
 - `idx_fecha_asignacion` (fecha_asignacion)
 
@@ -189,10 +193,11 @@ def _get_roles(self) -> list[BackOfficeRole]:
 **Manager:** DefaultManager
 
 **Restricciones:**
+
 - Solo puede haber una asignación activa por trámite (user_id sin fecha_liberacion)
 - Fecha de liberación no puede ser anterior a fecha de asignación
 
----
+______________________________________________________________________
 
 ## 4. Esquema `public`
 
@@ -220,6 +225,7 @@ El esquema `public` contiene datos de negocio legacy (preexistentes). Los modelo
 | `modificado` | DATETIME | Última modificación | Auto-update |
 
 **Campos calculados (from v_tramites_unificado):**
+
 - `estatus_nombre` (VARCHAR) - Nombre del estado (ej: "EN_REVISION")
 - `estatus_categoria` (VARCHAR) - Categoría "100s", "200s", "300s"
 - `tipo_tramite_nombre` (VARCHAR) - Nombre del tipo de trámite
@@ -229,6 +235,7 @@ El esquema `public` contiene datos de negocio legacy (preexistentes). Los modelo
 - `es_activo` (BOOLEAN) - **SIN acento** - True si estado es activo (2xx)
 
 **Índices:**
+
 - `idx_folio` (folio) - UNIQUE
 - `idx_estatus` (estatus)
 - `idx_asignado_user` (asignado_user)
@@ -267,7 +274,7 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
 **Validación:**
 Método `_validate_transition(to_status)` verifica si `(from_status, to_status)` está en `TRANSITIONS`. Si no está presente, lanza `EstadoNoPermitidoError`.
 
----
+______________________________________________________________________
 
 ### 4.2 Modelos Proxy
 
@@ -280,14 +287,17 @@ Los modelos proxy extienden de `Tramite` pero proporcionan vistas filtradas seg�
 **Propósito:** Permitir a los analistas ver solo sus trámites asignados (buzón personal).
 
 **Filtros automáticos en Admin:**
+
 - `asignado_user_id == request.user.id` (solo trámites del usuario actual)
 - `estatus IN [201, 202, 203, 205]` (solo estados activos de proceso)
 
 **Access Control:**
+
 - Solo accesible para usuarios con rol `ANALISTA`
 - Admin/Coordinadores NO ven esta vista (usan vista "Todos")
 
 **Meta:**
+
 ```python
 class Meta:
     proxy = True
@@ -299,7 +309,7 @@ class Meta:
 **Access Pattern:** READ_ONLY (heredado de Tramite)
 **Manager:** ReadOnlyManager (heredado de Tramite)
 
----
+______________________________________________________________________
 
 #### 4.2.2 Modelo: `Disponible` (Trámites Disponibles)
 
@@ -308,15 +318,18 @@ class Meta:
 **Propósito:** Permitir a analistas y coordinadores ver trámites sin asignar para autoasignación.
 
 **Filtros automáticos en Admin:**
+
 - `asignado_user_id IS NULL` (sin asignar)
 - `estatus == 201` (solo estado PRESENTADO)
 
 **Access Control:**
+
 - Accesible para `ANALISTA` (autoasignar)
 - Accesible para `COORDINADOR` (asignar a analista)
 - `ADMINISTRADOR` puede ver pero no interactúa (usa vista "Todos")
 
 **Meta:**
+
 ```python
 class Meta:
     proxy = True
@@ -328,7 +341,7 @@ class Meta:
 **Access Pattern:** READ_ONLY (heredado de Tramite)
 **Manager:** ReadOnlyManager (heredado de Tramite)
 
----
+______________________________________________________________________
 
 #### 4.2.3 Modelo: `Cerrado` (Trámites Finalizados)
 
@@ -337,13 +350,16 @@ class Meta:
 **Propósito:** Permitir a coordinadores y administradores ver trámites en estados finalizados para análisis y reporting.
 
 **Filtros automáticos en Admin:**
+
 - `estatus IN [301, 302, 303, 304]` (estados finalizados 3xx)
 
 **Access Control:**
+
 - Solo accesible para `COORDINADOR` y `ADMINISTRADOR`
 - `ANALISTA` NO ve esta vista
 
 **Meta:**
+
 ```python
 class Meta:
     proxy = True
@@ -355,7 +371,7 @@ class Meta:
 **Access Pattern:** READ_ONLY (heredado de Tramite)
 **Manager:** ReadOnlyManager (heredado de Tramite)
 
----
+______________________________________________________________________
 
 ### 4.3 Modelo: `Actividades` (Auditoría)
 
@@ -374,6 +390,7 @@ class Meta:
 | `observacion` | TEXT | Observaciones de la acción | nullable, **SIN acento** |
 
 **Índices:**
+
 - `idx_tramite` (tramite)
 - `idx_usuario` (usuario)
 - `idx_fecha` (fecha)
@@ -383,11 +400,13 @@ class Meta:
 **Manager:** CreateOnlyManager
 
 **Restricciones CRÍTICAS:**
+
 - NO se pueden modificar registros existentes (CreateOnlyManager bloquea `update()`)
 - NO se pueden borrar registros (CreateOnlyManager bloquea `delete()`)
 - Solo se puede crear nuevos registros vía `create()` o `bulk_create()`
 
 **Ejemplo de uso:**
+
 ```python
 # Crear registro de actividad (CORRECTO)
 Actividades.objects.create(
@@ -407,7 +426,7 @@ actividad.save()  # RuntimeError: Cannot update CreateOnlyManager model
 Actividades.objects.filter(id=1).delete()  # RuntimeError: Cannot delete CreateOnlyManager model
 ```
 
----
+______________________________________________________________________
 
 ### 4.4 Catálogos (Todos READ_ONLY)
 
@@ -418,6 +437,7 @@ Todos los catálogos son modelos de referencia que se administran externamente. 
 **Descripción:** Catálogo de tipos de trámites municipales disponibles.
 
 **Campos:**
+
 - `id` (INT, PK)
 - `nombre` (VARCHAR(200)) - Nombre del tipo de trámite
 - `descripcion` (TEXT, nullable) - Descripción detallada
@@ -426,13 +446,14 @@ Todos los catálogos son modelos de referencia que se administran externamente. 
 **Access Pattern:** READ_ONLY
 **Manager:** CachedReadOnlyManager (TTL 5 minutos)
 
----
+______________________________________________________________________
 
 #### 4.4.2 Catálogo: `CatEstatus` (Estados del Workflow)
 
 **Descripción:** Catálogo de estados posibles del workflow de trámites.
 
 **Campos:**
+
 - `id` (INT, PK)
 - `codigo` (INT) - Código de estado (101-304)
 - `nombre` (VARCHAR(100)) - Nombre del estado
@@ -458,13 +479,14 @@ Todos los catálogos son modelos de referencia que se administran externamente. 
 **Access Pattern:** READ_ONLY
 **Manager:** CachedReadOnlyManager (TTL 5 minutos)
 
----
+______________________________________________________________________
 
 #### 4.4.3 Catálogo: `PeritosAutorizados` (Peritos)
 
 **Descripción:** Catálogo de peritos autorizados para fase de campo.
 
 **Campos:**
+
 - `id` (INT, PK)
 - `nombre` (VARCHAR(200)) - Nombre completo del perito
 - `especialidad` (VARCHAR(200)) - Especialidad técnica
@@ -474,13 +496,14 @@ Todos los catálogos son modelos de referencia que se administran externamente. 
 **Access Pattern:** READ_ONLY
 **Manager:** CachedReadOnlyManager (TTL 5 minutos)
 
----
+______________________________________________________________________
 
 #### 4.4.4 Catálogo: `Categorias` (Categorías de Trámites)
 
 **Descripción:** Catálogo de categorías organizativas de trámites.
 
 **Campos:**
+
 - `id` (INT, PK)
 - `nombre` (VARCHAR(200)) - Nombre de la categoría
 - `descripcion` (TEXT, nullable) - Descripción de la categoría
@@ -489,13 +512,14 @@ Todos los catálogos son modelos de referencia que se administran externamente. 
 **Access Pattern:** READ_ONLY
 **Manager:** CachedReadOnlyManager (TTL 5 minutos)
 
----
+______________________________________________________________________
 
 #### 4.4.5 Catálogo: `Requisitos` (Requisitos por Tipo)
 
 **Descripción:** Catálogo de requisitos por tipo de trámite.
 
 **Campos:**
+
 - `id` (INT, PK)
 - `tipo_tramite_id` (INT, FK) - Tipo de trámite
 - `descripcion` (TEXT) - Descripción del requisito
@@ -505,18 +529,19 @@ Todos los catálogos son modelos de referencia que se administran externamente. 
 **Access Pattern:** READ_ONLY
 **Manager:** ReadOnlyManager
 
----
+______________________________________________________________________
 
 ## 5. Vista Denormalizada: `v_tramites_unificado`
 
 **Descripción:** Vista PostgreSQL que consolida datos de 5 tablas en una sola vista denormalizada para optimizar consultas.
 
 **Tablas fuente (JOIN):**
+
 1. `tramite` (tabla base)
-2. `actividades` (última actividad)
-3. `cat_tramite` (nombre del tipo)
-4. `cat_estatus` (nombre del estado)
-5. `auth_user` (nombre del analista asignado)
+1. `actividades` (última actividad)
+1. `cat_tramite` (nombre del tipo)
+1. `cat_estatus` (nombre del estado)
+1. `auth_user` (nombre del analista asignado)
 
 **Campos consolidados (28):**
 
@@ -550,6 +575,7 @@ Todos los catálogos son modelos de referencia que se administran externamente. 
 | `total_actividades` | COUNT(actividades) | INT | Total de actividades |
 
 **Mapeo a Django Model:**
+
 - Mapeado a modelo `Tramite` en `tramites/models/tramite.py`
 - **NO se puede modificar directamente** (READ_ONLY)
 - Cambios se realizan vía tabla `actividades` (APPEND_ONLY)
@@ -561,8 +587,8 @@ Todos los catálogos son modelos de referencia que se administran externamente. 
 La vista `v_tramites_unificado` recalcula automáticamente **cada vez que se consulta**. Este es el comportamiento nativo de las vistas en PostgreSQL:
 
 1. Usuario cambia estatus → Django crea registro en `actividades` (create-only)
-2. La **siguiente consulta** a `v_tramites_unificado` recalcula el JOIN de las 5 tablas
-3. El cambio ya está visible en la vista
+1. La **siguiente consulta** a `v_tramites_unificado` recalcula el JOIN de las 5 tablas
+1. El cambio ya está visible en la vista
 
 **Ventaja:** No hay overhead de triggers, la vista siempre refleja el estado actual de las tablas.
 
@@ -570,7 +596,7 @@ La vista `v_tramites_unificado` recalcula automáticamente **cada vez que se con
 
 **Nota:** Para detalles completos de la vista, ver [ADR-009: Vista PostgreSQL Unificada](../02-DECISIONES/009-vista-postgresql-para-tramites.md).
 
----
+______________________________________________________________________
 
 ## 6. Database Router (ModelBasedRouter)
 
@@ -644,7 +670,7 @@ class Actividades(models.Model): ...
 class CatTramite(models.Model): ...
 ```
 
----
+______________________________________________________________________
 
 ## 7. Custom Managers
 
@@ -657,6 +683,7 @@ Los custom managers enforce los access patterns a nivel del ORM, previniendo ope
 **Ubicación:** `core/managers.py`
 
 **Métodos bloqueados:**
+
 - `create()` → RuntimeError
 - `bulk_create()` → RuntimeError
 - `update()` → RuntimeError
@@ -664,6 +691,7 @@ Los custom managers enforce los access patterns a nivel del ORM, previniendo ope
 - `get_or_create()` → RuntimeError
 
 **Métodos permitidos:**
+
 - `all()`
 - `filter()`
 - `get()`
@@ -672,6 +700,7 @@ Los custom managers enforce los access patterns a nivel del ORM, previniendo ope
 - `aggregate()`
 
 **Ejemplo:**
+
 ```python
 # Consulta (CORRECTO)
 tramite = Tramite.objects.get(folio="T-001")
@@ -682,7 +711,7 @@ Tramite.objects.create(folio="T-999")  # RuntimeError: Cannot create READ_ONLY m
 
 **Usado por:** Tramite, CatTramite, CatEstatus, PeritosAutorizados, Categorias
 
----
+______________________________________________________________________
 
 ### 7.2 CreateOnlyManager
 
@@ -691,16 +720,19 @@ Tramite.objects.create(folio="T-999")  # RuntimeError: Cannot create READ_ONLY m
 **Ubicación:** `core/managers.py`
 
 **Métodos permitidos:**
+
 - `create()`
 - `bulk_create()`
 - `all()`, `filter()`, `get()` (lectura)
 
 **Métodos bloqueados:**
+
 - `update()` → RuntimeError
 - `delete()` → RuntimeError
 - `save()` (si el objeto ya existe) → RuntimeError
 
 **Ejemplo:**
+
 ```python
 # Crear nuevo registro (CORRECTO)
 Actividades.objects.create(
@@ -721,7 +753,7 @@ Actividades.objects.filter(id=1).delete()  # RuntimeError: Cannot delete CreateO
 
 **Usado por:** Actividades (auditoría)
 
----
+______________________________________________________________________
 
 ### 7.3 CachedReadOnlyManager
 
@@ -730,15 +762,18 @@ Actividades.objects.filter(id=1).delete()  # RuntimeError: Cannot delete CreateO
 **Ubicación:** `core/managers.py`
 
 **Métodos adicionales:**
+
 - `all_cached()` - Cache key: `modelname:all`, TTL: 300 segundos
 - `get_cached(id)` - Cache key: `modelname:pk:{id}`, TTL: 300 segundos
 
 **Mecanismo de cache:**
+
 1. Primera consulta → Cache miss → Query a BD → Guarda en cache
-2. Consultas subsiguientes (dentro de TTL) → Cache hit → Retorna desde cache
-3. Expiración de TTL → Cache invalidado → Consulta BD de nuevo
+1. Consultas subsiguientes (dentro de TTL) → Cache hit → Retorna desde cache
+1. Expiración de TTL → Cache invalidado → Consulta BD de nuevo
 
 **Ejemplo:**
+
 ```python
 # Primera llamada (query a BD + cache)
 tramites = CatTramite.objects.all_cached()  # SELECT * FROM cat_tramite
@@ -752,7 +787,7 @@ tramites = CatTramite.objects.all_cached()  # SELECT * FROM cat_tramite (cache e
 
 **Usado por:** CatTramite, CatEstatus, PeritosAutorizados (catálogos que casi no cambian)
 
----
+______________________________________________________________________
 
 ## 8. Access Patterns
 
@@ -766,6 +801,7 @@ Los access patterns definen qué operaciones están permitidas en cada modelo de
 | **CACHED_READ_ONLY** | Read (from cache) | Create, Update, Delete | CatTramite, CatEstatus, PeritosAutorizados | CachedReadOnlyManager |
 
 **Jerarquía de managers:**
+
 ```
 Manager (Base)
     ├── DefaultManager (FULL_ACCESS)
@@ -774,7 +810,7 @@ Manager (Base)
     └── CreateOnlyManager (APPEND_ONLY)
 ```
 
----
+______________________________________________________________________
 
 ## 9. Convenciones de Nomenclatura (Correcciones de Acentos)
 
@@ -814,7 +850,7 @@ class TramiteEstatus(models.IntegerChoices):
     EN_DILIGÈNCIA = 205  # ❌
 ```
 
----
+______________________________________________________________________
 
 ## 10. Referencias Externas
 

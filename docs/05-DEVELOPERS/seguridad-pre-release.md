@@ -11,7 +11,7 @@ Antes de iniciar la auditoría, asegúrese de:
 - [ ] Backup de base de datos realizado
 - [ ] Equipo de operaciones notificado del deployment
 
----
+______________________________________________________________________
 
 ## 🔒️ Checklist de Seguridad Crítica
 
@@ -32,6 +32,7 @@ python manage.py shell
 ```
 
 **Resultado esperado:**
+
 ```python
 [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -42,10 +43,11 @@ python manage.py shell
 ```
 
 **Si falla:**
+
 - ❌ CRÍTICO: No se puede hacer deploy hasta habilitar validación de contraseñas
 - **Fix:** Verificar Fase 1.1 del plan de seguridad
 
----
+______________________________________________________________________
 
 ### 2. SECRET_KEY Segura
 
@@ -65,6 +67,7 @@ python manage.py shell
 ```
 
 **Resultado esperado:**
+
 - Longitud ≥ 50 caracteres
 - NO contiene "insecure"
 - NO contiene "change"
@@ -79,6 +82,7 @@ DJANGO_DEBUG=False DJANGO_SECRET_KEY=$(python -c "from django.core.management.ut
 ```
 
 **Si falla:**
+
 - ❌ CRÍTICO: `ImproperlyConfigured` al iniciar Django
 - **Fix:** Generar nueva SECRET_KEY con:
   ```bash
@@ -86,7 +90,7 @@ DJANGO_DEBUG=False DJANGO_SECRET_KEY=$(python -c "from django.core.management.ut
   ```
   Y actualizar `.env` con el resultado
 
----
+______________________________________________________________________
 
 ### 3. Autenticación en Vistas de Asignación de Roles
 
@@ -96,13 +100,14 @@ DJANGO_DEBUG=False DJANGO_SECRET_KEY=$(python -c "from django.core.management.ut
 **Verificación manual:**
 
 1. Navegar a `/admin/auth/user/asignar-rol/` sin estar logueado
-2. **Esperado:** Redirección a `/admin/login/` (no debe mostrar formulario)
+1. **Esperado:** Redirección a `/admin/login/` (no debe mostrar formulario)
 
 **Si falla:**
+
 - ❌ CRÍTICO: Endpoint accesible sin autenticación
 - **Fix:** Verificar que `@staff_member_required` está decorando ambas vistas (Fase 1.2)
 
----
+______________________________________________________________________
 
 ### 4. ALLOWED_HOSTS Configurado
 
@@ -121,15 +126,17 @@ python manage.py shell
 ```
 
 **Resultado esperado:**
+
 - `DEBUG = False`
-- `ALLOWED_HOSTS` = [`nombres-de-dominios-reales`, `IPs-del-load-balancer`]
+- `ALLOWED_HOSTS` = \[`nombres-de-dominios-reales`, `IPs-del-load-balancer`\]
 - **NO** `['*']` o lista vacía `[]`
 
 **Si falla:**
+
 - ❌ CRÍTICO: `ImproperlyConfigured` al iniciar Django
 - **Fix:** Configurar `DJANGO_ALLOWED_HOSTS` en `.env` con dominios/IPs reales
 
----
+______________________________________________________________________
 
 ### 5. Rate Limiting en Login
 
@@ -149,10 +156,12 @@ done | sort | uniq -c
 ```
 
 **Resultado esperado:**
+
 - 429 aparece después de ~5-6 intentos
 - Rate limit: 5 req/min con burst de 3
 
 **Si falla:**
+
 - ❌ HIGH: Ningún límite de rate en `/admin/login/`
 - **Fix:** Verificar Fase 2.1 (agregó `limit_req_zone` y `location /admin/login/`)
 
@@ -164,6 +173,7 @@ docker exec backoffice_nginx cat /etc/nginx/nginx.conf | grep -A10 "location /ad
 ```
 
 **Debe mostrar:**
+
 ```nginx
 location /admin/login/ {
     limit_req zone=auth_limit burst=3 nodelay;
@@ -172,7 +182,7 @@ location /admin/login/ {
 }
 ```
 
----
+______________________________________________________________________
 
 ### 6. Headers de Seguridad (Nosniff, XSS-Filter)
 
@@ -186,16 +196,18 @@ curl -I http://localhost:8090/admin/login/ 2>&1 | grep -E "(X-Content-Type-Optio
 ```
 
 **Resultado esperado:**
+
 ```
 X-Content-Type-Options: nosniff
 X-XSS-Protection: 1; mode=block
 ```
 
 **Si falla:**
+
 - ⚠️ MEDIUM: Headers faltantes o deshabilitados
 - **Fix:** Verificar Fase 2.6 (`SECURE_CONTENT_TYPE_NOSNIFF` y `SECURE_BROWSER_XSS_FILTER` siempre en `True`)
 
----
+______________________________________________________________________
 
 ### 7. Comando `simular_pago` Bloqueado en Producción
 
@@ -210,12 +222,14 @@ DJANGO_DEBUG=False python manage.py simular_pago TRM-12345
 ```
 
 **Resultado esperado:**
+
 ```
 CommandError: ❌ SEGURIDAD: Este comando SOLO puede ejecutarse en modo DEBUG.
 Nunca debe usarse en producción...
 ```
 
 **Si falla:**
+
 - ⚠️ MEDIUM: Comando permite simular pagos en producción
 - **Fix:** Verificar Fase 2.4 (guard de `if not settings.DEBUG`)
 
@@ -226,7 +240,7 @@ DJANGO_DEBUG=True python manage.py simular_pago TRM-12345
 # Debe pedir confirmación interactiva
 ```
 
----
+______________________________________________________________________
 
 ### 8. Sesiones Backend (No Cookies)
 
@@ -243,16 +257,18 @@ python manage.py shell
 ```
 
 **Resultado esperado:**
+
 ```python
 'django.contrib.sessions.backends.db'
 # NO debe ser 'django.contrib.sessions.backends.signed_cookies'
 ```
 
 **Si falla:**
+
 - ⚠️ MEDIUM: Sesiones almacenadas en cookies (exposición de datos internos)
 - **Nota:** Cambiar a DB-backed sessions es parte de Fase 4 (no implementada aún)
 
----
+______________________________________________________________________
 
 ## 🔍 Verificaciones Operativas
 
@@ -271,25 +287,26 @@ docker logs backoffice_app --tail 100 | grep -i "warning\|error\|security"
 ```
 
 **Qué buscar:**
+
 - Intentos fallidos de login (`Login unsuccessful`)
 - Bloqueos de IP por rate limiting (`limiting requests`)
 - Errores de permisos (`PermissionDenied`, `403 Forbidden`)
 - Accesso a endpoints no autorizados
 
----
+______________________________________________________________________
 
 ### 10. Probar Flujo Completo de Autenticación
 
 **Pasos de prueba:**
 
 1. [ ] Login como superusuario → Dashboard visible
-2. [ ] Intentar login con contraseña incorrecta 6 veces → 429 Too Many Requests
-3. [ ] Intentar acceder a `/admin/auth/user/asignar-rol/` sin login → Redirección a login
-4. [ ] Intentar ejecutar `simular_pago` con `DEBUG=False` → Error de seguridad
-5. [ ] Verificar cookies de sesión → `sessionid` cookie presente con `Max-Age` correcto
-6. [ ] Intentar asignar trámite a usuario sin rol Analista → Rechazado
+1. [ ] Intentar login con contraseña incorrecta 6 veces → 429 Too Many Requests
+1. [ ] Intentar acceder a `/admin/auth/user/asignar-rol/` sin login → Redirección a login
+1. [ ] Intentar ejecutar `simular_pago` con `DEBUG=False` → Error de seguridad
+1. [ ] Verificar cookies de sesión → `sessionid` cookie presente con `Max-Age` correcto
+1. [ ] Intentar asignar trámite a usuario sin rol Analista → Rechazado
 
----
+______________________________________________________________________
 
 ## 📊 Registro de Auditoría
 
@@ -308,25 +325,25 @@ Completar esta sección como evidencia de la auditoría realizada:
 | 9 | Logs de seguridad revisados | ⬜ | | |
 | 10 | Flujo de autenticación probado | ⬜ | | |
 
----
+______________________________________________________________________
 
 ## 🚨 Pasos si Alguna Verificación Falla
 
 ### Si cualquier verificación CRITICAL (1-3) falla:
 
 1. **DETENER deployment inmediatamente**
-2. Corregir el problema según la fase indicada en este documento
-3. Re-verificar la corrección
-4. Documentar el fix en este registro
-5. Continuar con la auditoría
+1. Corregir el problema según la fase indicada en este documento
+1. Re-verificar la corrección
+1. Documentar el fix en este registro
+1. Continuar con la auditoría
 
 ### Si verificación MEDIUM falla:
 
 1. Evaluar el riesgo de seguridad
-2. Si es aceptable para el deployment inicial, crear ticket de mejora
-3. Documentar la decisión de aceptar el riesgo
+1. Si es aceptable para el deployment inicial, crear ticket de mejora
+1. Documentar la decisión de aceptar el riesgo
 
----
+______________________________________________________________________
 
 ## 📚 Referencias
 
@@ -336,7 +353,7 @@ Completar esta sección como evidencia de la auditoría realizada:
 - [OWASP Top 10](https://owasp.org/Top10)
 - [Guía de Rate Limiting Nginx](https://nginx.org/en/docs/http/ngx_http_limit_req_module.html)
 
----
+______________________________________________________________________
 
 ## ✅ Criterios de Aprobación
 
@@ -344,9 +361,9 @@ Antes de aprobar el deployment en producción, **todas** las verificaciones CRIT
 
 Las verificaciones MEDIUM (6-8) pueden estar pendientes, pero con tickets de mejora documentados si no se cumplen al 100%.
 
----
+______________________________________________________________________
 
 **Estado Final:** [ ] Auditoría Aprobada
-**Aprobado por:** ___________________________
-**Fecha:** ______________________
-**Firma:** _______________________
+**Aprobado por:** \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+**Fecha:** \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+**Firma:** \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_

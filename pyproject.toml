@@ -25,6 +25,7 @@ dev = [
     "ruff>=0.15.2",
     "ty>=0.0.69",
     "django-types>=0.24.0",
+    "mdformat>=1.0.0",
 ]
 
 # =============================================================================
@@ -113,6 +114,30 @@ replace-imports-with-any = [
     "environ.**",
     "tablib.**",
 ]
+
+[tool.ty.rules]
+# ty has no plugin system (Django support is on its roadmap), so it cannot
+# resolve Django's runtime-generated model metadata (fields, managers, Meta,
+# dynamic class construction). These rules fire on every Django model use and
+# are false positives in this codebase. Keep them as warnings: visible but
+# never blocking. See [tool.ty.terminal] below.
+invalid-type-form = "warn"
+unresolved-attribute = "warn"
+unresolved-import = "warn"
+invalid-method-override = "warn"
+invalid-assignment = "warn"
+
+[tool.ty.terminal]
+error-on-warning = false
+
+[[tool.ty.overrides]]
+include = ["sanfelipe/settings/**"]
+
+[tool.ty.overrides.rules]
+# Settings inject names into the module namespace dynamically via
+# `globals()[key] = value` from configure_*() helpers (environ pattern);
+# ty cannot see those names (DEBUG, TESTING, etc.).
+unresolved-reference = "warn"
 
 [tool.pyright]
 exclude = [

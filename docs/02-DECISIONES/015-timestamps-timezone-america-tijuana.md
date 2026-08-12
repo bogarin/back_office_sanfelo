@@ -16,10 +16,10 @@ Se detectó que Django insertaba timestamps en UTC (ej: `07:47`) mientras que la
 
 ## Opciones Consideradas
 
-* **Opción A**: Dejar que PostgreSQL maneje los timestamps vía `DEFAULT CURRENT_TIMESTAMP`, configurando la sesión con `timezone=America/Tijuana`. Django no enviaría el campo timestamp en el INSERT.
-* **Opción B**: Usar `default=timezone.localtime` en Django para enviar hora local explícitamente en cada INSERT.
-* **Opción C**: Migrar las columnas PostgreSQL a `timestamptz` (con timezone).
-* **Opción D**: Usar `db_default=Now()` (Django 5.1+) para que el ORM omita el campo del INSERT y PostgreSQL use su `DEFAULT CURRENT_TIMESTAMP`.
+- **Opción A**: Dejar que PostgreSQL maneje los timestamps vía `DEFAULT CURRENT_TIMESTAMP`, configurando la sesión con `timezone=America/Tijuana`. Django no enviaría el campo timestamp en el INSERT.
+- **Opción B**: Usar `default=timezone.localtime` en Django para enviar hora local explícitamente en cada INSERT.
+- **Opción C**: Migrar las columnas PostgreSQL a `timestamptz` (con timezone).
+- **Opción D**: Usar `db_default=Now()` (Django 5.1+) para que el ORM omita el campo del INSERT y PostgreSQL use su `DEFAULT CURRENT_TIMESTAMP`.
 
 ## Resultado de la Decisión
 
@@ -36,9 +36,9 @@ Opción elegida: **"D — `db_default=Now()` con sesión PostgreSQL en America/T
 `db_default` (disponible desde Django 5.1, proyecto usa 6.0.4) es un parámetro de campo que delega el valor default a la **base de datos**. El ORM de Django:
 
 1. Detecta que el campo tiene `db_default`
-2. Marca el valor como `DatabaseDefault` (sentinel)
-3. **Omite el campo del INSERT** (ver `SQLInsertCompiler`, líneas 137-149)
-4. PostgreSQL ejecuta `DEFAULT CURRENT_TIMESTAMP` → hora local America/Tijuana
+1. Marca el valor como `DatabaseDefault` (sentinel)
+1. **Omite el campo del INSERT** (ver `SQLInsertCompiler`, líneas 137-149)
+1. PostgreSQL ejecuta `DEFAULT CURRENT_TIMESTAMP` → hora local America/Tijuana
 
 Resultado: mismo comportamiento que Java, sin workarounds, sin funciones auxiliares.
 
@@ -49,7 +49,7 @@ El proyecto originalmente usaba **psycopg2** como driver de PostgreSQL. En psyco
 Se migró a **psycopg3** (`psycopg[binary]>=3.3.3` en `pyproject.toml`), donde Django maneja el timezone de forma diferente y más robusta:
 
 1. **psycopg2**: El timezone se configuraba via `-c timezone=America/Tijuana` en las OPTIONS, pero Django sobrescribía el valor después de conectar, resultando en UTC.
-2. **psycopg3**: Django usa la clave `TIME_ZONE` directamente en la configuración de cada base de datos, ejecutando `SET timezone` como una consulta SQL separada al abrir la conexión. Esto **sí** se respeta correctamente.
+1. **psycopg3**: Django usa la clave `TIME_ZONE` directamente en la configuración de cada base de datos, ejecutando `SET timezone` como una consulta SQL separada al abrir la conexión. Esto **sí** se respeta correctamente.
 
 **Lección aprendida**: Con psycopg3, usar siempre `'TIME_ZONE': tz` en la configuración de DATABASES. No confiar en las OPTIONS para configurar el timezone.
 
@@ -104,29 +104,34 @@ Los timestamps almacenados son naive (sin timezone info) porque la columna Postg
 ### Cambios en código
 
 1. **`sanfelipe/settings/__init__.py`**:
+
    - Variable `tz` leída de `DJANGO_TIME_ZONE` antes de DATABASES
    - Ambas conexiones usan `'TIME_ZONE': tz` en la configuración de la DB
    - `TIME_ZONE = tz` (reutiliza la misma variable)
 
-2. **`tramites/models/actividades.py`**:
+1. **`tramites/models/actividades.py`**:
+
    - Campo `timestamp` con `db_default=Now()` (ORM omite campo del INSERT)
    - `editable=False` — no se muestra en forms
    - `auto_now_add=True` eliminado (enviaba UTC)
 
-3. **`tramites/admin.py`**:
+1. **`tramites/admin.py`**:
+
    - `_display_timestamp()` usa `make_aware()` + `localtime()` para manejar naive datetimes
 
-4. **`templates/admin/tramite_detail.html`**:
+1. **`templates/admin/tramite_detail.html`**:
+
    - Timestamps usan `|date:"Y-m-d H:i:s"` (sin `|localtime`, que falla con naive datetimes)
 
 ### Consecuencias
 
-* Bueno, porque los timestamps de Django y Java son consistentes en la misma tabla
-* Bueno, porque usa `db_default` — feature nativa de Django 5.1+, sin workarounds
-* Bueno, porque respeta el diseño original de las tablas sin requerir migraciones SQL
-* Bueno, porque la zona horaria es configurable via variable de entorno
-* Malo, porque la lectura de timestamps requiere `make_aware()` explícito en el admin para naive datetimes
-* Malo, porque el campo no puede usar `auto_now_add` (Django enviaría UTC)
+- Bueno, porque los timestamps de Django y Java son consistentes en la misma tabla
+- Bueno, porque usa `db_default` — feature nativa de Django 5.1+, sin workarounds
+- Bueno, porque respeta el diseño original de las tablas sin requerir migraciones SQL
+- Bueno, porque la zona horaria es configurable via variable de entorno
+- Malo, porque la lectura de timestamps requiere `make_aware()` explícito en el admin para naive datetimes
+- Malo, porque el campo no puede usar `auto_now_add` (Django enviaría UTC)
 
----
+______________________________________________________________________
+
 Formato basado en [MADR](https://adr.github.io/madr/)

@@ -85,8 +85,8 @@ Ensure the value is in OpenSSH format: `"ssh-rsa AAAA..."` or
 Without host key verification, an attacker on the network path can:
 
 1. Intercept the SSH connection and present a fake host key
-2. Capture authentication credentials (password or SSH key passphrase)
-3. Read all SFTP data (tramite PDF filenames, sizes)
-4. Inject or modify responses
+1. Capture authentication credentials (password or SSH key passphrase)
+1. Read all SFTP data (tramite PDF filenames, sizes)
+1. Inject or modify responses
 
 **This is why host key verification is mandatory in production.**

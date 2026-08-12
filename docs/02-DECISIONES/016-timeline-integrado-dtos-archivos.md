@@ -21,9 +21,9 @@ El sistema maneja dos schemas de archivos PDF con nombres distintos:
 
 ## Opciones Consideradas
 
-* **Opción A**: Mantener las tres secciones separadas con mejoras visuales menores
-* **Opción B**: Timeline vertical integrado que une actividades + archivos asociados, usando DTOs reubicados
-* **Opción C**: Vista tipo "chat" con actividades como mensajes y archivos como adjuntos
+- **Opción A**: Mantener las tres secciones separadas con mejoras visuales menores
+- **Opción B**: Timeline vertical integrado que une actividades + archivos asociados, usando DTOs reubicados
+- **Opción C**: Vista tipo "chat" con actividades como mensajes y archivos como adjuntos
 
 ## Resultado de la Decisión
 
@@ -42,6 +42,7 @@ tramites/models/actividades.py
 ```
 
 `TimelineEntry` es el DTO central que une:
+
 - Una `Actividades` del historial
 - `list[ActividadFile]` — archivos ACT adjuntos (solo para REQUERIMIENTO/SUBSANADO)
 - `list[RequisitoFile]` — documentos del ciudadano (solo para la primera PENDIENTE_PAGO)
@@ -53,7 +54,7 @@ tramites/models/actividades.py
 |-------|---------|-------------------|
 | Documentos del ciudadano | Primero PENDIENTE_PAGO (102) | DAU-*.pdf (requisitos) |
 | Archivos de actividad | REQUERIMIENTO (203) | ACT-{id}-*.pdf |
-| Archivos de actividad | SUBSANADO (204) | ACT-{id}-*.pdf |
+| Archivos de actividad | SUBSANADO (204) | ACT-{id}-\*.pdf |
 | Sin archivos | Todos los demás estatus | `[]` |
 
 ### Doble schema de validación
@@ -70,14 +71,14 @@ Ambos están anclados (`^...$`) y comparten las mismas defensas contra path trav
 ### Cambios en código
 
 1. **`tramites/models/actividades.py`**: `RequisitoFile`, `ActividadFile`, `TimelineEntry` dataclasses
-2. **`tramites/models/catalogos.py`**: DTOs eliminados (dead code), `from dataclasses` removido
-3. **`tramites/models/__init__.py`**: Imports desde `.actividades`
-4. **`tramites/sftp.py`**: `fetch_actividad_files()` classmethod + `_list_actividad_files()` interno
-5. **`tramites/constants.py`**: `ACTIVIDAD_FILENAME_REGEX` añadido
-6. **`tramites/admin.py`**: `change_view` construye `timeline_entries` con lógica de agrupamiento
-7. **`templates/admin/tramite_detail.html`**: Timeline vertical reemplaza 3 secciones
-8. **`static/admin/css/backoffice.css`**: Estilos de timeline con dots coloreados por grupo de estatus
-9. **`tramites/templatetags/admin_extras.py`**: `status_group` filter para coloring CSS
+1. **`tramites/models/catalogos.py`**: DTOs eliminados (dead code), `from dataclasses` removido
+1. **`tramites/models/__init__.py`**: Imports desde `.actividades`
+1. **`tramites/sftp.py`**: `fetch_actividad_files()` classmethod + `_list_actividad_files()` interno
+1. **`tramites/constants.py`**: `ACTIVIDAD_FILENAME_REGEX` añadido
+1. **`tramites/admin.py`**: `change_view` construye `timeline_entries` con lógica de agrupamiento
+1. **`templates/admin/tramite_detail.html`**: Timeline vertical reemplaza 3 secciones
+1. **`static/admin/css/backoffice.css`**: Estilos de timeline con dots coloreados por grupo de estatus
+1. **`tramites/templatetags/admin_extras.py`**: `status_group` filter para coloring CSS
 
 ### Tests
 
@@ -85,7 +86,7 @@ Ambos están anclados (`^...$`) y comparten las mismas defensas contra path trav
 
 | Categoría | Tests | Qué cubre |
 |-----------|-------|-----------|
-| validate_filename ACT-*.pdf | 12 | Path traversal, formato inválido, ambos schemas |
+| validate_filename ACT-\*.pdf | 12 | Path traversal, formato inválido, ambos schemas |
 | ACTIVIDAD_FILENAME_REGEX | 6 | Parsing y rechazo |
 | fetch_actividad_files() | 6 | SFTP listing, errores, sorting |
 | ActividadFile dataclass | 2 | Creación básica y campos opcionales |
@@ -98,12 +99,13 @@ Ambos están anclados (`^...$`) y comparten las mismas defensas contra path trav
 
 ### Consecuencias
 
-* Bueno, porque la experiencia es una sola línea temporal — el usuario ve actividad y archivos juntos
-* Bueno, porque los DTOs están junto al modelo `Actividades` donde pertenecen lógicamente
-* Bueno, porque `validate_filename()` soporta ambos schemas sin bifurcación de código
-* Bueno, porque las reglas de negocio están testeadas unitariamente (70 tests)
-* Malo, porque el template es más complejo — `{% for entry in timeline_entries %}` con sub-condicionales
-* Malo, porque la resolución de usuarios requiere un batch lookup a la DB (`User.objects.filter`)
+- Bueno, porque la experiencia es una sola línea temporal — el usuario ve actividad y archivos juntos
+- Bueno, porque los DTOs están junto al modelo `Actividades` donde pertenecen lógicamente
+- Bueno, porque `validate_filename()` soporta ambos schemas sin bifurcación de código
+- Bueno, porque las reglas de negocio están testeadas unitariamente (70 tests)
+- Malo, porque el template es más complejo — `{% for entry in timeline_entries %}` con sub-condicionales
+- Malo, porque la resolución de usuarios requiere un batch lookup a la DB (`User.objects.filter`)
 
----
+______________________________________________________________________
+
 Formato basado en [MADR](https://adr.github.io/madr/)

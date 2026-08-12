@@ -3,7 +3,7 @@
 > **Módulo:** `tramites.models`
 > **Última actualización:** Mayo 2026
 
----
+______________________________________________________________________
 
 ## Advertencia: Migraciones deshabilitadas
 
@@ -11,7 +11,7 @@ Todos los modelos usan `managed = False`. Django **no genera ni ejecuta migracio
 
 > **Nunca** ejecutes `makemigrations` o `migrate` para las tablas de este proyecto. El esquema lo administra directamente el DBA.
 
----
+______________________________________________________________________
 
 ## Separación de esquemas
 
@@ -26,7 +26,7 @@ El proyecto usa dos conexiones PostgreSQL definidas en `settings.DATABASES`:
 
 El enrutamiento se controla con el decorador `@register_model(db_alias, access_pattern, allow_migrations)` de `core/model_config.py`, registrado en `core/db_router.ModelBasedRouter`.
 
----
+______________________________________________________________________
 
 ## Managers y patrones de acceso
 
@@ -41,7 +41,7 @@ Antes de documentar cada modelo, es clave entender los managers personalizados q
 
 Todos los managers exponen métodos de caché (`all_cached()`, `get_cached()`) con invalidación manual vía `invalidate_cache()`.
 
----
+______________________________________________________________________
 
 ## Resumen de modelos
 
@@ -61,7 +61,7 @@ Todos los managers exponen métodos de caché (`all_cached()`, `get_cached()`) c
 | `rel_tmt_actividad` | `TramiteCatalogoActividad` | `rel_tmt_actividad` | `backend` | `READ_ONLY` | `ReadOnlyManager` |
 | `v_tramites_unificado` | `Tramite` | `v_tramites_unificado` | `default` | `READ_ONLY` | `TramiteQuerySet` |
 
----
+______________________________________________________________________
 
 ## Catálogos (`tramites/models/catalogos.py`)
 
@@ -102,6 +102,7 @@ Estatus de trámites con prefijo numérico por familia.
 | `3xx` | **Finalizado** | `301` POR_RECOGER, `302` RECHAZADO, `303` FINALIZADO, `304` CANCELADO |
 
 **Métodos de clase:**
+
 - `es_activo(estatus)` → `True` si estatus está en proceso (201–205)
 - `finalizados()` → tupla de IDs de estatus terminales (301–304, 103)
 - `get_en_revision()` → devuelve la instancia con `id=202` desde caché
@@ -165,7 +166,7 @@ Tipos de trámite (para costos).
 | `id` | `AutoField` (PK) | `id` | |
 | `tipo` | `CharField(120)` | `tipo` | |
 
----
+______________________________________________________________________
 
 ## Modelo transaccional (`tramites/models/actividades.py`)
 
@@ -190,7 +191,7 @@ Registro de cada acción realizada sobre un trámite. **Solo inserción** (`APPE
 | `ActividadFile` | Archivo PDF de actividad con metadata del registro |
 | `TimelineEntry` | Entrada del timeline: actividad + archivos adjuntos + usuario |
 
----
+______________________________________________________________________
 
 ## Relaciones / Tablas pivote (`tramites/models/relaciones.py`)
 
@@ -240,7 +241,7 @@ Tablas many-to-many entre `TramiteCatalogo` y catálogos. Todas son **solo lectu
 
 > Todas las FK en relaciones usan `on_delete=DO_NOTHING` ya que Django no gestiona el ciclo de vida de estos datos.
 
----
+______________________________________________________________________
 
 ## Tramite — Modelo principal (`tramites/models/tramite.py`)
 
@@ -338,7 +339,7 @@ EN_DILIGENCIA (205) ──→ CANCELADO (304)
 | `can_execute_action(user)` | Superuser/Admin/Coordinador → siempre; Analista → solo si asignado |
 | `available_actions(user)` | Lista de acciones según rol + estatus actual |
 
----
+______________________________________________________________________
 
 ## Modelos proxy (`tramites/models/tramite.py`)
 
@@ -352,7 +353,7 @@ Los tres proxy models comparten la misma tabla (`v_tramites_unificado`) pero fil
 
 El filtrado real se implementa en las clases `ModelAdmin` correspondientes (no en el modelo), usando `TramiteQuerySet.en_proceso()`, `.asignados_a()`, `.sin_asignar()` y `.finalizados()`.
 
----
+______________________________________________________________________
 
 ## Notas de relaciones entre entidades
 

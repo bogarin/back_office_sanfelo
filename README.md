@@ -2,7 +2,7 @@
 
 Microservicio de gestión de trámites para las dependencias del gobierno de San Felipe. Interfaz basada en Django Admin con roles RBAC (Administrador, Coordinador, Analista).
 
----
+______________________________________________________________________
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ docker compose exec backoffice python manage.py setup_roles
 
 **Guía completa:** [Despliegue en producción](docs/03-guides/sysadmins/deploy-production.md)
 
----
+______________________________________________________________________
 
 ## Arquitectura
 
@@ -54,7 +54,7 @@ docker compose exec backoffice python manage.py setup_roles
 | **Coordinador** | Asignar/reasignar, ver todos los trámites |
 | **Analista** | Solo trámites propios + disponibles |
 
----
+______________________________________________________________________
 
 ## Documentación
 
@@ -68,7 +68,7 @@ docker compose exec backoffice python manage.py setup_roles
 | [ADRs](docs/06-decisions/README.md) | Decisiones de arquitectura |
 | [Mapa completo](docs/README.md) | Índice de toda la documentación |
 
----
+______________________________________________________________________
 
 ## Comandos Útiles
 
@@ -82,7 +82,7 @@ just shell            # Django shell
 just setup_roles      # Crear grupos RBAC
 ```
 
----
+______________________________________________________________________
 
 ## Licencia
 

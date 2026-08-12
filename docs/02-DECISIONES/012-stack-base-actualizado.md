@@ -71,6 +71,7 @@ Un solo servidor PostgreSQL con dos esquemas:
 ### Arquitectura de Despliegue
 
 Contenedor único con Nginx + Gunicorn:
+
 - Nginx escucha en puerto 8080 (externo)
 - Gunicorn escucha en 127.0.0.1:8081 (interno)
 - Archivos estáticos servidos directamente por Nginx
@@ -120,8 +121,8 @@ Tres roles definidos en `core/rbac/constants.py`:
 Las alternativas originales (Java/NodeJS, Laravel) siguen descartadas por las mismas razones del ADR-001. Los cambios principales respecto a ADR-001 son:
 
 1. **SQLite → PostgreSQL schema:** Simplifica operaciones, elimina dual-DB
-2. **Redis rechazado:** LocMemCache suficiente para carga actual (ver ADR-003)
-3. **No REST API:** Django Admin cumple los requisitos del sistema
+1. **Redis rechazado:** LocMemCache suficiente para carga actual (ver ADR-003)
+1. **No REST API:** Django Admin cumple los requisitos del sistema
 
 ## Referencias
 

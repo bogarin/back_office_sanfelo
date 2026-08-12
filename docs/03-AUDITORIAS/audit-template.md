@@ -4,7 +4,7 @@
 > **Tipo:** {Calidad | Seguridad | Rendimiento | Documentación | Arquitectura}
 > **Estado:** {En Progreso | Completada}
 
----
+______________________________________________________________________
 
 ## 1. Objetivo
 
@@ -13,10 +13,12 @@
 ## 2. Alcance
 
 **Incluye:**
+
 - {Módulo, archivo o componente específico}
 - {Módulo, archivo o componente específico}
 
 **Excluye:**
+
 - {Lo que deliberadamente no se revisa y por qué}
 
 ## 3. Metodología y Criterios de Evaluación
@@ -60,7 +62,7 @@
 
 | Hallazgo | Acción | Responsable | Estado | Fecha límite |
 |----------|--------|-------------|--------|--------------|
-| H-{NNN}-001 | {Descripción de la corrección} | {Quién} | {Pendiente \| En Progreso \| Resuelto} | {YYYY-MM-DD} |
+| H-{NNN}-001 | {Descripción de la corrección} | {Quién} | {Pendiente | En Progreso | Resuelto} | {YYYY-MM-DD} |
 
 ## 6. Métricas
 

@@ -3,13 +3,13 @@
 > **Fuente de verdad:** `core/rbac/constants.py`, `core/rbac/__init__.py`, `core/models.py`, `tramites/models/tramite.py`
 > Última actualización: 9 de mayo de 2026
 
----
+______________________________________________________________________
 
 ## Resumen
 
 El sistema usa **RBAC (Role-Based Access Control)** con 3 roles implementados como grupos de Django. Los permisos custom controlan la visibilidad de secciones en el sidebar de Jazzmin. Un Custom User Model (`core.User`) expone properties de rol, y el modelo `Tramite` implementa permisos a nivel de objeto para controlar el acceso a trámites individuales.
 
----
+______________________________________________________________________
 
 ## Roles
 
@@ -21,7 +21,7 @@ El sistema usa **RBAC (Role-Based Access Control)** con 3 roles implementados co
 
 Definidos en `core/rbac/constants.py` como `BackOfficeRole(StrEnum)`.
 
----
+______________________________________________________________________
 
 ## Custom User Model
 
@@ -48,7 +48,7 @@ if user.is_coordinador:
 Las properties delegan a `_get_roles()` que:
 
 1. Retorna `user.roles` (cacheado por `CacheUserRolesMiddleware`) si está disponible
-2. Si no, consulta la base de datos: `user.groups.values_list('name', flat=True)`
+1. Si no, consulta la base de datos: `user.groups.values_list('name', flat=True)`
 
 En práctica, `CacheUserRolesMiddleware` siempre pobla `user.roles`, por lo que el fallback a BD es solo una salvaguarda.
 
@@ -58,7 +58,7 @@ La migración inicial del Custom User Model es `core/migrations/0001_custom_user
 
 > **Referencia:** `core/models.py`
 
----
+______________________________________________________________________
 
 ## Permisos por Rol
 
@@ -99,7 +99,7 @@ ADMINISTRADOR_APPS = ['auth', 'core', 'tramites']
 |---------|----------------|
 | `acceso_analista` | Mis trámites + Disponibles |
 
----
+______________________________________________________________________
 
 ## Proxy Models por Rol
 
@@ -114,7 +114,7 @@ Cada rol ve trámites a través de un proxy model diferente:
 
 > **Referencia:** `tramites/models/tramite.py`
 
----
+______________________________________________________________________
 
 ## Transiciones del Workflow
 
@@ -151,7 +151,7 @@ Cada método de acción (`requerir_documentos`, `en_diligencia`, `cerrar`) valid
 
 > **Referencia:** `tramites/models/tramite.py` (constante `TRANSITIONS`)
 
----
+______________________________________________________________________
 
 ## Permisos a Nivel de Objeto
 
@@ -222,7 +222,7 @@ Estos métodos son consumidos por:
 
 > **Referencia:** `tramites/models/tramite.py` (métodos `can_*` y `available_actions`)
 
----
+______________________________________________________________________
 
 ## Comando `setup_roles`
 
@@ -233,27 +233,28 @@ python manage.py setup_roles
 ```
 
 **Qué hace:**
+
 1. Crea 3 grupos: Administrador, Coordinador, Analista
-2. Crea 2 permisos custom en la BD (`acceso_analista`, `acceso_coordinador`)
-3. Limpia permisos existentes de cada grupo
-4. Asigna permisos estándar + custom según la configuración
+1. Crea 2 permisos custom en la BD (`acceso_analista`, `acceso_coordinador`)
+1. Limpia permisos existentes de cada grupo
+1. Asigna permisos estándar + custom según la configuración
 
 **Idempotente:** Se puede ejecutar múltiples veces sin efectos secundarios.
 
----
+______________________________________________________________________
 
 ## Asignar Roles a Usuarios
 
 Desde Django Admin:
 
 1. Ir a **Autenticación y Autorización → Usuarios**
-2. Seleccionar un usuario
-3. En **Grupos**, agregar: `Administrador`, `Coordinador`, o `Analista`
-4. Guardar
+1. Seleccionar un usuario
+1. En **Grupos**, agregar: `Administrador`, `Coordinador`, o `Analista`
+1. Guardar
 
 > **Nota:** Un usuario puede tener múltiples grupos, pero la interfaz está diseñada para un rol principal.
 
----
+______________________________________________________________________
 
 ## Middleware: CacheUserRolesMiddleware
 
@@ -268,7 +269,7 @@ Los roles se cachean por request, no por sesión. Si cambias el grupo de un usua
 
 Para usuarios anónimos, `request.user.roles` es un `set()` vacío.
 
----
+______________________________________________________________________
 
 ## Ver también
 

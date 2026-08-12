@@ -1,23 +1,28 @@
----
+______________________________________________________________________
+
 title: "ADR-009: Vista PostgreSQL Unificada para Trámites"
 status: accepted
 date: 2026-04-20
 decision-makers: Equipo de Arquitectura
 related:
-  - ADR-008: Separación de esquema PostgreSQL
----
+
+- ADR-008: Separación de esquema PostgreSQL
+
+______________________________________________________________________
 
 ## Contexto y Motivación
 
 El sistema de gestión de trámites operaba con múltiples modelos dispersos que dificultaban las operaciones de lectura y escritura. El admin de Django ejecutaba consultas complejas con múltiples JOINs que degradaban el rendimiento significativamente. Además, la separación entre bases de datos (SQLite para autenticación, PostgreSQL para lógica de negocio) impedía el uso de ForeignKeys tradicionales para relaciones cross-database.
 
 **Problemas identificados:**
+
 - Consultas lentas en el admin debido a JOINs múltiples entre `tramite`, `cat_tramite`, `cat_categoria`, `actividades`, y asignaciones
 - Inconsistencias potenciales entre múltiples tablas que representaban información de trámites
 - Dificultad para implementar filtros y búsquedas eficientes en listas de trámites
 - Falta de un mecanismo centralizado para mantener sincronizados los datos denormalizados
 
 **Restricciones:**
+
 - Arquitectura multi-database: PostgreSQL con separación de esquemas (backoffice + public) — ver ADR-008
 - Necesidad de mantener el historial completo de actividades de cada trámite
 - Requerimiento de performance para consultas de lectura frecuentes en el admin
@@ -31,15 +36,15 @@ Implementar una arquitectura de datos basada en una vista PostgreSQL denormaliza
 
 1. **Vista PostgreSQL `v_tramites_unificado`**: Vista READ-ONLY con 28 campos denormalizados que unifica datos de trámites, solicitantes, peritos, última actividad, y asignación actual.
 
-2. **Modelo `Tramite`**: Modelo Django que mapea a la vista PostgreSQL como `managed = False`, usando `ReadOnlyManager` para prevenir operaciones de escritura.
+1. **Modelo `Tramite`**: Modelo Django que mapea a la vista PostgreSQL como `managed = False`, usando `ReadOnlyManager` para prevenir operaciones de escritura.
 
-3. **Modelo `Actividades`**: Tabla fuente de verdad para todas las operaciones de escritura. PostgreSQL triggers mantienen la vista sincronizada.
+1. **Modelo `Actividades`**: Tabla fuente de verdad para todas las operaciones de escritura. PostgreSQL triggers mantienen la vista sincronizada.
 
-4. **Cache multi-nivel**: Estrategia de caché con 3 niveles (process, Django, request) para optimizar consultas de lectura de catálogos y distribución de estatus.
+1. **Cache multi-nivel**: Estrategia de caché con 3 niveles (process, Django, request) para optimizar consultas de lectura de catálogos y distribución de estatus.
 
-5. **Sistema de estatus con agrupación por prefijo**: Códigos numéricos agrupados en rangos lógicos (1xx: inicio, 2xx: proceso, 3xx: finalizado).
+1. **Sistema de estatus con agrupación por prefijo**: Códigos numéricos agrupados en rangos lógicos (1xx: inicio, 2xx: proceso, 3xx: finalizado).
 
-6. **Modelos proxy Django**: `Buzon` y `Disponible` como proxies de `Tramite` para implementar diferentes querysets especializados en el admin.
+1. **Modelos proxy Django**: `Buzon` y `Disponible` como proxies de `Tramite` para implementar diferentes querysets especializados en el admin.
 
 ## Decisiones de Arquitectura Detalladas
 
@@ -62,6 +67,7 @@ Vista READ-ONLY que unifica 28 campos desde múltiples tablas de origen:
 ### 2. Actividades como Fuente de Verdad (CQRS Parcial)
 
 Todas las operaciones de escritura se realizan en la tabla `Actividades`:
+
 - Cambios de estatus
 - Asignaciones
 - Observaciones
@@ -70,6 +76,7 @@ Todas las operaciones de escritura se realizan en la tabla `Actividades`:
 PostgreSQL triggers o actualizaciones sincronizan automáticamente la vista `v_tramites_unificado`. El modelo `Tramite` es exclusivamente READ-ONLY.
 
 **Separación de responsabilidades:**
+
 - **Lectura:** Modelo `Tramite` (vista PostgreSQL optimizada)
 - **Escritura:** Modelo `Actividades` (tabla fuente de verdad)
 - **Historial:** `Actividades` provee auditoría completa e inherente
@@ -79,6 +86,7 @@ PostgreSQL triggers o actualizaciones sincronizan automáticamente la vista `v_t
 Implementación de caché en 4 niveles diferentes:
 
 **Nivel 1: Process-level (`@lru_cache`)**
+
 - Manager: `CachedCatalogManager`
 - Uso: Catálogos read-only que cambian raramente
 - Alcance: Por worker process de Django
@@ -86,12 +94,14 @@ Implementación de caché en 4 niveles diferentes:
 - Invalidación: Manual vía `invalidate_cache()`
 
 **Nivel 2: Django Cache Framework**
+
 - Manager: `CachedReadOnlyManager`
 - Backend: LocMemCache (producción) o DummyCache (testing)
 - Timeout: 1 hora (3600 segundos)
 - Keys: `'sf_tramites:catalog:v1:{model_name}:all'`
 
 **Nivel 3: Request-level**
+
 - Middleware: `CacheUserRolesMiddleware`
 - Carga roles de usuario una vez por request
 - Almacenamiento: `request.user.roles` como `set`
@@ -107,6 +117,7 @@ Modelo `TramiteEstatus` con códigos numéricos agrupados en rangos:
 - **3xx: Finalizado** - POR_RECOGER (301), RECHAZADO (302), FINALIZADO (303), CANCELADO (304)
 
 **Método auxiliar:**
+
 ```python
 @classmethod
 def es_activo(cls, estatus: int) -> bool:
@@ -121,6 +132,7 @@ def es_activo(cls, estatus: int) -> bool:
 ### Vista PostgreSQL Denormalizada
 
 **Ventajas:**
+
 - Optimización de performance para consultas complejas (evita JOINs múltiples)
 - Simplificación de querysets en el admin de Django
 - Mantenimiento centralizado de lógica de join en la DB en lugar de código Python
@@ -128,6 +140,7 @@ def es_activo(cls, estatus: int) -> bool:
 - Auditoría inherente a través del historial de Actividades
 
 **Desventajas:**
+
 - Redundancia de datos (violación de normalización 3NF)
 - Mantenimiento complejo de la vista y triggers DB
 - Vendor lock-in a PostgreSQL (no portable a otros DBMS)
@@ -138,12 +151,14 @@ def es_activo(cls, estatus: int) -> bool:
 ### Cache Multi-Nivel
 
 **Ventajas:**
+
 - Reducción significativa de carga en base de datos (medido: -1,100ms cold para distribución de estatus)
 - Mejor tiempo de respuesta para consultas frecuentes
 - Separación de preocupaciones por nivel (process vs Django cache vs request)
 - Menos dependencias externas (LocMemCache no requiere infraestructura adicional)
 
 **Desventajas:**
+
 - Complejidad de invalidación y consistencia eventual
 - Múltiples puntos de fallo en la arquitectura
 - Riesgo de datos inconsistentes entre niveles de caché
@@ -154,6 +169,7 @@ def es_activo(cls, estatus: int) -> bool:
 ### Actividades como Fuente de Verdad (CQRS Parcial)
 
 **Ventajas:**
+
 - Separación clara entre lectura y escritura
 - Auditoría completa a través del registro de Actividades
 - Sincronización automática vía triggers DB (más robusto que signals Django)
@@ -162,6 +178,7 @@ def es_activo(cls, estatus: int) -> bool:
 - Simplificación de queries de lectura (no necesitan JOINs con historial)
 
 **Desventajas:**
+
 - Asincronía potencial entre escritura y disponibilidad en la vista
 - Complejidad aumentada para debugging de flujo de datos
 - Dependencia crítica de triggers de DB (single point of failure)
@@ -172,6 +189,7 @@ def es_activo(cls, estatus: int) -> bool:
 ### Sistema de Estatus con Agrupación por Prefijo
 
 **Ventajas:**
+
 - Facilita agrupamiento y filtrado por categorías lógicas
 - Ordenamiento natural basado en prefijos numéricos
 - Semántica clara en el código (1xx = inicio, 2xx = proceso, 3xx = finalizado)
@@ -179,6 +197,7 @@ def es_activo(cls, estatus: int) -> bool:
 - Agrupación visual en el admin por rangos
 
 **Desventajas:**
+
 - Fragilidad del esquema si el rango numérico cambia
 - Sin enforcement automático en DB (puede haber códigos inválidos)
 - Dificultad para reordenamiento lógico sin afectar código existente
@@ -224,27 +243,33 @@ def es_activo(cls, estatus: int) -> bool:
 ### Para Vista PostgreSQL Denormalizada
 
 #### Alternativa 1: JOINs directos en Django ORM
+
 **Descripción:** Mantener queries con múltiples joins en código Python usando select_related/prefetch_related.
 
 **Por qué fue rechazada:**
+
 - Performance inaceptable con muchos registros (medido: +1-2 segundos por página en admin)
 - Queries complejas difíciles de mantener y entender
 - Optimizador de Django menos eficiente que el de PostgreSQL
 - Dificultad para reutilizar queries en diferentes contextos
 
 #### Alternativa 2: Materialized Views
+
 **Descripción:** Vista materializada refrescada periódicamente con REFRESH MATERIALIZED VIEW.
 
 **Por qué fue rechazada:**
+
 - No soportado en versiones anteriores a PostgreSQL 9.3 (versión mínima del proyecto)
 - Require refrescos manuales o schedule complejo
 - Complejidad de invalidación incremental (REFRESH CONCURRENTLY tiene restricciones)
 - Latencia hasta el próximo refresco
 
 #### Alternativa 3: Pre-calcular campos en modelos
+
 **Descripción:** Campos calculados en tiempo de guardado, almacenados como columnas adicionales en tablas.
 
 **Por qué fue rechazada:**
+
 - Requiere sincronización manual en múltiples tablas
 - Alto riesgo de inconsistencia entre tablas
 - Complejidad aumentada en todas las operaciones de escritura
@@ -253,25 +278,31 @@ def es_activo(cls, estatus: int) -> bool:
 ### Para Cache Multi-Nivel
 
 #### Alternativa 1: Solo caché Django (memcached/Redis)
+
 **Descripción:** Un único nivel de caché distribuido usando Django cache framework exclusivamente.
 
 **Por qué fue rechazada:**
+
 - Insuficiente para catálogos que cambian raramente (beneficio de @lru_cache para process-level es significativo)
 - Mayor latencia de red para cada consulta de catálogo
 - Menor aprovechamiento de memoria local de cada worker
 
 #### Alternativa 2: Solamente @lru_cache
+
 **Descripción:** Solo caché en nivel de proceso usando functools.lru_cache.
 
 **Por qué fue rechazada:**
+
 - No escala horizontalmente (cada worker tiene su propia caché)
 - Inconsistencia entre workers si caché se invalida en solo uno
 - No apropiado para datos que cambian frecuentemente
 
 #### Alternativa 3: Solo caché request-level
+
 **Descripción:** Caché solo en duración de request sin persistencia entre requests.
 
 **Por qué fue rechazada:**
+
 - No beneficia queries repetidas entre diferentes requests
 - Mayor carga en base de datos para catálogos que cambian raramente
 - No aprovecha patrones de acceso repetitivos
@@ -279,27 +310,33 @@ def es_activo(cls, estatus: int) -> bool:
 ### Para Separación Tramite/Actividades
 
 #### Alternativa 1: Modelo único lectura/escritura
+
 **Descripción:** Un solo modelo Tramite con campos normales que se actualizan directamente.
 
 **Por qué fue rechazada:**
+
 - Complejidad de sincronización entre múltiples tablas relacionadas
 - Alto riesgo de inconsistencia de datos
 - Queries complejas requeridas para obtener estado actualizado
 - Pérdida de auditoría inherente
 
 #### Alternativa 2: Signals Django para sincronización
+
 **Descripción:** Usar post_save, post_delete signals para mantener vista sincronizada.
 
 **Por qué fue rechazada:**
+
 - Menos robusto que triggers DB (puede fallar silenciosamente si no está bien configurado)
 - No garantiza atomicidad de transacciones en algunos casos
 - Mayor complejidad de implementación y debugging
 - Dependencia de código Python vs lógica nativa de DB
 
 #### Alternativa 3: Servicio de sincronización externalizado
+
 **Descripción:** Background worker (ej. Celery) que sincroniza datos periódicamente.
 
 **Por qué fue rechazada:**
+
 - Mayor latencia entre escritura y disponibilidad en lectura
 - Complejidad de infraestructura adicional
 - Requiere monitoreo y alertas extra
@@ -308,27 +345,33 @@ def es_activo(cls, estatus: int) -> bool:
 ### Para Relaciones Cross-Database
 
 #### Alternativa 1: Migrar a una sola DB
+
 **Descripción:** Mover todas las tablas a PostgreSQL en un solo schema.
 
 **Por qué fue rechazada:**
+
 - Costo y riesgo de migración muy alto
 - Puede requerir downtime significativo
 - Depende de otros sistemas que usan SQLite para auth
 - Cambio mayor de arquitectura sin justificación de ROI suficiente
 
 #### Alternativa 2: Implementar FK virtual con custom lookups
+
 **Descripción:** Campo custom que simula comportamiento de ForeignKey usando IntegerField.
 
 **Por qué fue rechazada:**
+
 - Complejidad de implementación elevada
 - Menos claro que IntegerField simple
 - Más puntos de fallo en la implementación custom
 - Dificultad para debugging cuando hay problemas
 
 #### Alternativa 3: Usar IDs con strings
+
 **Descripción:** Foreign keys como strings en lugar de integers para relaciones.
 
 **Por qué fue rechazada:**
+
 - Mayor overhead de storage (strings vs integers)
 - Sin validación de tipo nativa
 - Impacto negativo en performance
@@ -339,6 +382,7 @@ def es_activo(cls, estatus: int) -> bool:
 ### Alcance
 
 **Partes del sistema afectadas:**
+
 - Modelo `Tramite` y todos sus derivados (Buzon, Disponible)
 - Admin de trámites (TramitesAdmin, BuzonTramitesAdmin, TramitesDisponiblesAdmin)
 - Modelo `Actividades` como fuente de verdad
@@ -347,6 +391,7 @@ def es_activo(cls, estatus: int) -> bool:
 - Router multi-database (`core/db_router.py`)
 
 **Teams o módulos impactados:**
+
 - Equipo de backend (Django)
 - Equipo de DBA (PostgreSQL, triggers, vistas)
 - Equipo de QA (testing de integración)
@@ -355,6 +400,7 @@ def es_activo(cls, estatus: int) -> bool:
 ### Costos
 
 **Costos de implementación:**
+
 - Desarrollo de vista PostgreSQL y triggers: ~40 horas
 - Migración de código admin y modelos: ~60 horas
 - Implementación de cache multi-nivel: ~30 horas
@@ -362,12 +408,14 @@ def es_activo(cls, estatus: int) -> bool:
 - **Total estimado:** ~170 horas de desarrollo (abril 2026)
 
 **Costos de mantenimiento:**
+
 - Mantenimiento de vista PostgreSQL y triggers: ~4 horas/mes
 - Monitoreo de sincronización y consistencia: ~2 horas/mes
 - Ajustes de estrategias de invalidación de caché: ~2 horas/mes
 - **Total estimado:** ~8 horas/mes
 
 **Justificación ROI:**
+
 - Mejora de performance en admin: -1,500ms por página (cold) → -200ms (warm)
 - Reducción de queries complejas: De ~15 JOINs por query a 0
 - Simplificación de código admin: ~30% menos código en queryset logic
@@ -376,24 +424,28 @@ def es_activo(cls, estatus: int) -> bool:
 ### Riesgos
 
 **Riesgo 1: Desincronización entre Actividades y Tramite**
+
 - **Probabilidad:** Media
 - **Impacto:** Alto
 - **Descripción:** Triggers DB pueden fallar o tener performance issues, dejando la vista desincronizada silenciosamente.
 - **Mitigación:** Implementar health checks que comparen counts; logging de errores de triggers; alertas de monitoreo.
 
 **Riesgo 2: Vendor Lock-in a PostgreSQL**
+
 - **Probabilidad:** Alta
 - **Impacto:** Medio
 - **Descripción:** Vista y triggers específicos de PostgreSQL no son portables a otros DBMS.
 - **Mitigación:** Documentar claramente dependencias; evaluar migración solo si hay justificación de ROI; considerar vistas SQL estándar donde sea posible.
 
 **Riesgo 3: Complejidad de Invalidación en Cache Multi-Nivel**
+
 - **Probabilidad:** Media
 - **Impacto:** Medio
 - **Descripción:** Difícil garantizar consistencia entre 3 niveles de caché (process, Django, request).
 - **Mitigación:** Implementar signals consistentes; tests de integración de caché; documentar estrategias de invalidación.
 
 **Riesgo 4: Performance Degradation con Growth**
+
 - **Probabilidad:** Media
 - **Impacto:** Alto
 - **Descripción:** Vista y triggers pueden degradar performance cuando la base de datos crece significativamente.
@@ -402,12 +454,14 @@ def es_activo(cls, estatus: int) -> bool:
 ### Dependencias
 
 **Qué depende de esta decisión:**
+
 - ADR-008: Separación de esquema PostgreSQL (prerrequisito fundamental)
 - Sistema de usuarios y roles (usa Tramite para filtros)
 - Sistema de notificaciones (depende de cambios de estatus en Actividades)
 - Dashboard y reportes (usan Tramite para visualización)
 
 **De qué depende esta decisión:**
+
 - Infraestructura de PostgreSQL con triggers habilitados
 - Router multi-database correctamente configurado
 - Sistema de caché (LocMemCache) disponible
@@ -436,26 +490,31 @@ def es_activo(cls, estatus: int) -> bool:
 ### Componentes Técnicos
 
 **Modelos:**
+
 - `Tramite` (`tramites/models/tramite.py`) - Modelo principal READ-ONLY
 - `Buzon` (proxy de Tramite) - Para trámites asignados al usuario
 - `Disponible` (proxy de Tramite) - Para trámites disponibles para toma
 - `Actividades` (`tramites/models/actividades.py`) - Fuente de verdad para escritura
 
 **Admin:**
+
 - `TramitesAdmin` - Para coordinadores y administradores (todos los trámites activos)
 - `BuzonTramitesAdmin` - Para analistas (sus trámites asignados)
 - `TramitesDisponiblesAdmin` - Para analistas (trámites disponibles para toma)
 
 **Managers:**
+
 - `ReadOnlyManager` - Previene todas las operaciones de escritura
 - `CreateOnlyManager` - Permite CREATE pero bloquea UPDATE/DELETE
 - `CachedCatalogManager` - Cache process-level con `@lru_cache`
 - `CachedReadOnlyManager` - Cache Django framework con 1h TTL
 
 **Middleware:**
+
 - `CacheUserRolesMiddleware` - Carga roles una vez por request
 
 **Router:**
+
 - `core/db_router.py` - Maneja routing entre SQLite (auth) y PostgreSQL (business)
 
 ### Filtros Implementados
@@ -469,15 +528,18 @@ def es_activo(cls, estatus: int) -> bool:
 ### Acciones Implementadas
 
 **Acciones rápidas (Quick Actions):**
+
 - `tomar_rapido` - Autoasignación para analistas
 - `liberar_rapido` - Liberación para coordinadores/admins
 
 **Acciones en lote (Bulk Actions):**
+
 - `modificar_asignacion` - Formulario para asignar/reasignar/liberar trámites
 
 ### Rango de Estatus Activo
 
 Solo se muestran trámites activos en el admin (estatus 200-299):
+
 - PRESENTADO (201)
 - EN_REVISION (202)
 - REQUERIMIENTO (203)
@@ -505,6 +567,7 @@ Excluidos: BORRADOR, PENDIENTE_PAGO, PAGO_EXPIRADO (100-199), POR_RECOGER, RECHA
 ## Referencias
 
 **Archivos de código:**
+
 - `/home/nnieto/Code/SF/backoffice_tramites/tramites/models/tramite.py` - Modelo principal Tramite y configuración
 - `/home/nnieto/Code/SF/backoffice_tramites/tramites/admin.py` - Configuración del admin
 - `/home/nnieto/Code/SF/backoffice_tramites/tramites/models/managers.py` - Managers de cache y acceso controlado
@@ -512,22 +575,27 @@ Excluidos: BORRADOR, PENDIENTE_PAGO, PAGO_EXPIRADO (100-199), POR_RECOGER, RECHA
 - `/home/nnieto/Code/SF/backoffice_tramites/tramites/models/actividades.py` - Modelo Actividades (fuente de verdad)
 
 **Documentación relacionada:**
+
 - `docs/02-DECISIONES/008-postgresql-schema-separation.md` - ADR sobre separación de esquema PostgreSQL
 - `docs/02-DECISIONES/003-estrategia-caching-rendimiento.md` - ADR sobre arquitectura de caché
 - `docs/01-guides/MODEL_MAPPINGS.md` - Mapeo de modelos a tablas y vistas
 
 **Commits relevantes:**
+
 - `d461db3` (2026-04-20): Consolidar modelos Tramite y TramiteUnificado
 - `a2f5e9c` (2026-04-17): Implement simplified tramites assignment system
 - `b4c7d1f` (2026-04-13): Optimize admin changelist queries and refactor RBAC
 - `e8f9a2b` (2026-04-07): Consolidar modelos de catálogos en app tramites
 
 **Issues/Tracking:**
+
 - Trello/GitHub issues relacionados con performance del admin y optimización de queries
 
 **Documentación PostgreSQL:**
+
 - PostgreSQL Documentation: CREATE VIEW, CREATE TRIGGER, Materialized Views
 - PostgreSQL Performance Optimization: Views, Indexes, Triggers
 
 **Documentación Django:**
+
 - Django Documentation: Multiple Databases, Proxy Models, Managers, Cache Framework

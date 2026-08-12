@@ -3,7 +3,7 @@
 > **Términos clave del dominio que necesitas conocer**
 > Última actualización: 23 de abril de 2026
 
----
+______________________________________________________________________
 
 ## Términos de Negocio
 
@@ -60,7 +60,7 @@ Tabla de referencia con datos maestros del sistema. Los catálogos son gestionad
 - `cat_requisito` — Requisitos para trámites
 - `cat_tipo` — Tipos de requisito
 
----
+______________________________________________________________________
 
 ## Términos Técnicos
 
@@ -131,7 +131,7 @@ Servidor WSGI que ejecuta la aplicación Django. Se configura con múltiples wor
 
 Backend de cache que Django proporciona por defecto. Almacena datos en memoria RAM por proceso. Cada worker de Gunicorn tiene su propia cache.
 
----
+______________________________________________________________________
 
 ## Abreviaturas
 
@@ -147,7 +147,7 @@ Backend de cache que Django proporciona por defecto. Almacena datos en memoria R
 | CRUD | Create, Read, Update, Delete |
 | ADR | Architecture Decision Record (Registro de Decisión de Arquitectura) |
 
----
+______________________________________________________________________
 
 ## Ver también
 

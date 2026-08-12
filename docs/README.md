@@ -3,7 +3,7 @@
 > Índice completo de la documentación del proyecto.
 > Última actualización: 9 de mayo de 2026
 
----
+______________________________________________________________________
 
 ## Estructura
 
@@ -41,7 +41,7 @@ docs/
 └── _templates/               # Plantillas para nuevos documentos
 ```
 
----
+______________________________________________________________________
 
 ## Por Sección
 
@@ -92,8 +92,8 @@ docs/
 
 | Documento | Descripción |
 |-----------|-------------|
-| [Design System](04-DISEÑO-Y-UX/design-system.md) | Paleta, tipografía, componentes, modo oscuro |
-| [Interfaz Admin](04-DISEÑO-Y-UX/admin-interface.md) | Clases Admin, acciones, templates, Jazzmin |
+| [Design System](04-DISE%C3%91O-Y-UX/design-system.md) | Paleta, tipografía, componentes, modo oscuro |
+| [Interfaz Admin](04-DISE%C3%91O-Y-UX/admin-interface.md) | Clases Admin, acciones, templates, Jazzmin |
 
 ### 05-DEVELOPERS — Cómo construirlo y operarlo
 
@@ -110,7 +110,7 @@ docs/
 | [RBAC](05-DEVELOPERS/rbac.md) | Roles, permisos y Custom User Model |
 | [SFTP](05-DEVELOPERS/sftp.md) | Arquitectura de serving de PDFs |
 
----
+______________________________________________________________________
 
 ## Convenciones
 

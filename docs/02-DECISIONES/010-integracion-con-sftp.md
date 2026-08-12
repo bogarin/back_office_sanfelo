@@ -10,15 +10,15 @@ La integración debe cumplir con los requisitos de un sistema gubernamental: aud
 
 ## Opciones Consideradas
 
-* **Opción 1**: Servicio Django con classmethods y caché local — Acceso via Nginx X-Accel-Redirect
-* **Opción 2**: Proxy SFTP vía nginx sin validación en aplicación
-* **Opción 3**: Descarga directa por URL firmada con expiry (AWS S3 presigned URL style)
+- **Opción 1**: Servicio Django con classmethods y caché local — Acceso via Nginx X-Accel-Redirect
+- **Opción 2**: Proxy SFTP vía nginx sin validación en aplicación
+- **Opción 3**: Descarga directa por URL firmada con expiry (AWS S3 presigned URL style)
 
 ## Resultado de la Decisión
 
 Opción elegida: **"Servicio Django con classmethods y caché local"**, porque es la única opción que permite validación de autorización a nivel de objeto antes de servir el archivo, mantiene auditoría completa de descargas, y permite defensa en profundidad con validación de caracteres prohibidos y regex en Python antes de cualquier interacción con el servidor SFTP.
 
----
+______________________________________________________________________
 
 ## Decisiones de Arquitectura
 
@@ -32,9 +32,10 @@ Opción elegida: **"Servicio Django con classmethods y caché local"**, porque e
 | `MAX_DOWNLOAD_FILE_SIZE_BYTES` | 52428800 bytes (50 MB) | Validación de tamaño antes de descarga completa |
 
 **Estrategia de eviction**: El comando de administración `clearsftpcache` implementa tres políticas:
+
 1. Evict de archivos con antigüedad mayor a TTL
-2. Evict LRU cuando se excede el tamaño máximo
-3. Limpieza de archivos huérfanos con extensión `.downloading` mayores a 2x TTL
+1. Evict LRU cuando se excede el tamaño máximo
+1. Limpieza de archivos huérfanos con extensión `.downloading` mayores a 2x TTL
 
 **Diseño del directorio de caché**: Estructura `{caché_dir}/{folio}/{filename}` para evitar colisiones entre trámites. La verificación de cache-hit usa `O_NOFOLLOW` para prevenir ataques de symlink malicious. El renombrado atómico de archivo temporal a final se realiza con `os.rename()`, el cual es atómico en Linux cuando origen y destino están en el mismo filesystem.
 
@@ -45,10 +46,12 @@ Opción elegida: **"Servicio Django con classmethods y caché local"**, porque e
 **Razón del rechazo de pooling**: La complejidad adicional de gestión de estado (reconexión automática, heartbeat), el riesgo de conexiones zombis en entornos WSGI con reload, y el hecho de que paramiko no provee pooling nativo. El overhead del handshake SSH es marginal comparado con la latencia de red para transferir archivos de 10-50 MB.
 
 **Autenticación soportada** (en orden de prioridad):
+
 1. SSH private key (RSA, Ed25519, ECDSA) con passphrase opcional
-2. Password authentication
+1. Password authentication
 
 **Políticas de host key** (graduadas según entorno):
+
 - `RejectPolicy`: Producción con variable `SFTP_HOST_KEY` configurada
 - `WarningPolicy`: Desarrollo sin host key (loguea warning)
 - Error: Producción sin host key (configuración inválida)
@@ -91,7 +94,7 @@ En producción se añaden headers de seguridad: `X-Content-Type-Options: nosniff
 | `SFTP_HOST_KEY` | Clave host del servidor SFTP (SHA256) para verificación en producción |
 | `SFTP_TIMEOUT` | Timeout para operaciones SFTP (opcional) |
 
----
+______________________________________________________________________
 
 ## Características de Seguridad Implementadas
 
@@ -114,9 +117,9 @@ La validación de entradas sigue tres capas:
 
 1. **Rechazo de caracteres prohibidos**: Los caracteres `/`, `\`, `NUL` (byte 0), y para folio también `.` son rechazados primero. Esto neutraliza ataques de path traversal en la capa más baja.
 
-2. **Validación por regex anclado**: Se aplica regex con anclaje `^` y `$` para`folio` (`^[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]$`) y para `filename` (`^[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]-(?P<nombre>[A-Z]+)\.pdf$`). El anclaje garantiza que no haya secuencias de escape como `../../../etc/passwd.pdf`.
+1. **Validación por regex anclado**: Se aplica regex con anclaje `^` y `$` para`folio` (`^[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]$`) y para `filename` (`^[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]-(?P<nombre>[A-Z]+)\.pdf$`). El anclaje garantiza que no haya secuencias de escape como `../../../etc/passwd.pdf`.
 
-3. **Aserción en el boundary con nginx**: Se añade una aserción defensiva que verifica que la ruta construida para X-Accel-Redirect no contiene `..`, proporcionando una última capa de defensa antes de handed-off a nginx.
+1. **Aserción en el boundary con nginx**: Se añade una aserción defensiva que verifica que la ruta construida para X-Accel-Redirect no contiene `..`, proporcionando una última capa de defensa antes de handed-off a nginx.
 
 ### Registro de Auditoría
 
@@ -129,13 +132,14 @@ La vista de descarga utiliza el decorator `@staff_member_required` de Django adm
 ### Verificación de Integridad de Caché
 
 Al verificar un archivo en caché, se valida que:
+
 - El archivo no sea un symlink (`O_NOFOLLOW` en `os.open`)
 - El tamaño sea mayor a cero (`st_size > 0`)
 - El archivo sea regular (`S_ISREG`)
 
 Esto previene ataques de symlink maliciosos donde un atacante crea un symlink en el directorio de caché pointing a `/etc/passwd` o archivos sensibles.
 
----
+______________________________________________________________________
 
 ## Decisiones Descartadas
 
@@ -163,7 +167,7 @@ Esto previene ataques de symlink maliciosos donde un atacante crea un symlink en
 
 **Razón del rechazo**: Acoplamiento con sistema de archivos externo, complejidad de event handling, y TTL de 1 hora es suficiente para el volumen esperado.
 
----
+______________________________________________________________________
 
 ## Siguientes Pasos (Deuda Técnica)
 
@@ -183,14 +187,15 @@ Actualizar el healthcheck para incluir no solo listing del directorio base sino 
 
 Instrumentar el servicio con métricas (Prometheus o datadog) para registrar hit/miss del caché y optimizar los valores de TTL y tamaño máximo.
 
----
+______________________________________________________________________
 
 ## Información Adicional
 
 Este ADR complementa las decisiones documentadas en:
+
 - ADR 007: Implementación RBAC Django 3. Decisión de roles de backoffice (analista, coordinador, administrador)
 - ADR 005: Despliegue Docker + Gunicorn. Configuración de contenedor
 
----
+______________________________________________________________________
 
 Formato basado en [MADR](https://adr.github.io/madr/)

@@ -5,6 +5,8 @@ Configures the admin interface for the backoffice with:
 - Custom User admin with role-based display
 """
 
+from typing import TYPE_CHECKING
+
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.contrib.auth import get_user_model
@@ -19,6 +21,9 @@ from django.utils.translation import gettext_lazy as _
 from core.admin_utils import render_activo_badge, render_badge, render_quick_action
 from core.forms import CustomUserAddForm, CustomUserChangeForm
 from core.rbac.constants import BackOfficeRole
+
+if TYPE_CHECKING:
+    from core.models import User as UserType
 
 User = get_user_model()
 
@@ -36,13 +41,13 @@ class EstadoFilter(SimpleListFilter):
     title = 'Estado'
     parameter_name = 'is_active'
 
-    def lookups(self, request, model_admin):
-        return (
+    def lookups(self, request, model_admin):  # noqa: ARG002
+        return [
             ('1', 'Activo'),
             ('0', 'Inactivo'),
-        )
+        ]
 
-    def queryset(self, request, queryset):
+    def queryset(self, request, queryset):  # noqa: ARG002
         value = self.value()
         if value == '1':
             return queryset.filter(is_active=True)
@@ -62,11 +67,11 @@ class RolFilter(SimpleListFilter):
     title = 'Rol'
     parameter_name = 'rol'
 
-    def lookups(self, request, model_admin):
+    def lookups(self, request, model_admin):  # noqa: ARG002
         roles = [(role, role.capitalize()) for role in BackOfficeRole]
         return [*roles, ('sin_rol', 'Sin rol')]
 
-    def queryset(self, request, queryset):
+    def queryset(self, request, queryset):  # noqa: ARG002
         value = self.value()
         if value == 'sin_rol':
             return queryset.exclude(groups__name__in=list(BackOfficeRole))
@@ -181,7 +186,7 @@ class BackofficeUserAdmin(UserAdmin):
 
     # -- Form configuration ---------------------------------------------------
 
-    def get_form(self, request, obj=None, change=False, **kwargs):
+    def get_form(self, request, obj=None, change=False, **kwargs):  # noqa: ARG002
         """Return CustomUserAddForm for new users, CustomUserChangeForm for edits."""
         if obj is None:
             return CustomUserAddForm
@@ -266,7 +271,7 @@ class BackofficeUserAdmin(UserAdmin):
             del actions['delete_selected']
         return actions
 
-    def delete_model(self, request, obj):
+    def delete_model(self, request, obj):  # noqa: ARG002
         """Soft delete: mark as inactive instead of removing from DB.
 
         Intentionally skips ``super().delete_model()`` to preserve the
@@ -275,20 +280,21 @@ class BackofficeUserAdmin(UserAdmin):
         obj.is_active = False
         obj.save()
 
-    def delete_queryset(self, request, queryset):
+    def delete_queryset(self, request, queryset):  # noqa: ARG002
         """Prevent bulk hard delete — mark as inactive instead."""
         queryset.update(is_active=False)
 
+    @admin.display(description=_('Usuario'))
     def usuario(self, obj) -> str:
         """Display user's full name or username."""
         full_name = f'{obj.get_full_name()}'.strip()
-        return full_name if full_name else obj.username
+        return full_name or obj.username
 
-    usuario.short_description = _('Usuario')
-
-    def usuario_estatus(self, obj: User) -> str:
+    @admin.display(description=_('Activo'))
+    def usuario_estatus(self, obj: UserType) -> str:
         return render_activo_badge(obj.is_active)
 
+    @admin.display(description=_('Rol'), ordering='groups__name')
     def rol(self, obj) -> str:
         """Display user role as a badge.
 
@@ -309,9 +315,6 @@ class BackofficeUserAdmin(UserAdmin):
 
         return render_badge(_('Sin rol'), 'badge-secondary')
 
-    rol.short_description = _('Rol')
-    rol.admin_order_field = 'groups__name'
-
     def user_change_password(self, request, id, form_url=''):
         """Override to prevent non-superusers from changing superuser passwords."""
 
@@ -320,7 +323,8 @@ class BackofficeUserAdmin(UserAdmin):
             raise PermissionDenied
         return super().user_change_password(request, id, form_url)
 
-    def acciones(self, obj: User) -> str:
+    @admin.display(description=_('Acciones'))
+    def acciones(self, obj: UserType) -> str:
         """Quick action links for the user list.
 
         Only shows password change link for superusers if current user
@@ -333,5 +337,3 @@ class BackofficeUserAdmin(UserAdmin):
             return '—'
         url = reverse('admin:core_user_password_change', args=[obj.pk])
         return render_quick_action('🔑 Cambiar contraseña', target=url)
-
-    acciones.short_description = _('Acciones')

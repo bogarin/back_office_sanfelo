@@ -16,6 +16,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
+from django.template.response import TemplateResponse
 from django.utils import timezone as _tz
 from django.utils.safestring import mark_safe
 
@@ -89,15 +90,16 @@ class AsignadoUserFilter(admin.SimpleListFilter):
         return options
 
     def queryset(self, request, queryset):
-        match self.value():
-            case None:
-                qset = queryset
+        value = self.value()
+        if value is None:
+            return queryset
+        match value:
             case '_none':
                 qset = queryset.filter(asignado_user_id__isnull=True)
             case '_user':
                 qset = queryset.filter(asignado_user_id=request.user.id)
             case _:
-                qset = queryset.filter(asignado_user_id=int(self.value()))
+                qset = queryset.filter(asignado_user_id=int(value))
         return qset
 
 
@@ -348,7 +350,9 @@ class TramiteBaseAdmin(admin.ModelAdmin):
 
         return mark_safe(' '.join(buttons))
 
-    def changelist_view(self, request, extra_context: dict[str, str] | None = None) -> None:
+    def changelist_view(
+        self, request, extra_context: dict[str, str] | None = None
+    ) -> TemplateResponse:
         """
         Override to store request for use in ``acciones_disponibles``.
         """

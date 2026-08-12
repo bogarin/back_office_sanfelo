@@ -14,7 +14,7 @@ El sistema utiliza **tres roles** implementados como Django Groups. Cada usuario
 
 > **Referencia técnica:** Los roles están definidos en `core/rbac/constants.py` como el enum `BackOfficeRole`. Las decisiones de diseño se documentan en [ADR-013](../02-DECISIONES/013-rbac-tres-roles.md) y [ADR-014](../02-DECISIONES/014-custom-user-workflow-permissions.md).
 
----
+______________________________________________________________________
 
 ## Paso 1 — Ejecutar `setup_roles`
 
@@ -40,32 +40,33 @@ Role setup completed successfully
 ### 1.2 ¿Qué hace este comando?
 
 1. **Crea los tres grupos** (`Administrador`, `Coordinador`, `Analista`) si no existen.
-2. **Asigna permisos estándar de Django:**
+1. **Asigna permisos estándar de Django:**
    - **Administrador**: todos los permisos (`add`, `change`, `delete`, `view`) sobre las apps `auth`, `core` y `tramites`.
    - **Coordinador**: sin permisos estándar (solo permisos personalizados).
    - **Analista**: sin permisos estándar (solo permisos personalizados).
-3. **Crea y asigna permisos personalizados** que controlan la visibilidad del sidebar:
+1. **Crea y asigna permisos personalizados** que controlan la visibilidad del sidebar:
    - `acceso_analista` → secciones "Mis trámites" + "Disponibles" (Analista y Administrador).
    - `acceso_coordinador` → secciones "Trámites en curso" + "Finalizados" (Coordinador y Administrador).
-4. **Repara inconsistencias de `is_staff`**: si un usuario pertenece a un grupo de rol pero tiene `is_staff=False`, lo corrige automáticamente.
+1. **Repara inconsistencias de `is_staff`**: si un usuario pertenece a un grupo de rol pero tiene `is_staff=False`, lo corrige automáticamente.
 
 ### 1.3 Ejecución automática
 
 El comando se ejecuta automáticamente después de cada `python manage.py migrate` gracias a la señal `post_migrate` definida en `core/signals.py`. No necesitas ejecutarlo manualmente a menos que:
+
 - Estés configurando una base de datos desde cero sin correr migraciones.
 - Sospeches que los permisos están desincronizados.
 
 El comando es **idempotente**: puedes ejecutarlo cuantas veces quieras sin duplicar datos.
 
----
+______________________________________________________________________
 
 ## Paso 2 — Crear un usuario en Django Admin
 
 ### 2.1 Acceder al formulario
 
 1. Inicia sesión en `/admin/` con un usuario Administrador o superusuario.
-2. En el sidebar, ve a **Usuarios** (dentro de la sección "Core").
-3. Haz clic en **Añadir usuario** (esquina superior derecha).
+1. En el sidebar, ve a **Usuarios** (dentro de la sección "Core").
+1. Haz clic en **Añadir usuario** (esquina superior derecha).
 
 ### 2.2 Completar el formulario
 
@@ -84,23 +85,24 @@ El formulario de alta (`CustomUserAddForm`) presenta los siguientes campos:
 El método `BackofficeUserAdmin.save_model()` ejecuta automáticamente:
 
 1. **`is_staff = True`** → Todo usuario con un rol válido puede acceder al admin.
-2. **`is_active = True`** → Los usuarios nuevos siempre se crean activos.
-3. **Asignación al grupo** → Se elimina cualquier grupo de rol previo y se agrega al grupo seleccionado.
-4. Todo se ejecuta dentro de una transacción atómica (si algo falla, no se crea el usuario).
+1. **`is_active = True`** → Los usuarios nuevos siempre se crean activos.
+1. **Asignación al grupo** → Se elimina cualquier grupo de rol previo y se agrega al grupo seleccionado.
+1. Todo se ejecuta dentro de una transacción atómica (si algo falla, no se crea el usuario).
 
 > **Nota:** Los campos `is_staff`, `is_superuser` y `is_active` no aparecen en el formulario porque se gestionan automáticamente. El campo `is_staff` se muestra como deshabilitado con una nota que indica que se controla por el rol.
 
----
+______________________________________________________________________
 
 ## Paso 3 — Asignar o cambiar el rol de un usuario
 
 ### 3.1 Desde el formulario de edición
 
 1. Ve a **Usuarios** y haz clic en el nombre del usuario.
-2. El formulario de edición (`CustomUserChangeForm`) muestra el campo **Rol** con el rol actual preseleccionado.
-3. Cambia el valor del selector y guarda.
+1. El formulario de edición (`CustomUserChangeForm`) muestra el campo **Rol** con el rol actual preseleccionado.
+1. Cambia el valor del selector y guarda.
 
 El sistema automáticamente:
+
 - Remueve al usuario del grupo de rol anterior.
 - Lo agrega al nuevo grupo.
 - Mantiene `is_staff = True` mientras tenga un rol válido.
@@ -109,12 +111,12 @@ El sistema automáticamente:
 ### 3.2 Desde la acción masiva "Asignar rol"
 
 1. En la lista de usuarios, selecciona uno o varios usuarios con los checkboxes.
-2. En el menú desplegable de acciones, selecciona **"Asignar rol"**.
-3. Serás redirigido a un formulario donde podrás elegir el nuevo rol para todos los seleccionados.
+1. En el menú desplegable de acciones, selecciona **"Asignar rol"**.
+1. Serás redirigido a un formulario donde podrás elegir el nuevo rol para todos los seleccionados.
 
 > **Protección:** Los usuarios que no son superusuarios no pueden editar ni cambiar la contraseña de un superusuario.
 
----
+______________________________________________________________________
 
 ## Paso 4 — Qué ve cada rol
 
@@ -159,7 +161,7 @@ No ve: trámites de otros analistas, finalizados, gestión de usuarios, catálog
 
 > **Detalle técnico:** La visibilidad del sidebar se controla con los permisos `acceso_analista` y `acceso_coordinador` configurados en el archivo `settings.py` bajo `JAZZMIN_SETTINGS['custom_links']`. Cada link verifica si el usuario tiene el permiso correspondiente.
 
----
+______________________________________________________________________
 
 ## Paso 5 — Propiedades del modelo User
 
@@ -180,7 +182,7 @@ user.is_analista       # → bool
 
 1. **`CacheUserRolesMiddleware`** (`core/middleware.py`) se ejecuta en cada request y pobla `request.user.roles` con un `set[str]` de nombres de grupos en una sola consulta.
 
-2. Las propiedades usan `user._get_roles()`, que devuelve el set cacheado si existe, o consulta la base de datos como fallback:
+1. Las propiedades usan `user._get_roles()`, que devuelve el set cacheado si existe, o consulta la base de datos como fallback:
 
    ```python
    def _get_roles(self) -> set[str]:
@@ -190,7 +192,7 @@ user.is_analista       # → bool
        return set(self.groups.values_list('name', flat=True))  # fallback a DB
    ```
 
-3. Para usuarios anónimos, el middleware asigna `user.roles = set()`, por lo que todas las propiedades devuelven `False` de forma segura.
+1. Para usuarios anónimos, el middleware asigna `user.roles = set()`, por lo que todas las propiedades devuelven `False` de forma segura.
 
 ### Uso en permisos de trámite
 
@@ -204,7 +206,7 @@ El modelo `Tramite` define métodos de permiso a nivel de objeto que usan estas 
 | `can_release(user)` | Sí | Sí | No |
 | `can_execute_action(user)` | Siempre | Siempre | Solo si está asignado |
 
----
+______________________________________________________________________
 
 ## Paso 6 — Modelos proxy y vistas de trámite
 
@@ -234,22 +236,24 @@ class RoleCheckMixin:
 
 > **Seguridad:** Solo se aceptan nombres de propiedades válidos (definidos en `VALID_ROLE_PROPERTIES` en `core/rbac/constants.py`). Si un admin declara un `allowed_role` inválido, se lanza `ImproperlyConfigured` al importar.
 
----
+______________________________________________________________________
 
 ## Troubleshooting
 
 ### El usuario no puede iniciar sesión en `/admin/`
 
 **Causas posibles:**
+
 - El usuario no tiene un rol asignado (no pertenece a ningún grupo de `BackOfficeRole`).
 - El campo `is_staff` es `False`.
 
 **Solución:**
-1. Verifica que el usuario tenga un rol en la lista de usuarios (columna "Rol").
-2. Si muestra "Sin rol", edítalo y asígnale un rol.
-3. Ejecuta `python manage.py setup_roles` para reparar `is_staff` automáticamente.
 
----
+1. Verifica que el usuario tenga un rol en la lista de usuarios (columna "Rol").
+1. Si muestra "Sin rol", edítalo y asígnale un rol.
+1. Ejecuta `python manage.py setup_roles` para reparar `is_staff` automáticamente.
+
+______________________________________________________________________
 
 ### El usuario no ve una sección del sidebar
 
@@ -259,9 +263,12 @@ class RoleCheckMixin:
 | Trámites en curso / Finalizados | `acceso_coordinador` | Coordinador, Administrador |
 
 **Solución:**
+
 1. Edita el usuario y verifica que su rol sea el correcto.
-2. Ejecuta `python manage.py setup_roles` para re-sincronizar permisos.
-3. Si el problema persiste, verifica en la base de datos que el grupo tenga el permiso:
+
+1. Ejecuta `python manage.py setup_roles` para re-sincronizar permisos.
+
+1. Si el problema persiste, verifica en la base de datos que el grupo tenga el permiso:
 
    ```bash
    python manage.py shell -c "
@@ -273,7 +280,7 @@ class RoleCheckMixin:
 
    Debe incluir `acceso_analista`.
 
----
+______________________________________________________________________
 
 ### Un analista ve trámites que no son suyos
 
@@ -281,20 +288,21 @@ class RoleCheckMixin:
 
 **Solución:** Un usuario solo debe pertenecer a un grupo de rol a la vez. Edita el usuario y asígnale exclusivamente el rol `Analista`. El sistema elimina automáticamente otros grupos de rol al guardar.
 
----
+______________________________________________________________________
 
 ### Los grupos no existen después de desplegar
 
 **Causa:** Las migraciones no se ejecutaron o la señal `post_migrate` falló silenciosamente.
 
 **Solución:** Ejecuta manualmente:
+
 ```bash
 python manage.py setup_roles
 ```
 
 Verifica la salida para confirmar que los tres grupos se crearon correctamente.
 
----
+______________________________________________________________________
 
 ### Error: "Usuario no encontrado" al asignar rol masivamente
 
@@ -302,7 +310,7 @@ Verifica la salida para confirmar que los tres grupos se crearon correctamente.
 
 **Solución:** Regresa a la lista de usuarios, selecciona los usuarios nuevamente y ejecuta la acción "Asignar rol".
 
----
+______________________________________________________________________
 
 ## Referencias
 

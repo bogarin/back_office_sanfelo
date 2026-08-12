@@ -123,6 +123,7 @@ El sistema presenta **4 vistas de trámites** según el rol del usuario:
 | **Cerrados** | Coordinadores y Administradores | Trámenes finalizados (estados 3xx) |
 
 **Acciones rápidas:**
+
 - Tomar trámite (analistas: autoasignar del pool)
 - Liberar trámite (coordinadores: devolver al pool)
 - Cambiar estatus (según workflow validado)
@@ -130,10 +131,11 @@ El sistema presenta **4 vistas de trámites** según el rol del usuario:
 
 **Sidebar con permisos:**
 El sidebar de Jazzmin presenta secciones según los permisos del usuario:
+
 - ACCESO_ANALISTA → Ve "Buzón" y "Disponibles"
 - ACCESO_COORDINADOR → Ve "En curso" (Todos) y "Cerrados"
 
----
+______________________________________________________________________
 
 ### 4.2 Capa de Lógica de Negocio (Fat Models)
 
@@ -181,11 +183,12 @@ def _get_roles(self) -> list[BackOfficeRole]:
 
 **Almacenamiento de roles:**
 Los roles se almacenan como grupos de Django en la tabla `auth_group`:
+
 - `Administrador`
 - `Coordinador`
 - `Analista`
 
----
+______________________________________________________________________
 
 #### 4.2.2 Workflow Engine
 
@@ -240,7 +243,7 @@ def _validate_transition(self, to_status: int) -> None:
         )
 ```
 
----
+______________________________________________________________________
 
 #### 4.2.3 Permission Methods
 
@@ -273,7 +276,7 @@ acciones = tramite.available_actions(request.user)
 tramite.can_assign(request.user)  # Solo True para Coordinadores
 ```
 
----
+______________________________________________________________________
 
 ### 4.3 Capa de Datos (PostgreSQL)
 
@@ -308,7 +311,7 @@ El router usa el decorador `@register_model()` para determinar a qué esquema ro
 
 **Para detalles completos:** Ver [ADR-008: PostgreSQL Schema Separation](../02-DECISIONES/008-postgresql-schema-separation.md).
 
----
+______________________________________________________________________
 
 #### 4.3.2 Vista Denormalizada (v_tramites_unificado)
 
@@ -350,8 +353,8 @@ graph TB
 La vista `v_tramites_unificado` recalcula automáticamente **cada vez que se consulta**. Este es el comportamiento nativo de las vistas en PostgreSQL:
 
 1. Usuario cambia estatus → Django crea registro en `actividades` (create-only)
-2. La **siguiente consulta** a `v_tramites_unificado` recalcula el JOIN de las 5 tablas
-3. El cambio ya está visible en la vista
+1. La **siguiente consulta** a `v_tramites_unificado` recalcula el JOIN de las 5 tablas
+1. El cambio ya está visible en la vista
 
 **Ventaja:** No hay overhead de triggers, la vista siempre refleja el estado actual de las tablas.
 
@@ -359,7 +362,7 @@ La vista `v_tramites_unificado` recalcula automáticamente **cada vez que se con
 
 **Para detalles completos:** Ver [ADR-009: Vista PostgreSQL Unificada](../02-DECISIONES/009-vista-postgresql-para-tramites.md).
 
----
+______________________________________________________________________
 
 #### 4.3.3 Access Patterns y Custom Managers
 
@@ -378,6 +381,7 @@ La vista `v_tramites_unificado` recalcula automáticamente **cada vez que se con
 **ReadOnlyManager** (`core.managers.ReadOnlyManager`):
 
 Previene TODAS las operaciones de escritura:
+
 - `create()` → RuntimeError
 - `update()` → RuntimeError
 - `delete()` → RuntimeError
@@ -387,6 +391,7 @@ Previene TODAS las operaciones de escritura:
 **CreateOnlyManager** (`core.managers.CreateOnlyManager`):
 
 Permite `create()` y `bulk_create()`, pero previene:
+
 - `update()` → RuntimeError
 - `delete()` → RuntimeError
 
@@ -395,6 +400,7 @@ Permite `create()` y `bulk_create()`, pero previene:
 **CachedReadOnlyManager** (`core.managers.CachedReadOnlyManager`):
 
 Extiende ReadOnlyManager con cache en memoria:
+
 - `all_cached()` - Cache key: `modelname:all`, TTL: 300 segundos
 - `get_cached(id)` - Cache key: `modelname:pk:{id}`, TTL: 300 segundos
 
@@ -413,7 +419,7 @@ class Tramite(models.Model):
     objects = ReadOnlyManager()
 ```
 
----
+______________________________________________________________________
 
 #### 4.3.4 Modelos Proxy (Buzon, Disponible, Cerrado)
 
@@ -458,7 +464,7 @@ graph TB
 
 **Para detalles completos:** Ver [03-MODELO-DE-DATOS.md](03-MODELO-DE-DATOS.md) (Sección 4.2 Modelos Proxy).
 
----
+______________________________________________________________________
 
 ## 5. Sistema de Cache
 
@@ -500,7 +506,7 @@ if not tramites_por_status:
 
 **Para detalles completos:** Ver [ADR-003: Estrategia de Caching](../02-DECISIONES/003-estrategia-caching-rendimiento.md).
 
----
+______________________________________________________________________
 
 ## 6. Workflow de Trámites
 
@@ -540,7 +546,7 @@ stateDiagram-v2
 
 **Para detalles completos:** Ver [05-reference/estados-tramites.md](../05-DEVELOPERS/workflow.md).
 
----
+______________________________________________________________________
 
 ## 7. Control de Acceso Basado en Roles (RBAC)
 
@@ -586,7 +592,7 @@ ROLE_CUSTOM_PERMISSIONS = {
 
 **Para detalles completos:** Ver [ADR-014: Custom User + Workflow Permissions](../02-DECISIONES/014-custom-user-workflow-permissions.md).
 
----
+______________________________________________________________________
 
 ## 8. Stack Tecnológico
 
@@ -607,7 +613,7 @@ ROLE_CUSTOM_PERMISSIONS = {
 
 **Para detalles completos:** Ver [ADR-012: Stack Base Actualizado](../02-DECISIONES/012-stack-base-actualizado.md).
 
----
+______________________________________________________________________
 
 ## 9. Apps Django
 
@@ -622,7 +628,7 @@ ROLE_CUSTOM_PERMISSIONS = {
 | `django.contrib.messages` | Messages framework |
 | `django.contrib.staticfiles` | Static files management |
 
----
+______________________________________________________________________
 
 ## 10. Decisiones de Arquitectura Clave (Referencias a ADRs)
 
@@ -636,7 +642,7 @@ ROLE_CUSTOM_PERMISSIONS = {
 
 **IMPORTANTE:** Las ADRs son la Single Source of Truth (SSOT) para decisiones técnicas detalladas. Este documento de arquitectura proporciona una visión de alto nivel con referencias a los ADRs.
 
----
+______________________________________________________________________
 
 ## 11. Convenciones de Terminología
 
@@ -655,7 +661,7 @@ ROLE_CUSTOM_PERMISSIONS = {
 |-------|------------|---------------------|
 | Observaciones | `observación` | `observacion` ✅ |
 
----
+______________________________________________________________________
 
 ## 12. Referencias Externas
 

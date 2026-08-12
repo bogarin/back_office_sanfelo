@@ -19,18 +19,18 @@ El validador fue diseñado durante la fase de prototipo del proyecto, cuando exi
 Eliminar completamente el schema validator del proyecto, incluyendo:
 
 1. **Código fuente:** `core/schema_validator.py` y `core/management/commands/validate_schema.py`
-2. **Documentación:** `docs/SCHEMA_VALIDATOR.md`
-3. **Referencias en ADRs:** Actualizar ADR-008 para eliminar menciones al schema validator y actualizar la mitigación de "Schema drift" en la tabla de riesgos.
-4. **Exports:** Actualizar `core/__main__.py` para remover `schema_validator` del `__all__`.
+1. **Documentación:** `docs/SCHEMA_VALIDATOR.md`
+1. **Referencias en ADRs:** Actualizar ADR-008 para eliminar menciones al schema validator y actualizar la mitigación de "Schema drift" en la tabla de riesgos.
+1. **Exports:** Actualizar `core/__main__.py` para remover `schema_validator` del `__all__`.
 
 ## Rationale
 
 El schema validator perdió utilidad por las siguientes razones:
 
 1. **Evolución del proyecto:** Fue útil durante el prototipo cuando el esquema cambiaba frecuentemente y no existía un proceso formal de sincronización.
-2. **Arquitectura madura:** Con la migración a PostgreSQL con separación de esquemas (ADR-008), el esquema es más estable y los cambios se coordinan manualmente.
-3. **Validación limitada:** El validador solo comparaba tipos y nullability, pero no detectaba problemas semánticos ni problemas en vistas materializadas como `v_tramites_unificado`.
-4. **Sin integración CI/CD:** Nunca se integró en un pipeline automatizado, por lo que solo se ejecutaba manualmente y de forma esporádica.
+1. **Arquitectura madura:** Con la migración a PostgreSQL con separación de esquemas (ADR-008), el esquema es más estable y los cambios se coordinan manualmente.
+1. **Validación limitada:** El validador solo comparaba tipos y nullability, pero no detectaba problemas semánticos ni problemas en vistas materializadas como `v_tramites_unificado`.
+1. **Sin integración CI/CD:** Nunca se integró en un pipeline automatizado, por lo que solo se ejecutaba manualmente y de forma esporádica.
 
 La sincronización modelo-esquema se realiza ahora mediante:
 

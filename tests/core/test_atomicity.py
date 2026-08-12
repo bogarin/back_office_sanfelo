@@ -281,6 +281,7 @@ def test_batch_assign_partial_failure_reports_errors(superuser):
 
     # First asignar succeeds, second raises
     call_count = 0
+
     def asignar_with_failure(_self, *_args, **_kwargs):
         nonlocal call_count
         call_count += 1

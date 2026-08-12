@@ -17,6 +17,7 @@ El Gobierno de San Felipe gestiona cientos de trámites municipales diariamente.
 ### 2.2 Objetivo del Sistema
 
 Centralizar la gestión de trámites en una aplicación web que permita:
+
 - Asignación transparente de trámites a analistas
 - Seguimiento del estado de cada trámite en tiempo real
 - Auditoría completa de todas las acciones
@@ -37,23 +38,27 @@ Centralizar la gestión de trámites en una aplicación web que permita:
 El sistema debe soportar el flujo completo de trámites con 11 estados organizados en tres categorías principales:
 
 #### Estados de Inicio (1xx)
+
 - **101 - BORRADOR**: El ciudadano está capturando información del trámite
 - **102 - PENDIENTE_PAGO**: El trámite está bloqueado esperando confirmación de pago
 - **103 - PAGO_EXPIRADO**: La línea de captura venció sin confirmación de pago
 
 #### Estados de Proceso (2xx)
+
 - **201 - PRESENTADO**: Pago confirmado, trámite entra a bandeja para asignación
 - **202 - EN_REVISION**: Analista está revisando documentos y validando requisitos
 - **203 - REQUERIMIENTO**: Falta información, ciudadano debe corregir o completar
 - **205 - EN_DILIGENCIA**: Fase de campo: mediciones, inspecciones, visitas a terreno
 
 #### Estados Finalizados (3xx)
+
 - **301 - POR_RECOGER**: Documento disponible para descarga por el ciudadano
 - **302 - RECHAZADO**: Resolución negativa del trámite
 - **303 - FINALIZADO**: Ciudadano recibió el documento, ciclo completo
 - **304 - CANCELADO**: Trámite interrumpido por alguna razón
 
 **Transiciones clave de negocio:**
+
 - Ciudadano paga → Presentado (201)
 - Coordinador asigna → En Revisión (202)
 - Analista requiere documentos → Requerimiento (203)
@@ -63,14 +68,18 @@ El sistema debe soportar el flujo completo de trámites con 11 estados organizad
 ### RF-02: Asignación de Trámites
 
 #### RF-02.1: Coordinadores
+
 Los coordinadores deben poder:
+
 - Asignar trámites específicos a analistas de su equipo
 - Reasignar trámites entre analistas cuando sea necesario
 - Liberar trámites de analistas y devolverlos al pool
 - Ver la carga de trabajo actual de cada analista
 
 #### RF-02.2: Analistas
+
 Los analistas deben poder:
+
 - Autoasignarse trámites disponibles del pool
 - Ver solo sus trámites asignados (Buzón)
 - Ver trámites disponibles para autoasignación
@@ -79,6 +88,7 @@ Los analistas deben poder:
 ### RF-03: Gestión de Documentos (SFTP)
 
 Los PDFs de trámites se almacenan en un servidor SFTP externo. El sistema debe permitir:
+
 - Listar documentos disponibles por trámite
 - Permitir descarga de documentos con caché temporal
 - Auditoría de todas las descargas realizadas
@@ -87,6 +97,7 @@ Los PDFs de trámites se almacenan en un servidor SFTP externo. El sistema debe 
 ### RF-04: Catálogos de Referencia (Read-Only)
 
 El sistema consulta catálogos maestros que son administrados externamente:
+
 - Tipos de trámites disponibles
 - Estados posibles del workflow
 - Peritos autorizados
@@ -96,10 +107,12 @@ El sistema consulta catálogos maestros que son administrados externamente:
 **Restricción importante:** Estos catálogos son SOLO LECTURA. No se pueden modificar ni administrar a través del sistema backoffice.
 
 #### RF-04.1: Catálogo de Tipos de Trámite
+
 **Prioridad:** Alta
 **Descripción:** Mantener catálogo maestro de tipos de trámites disponibles.
 
 **Campos:**
+
 - Código único
 - Nombre del trámite
 - Descripción detallada
@@ -109,16 +122,19 @@ El sistema consulta catálogos maestros que son administrados externamente:
 - Estado activo/inactivo
 
 **Funcionalidad:**
+
 - Consulta de tipos de trámites disponibles
 - Referencia en trámites
 - Solo lectura desde el backoffice
 - Modificado por sistemas externos o procedimientos administrativos
 
 #### RF-04.2: Catálogo de Estatus
+
 **Prioridad:** Alta
 **Descripción:** Definir los estados posibles de un trámite.
 
 **Campos:**
+
 - Código numérico (con prefijo 1xx, 2xx, 3xx)
 - Nombre del estatus
 - Responsable del estado
@@ -126,16 +142,19 @@ El sistema consulta catálogos maestros que son administrados externamente:
 - Categoría (100s, 200s, 300s)
 
 **Funcionalidad:**
+
 - Referencia en todos los trámites
 - Usado en validación de transiciones de workflow
 - Solo lectura desde el backoffice
 - Modificado por sistemas externos
 
 #### RF-04.3: Catálogo de Peritos Autorizados
+
 **Prioridad:** Alta
 **Descripción:** Mantener registro de peritos autorizados por el gobierno.
 
 **Campos:**
+
 - Nombre completo (paterno, materno, nombre)
 - Domicilio
 - Colonia
@@ -149,18 +168,21 @@ El sistema consulta catálogos maestros que son administrados externamente:
 - Estado activo/inactivo
 
 **Funcionalidad:**
+
 - Búsqueda por nombre, RFC, cédula
 - Consulta de peritos disponibles
 - Solo lectura desde el backoffice
 - Alerta de vencimiento de revalidación (opcional)
 
 #### RF-04.4: Catálogo de Usuarios del Sistema
+
 **Prioridad:** Baja
 **Descripción:** Registro de usuarios del sistema interno (distintos de gestión de autenticación).
 
 **Nota:** Este catálogo existe para compatibilidad con sistema legacy, pero NO se usa para autenticación. La autenticación se maneja a través de Django auth (session-based).
 
 **Campos:**
+
 - Nombre completo
 - Usuario (username)
 - Contraseña (encriptada) - gestionada por Django
@@ -171,21 +193,25 @@ El sistema consulta catálogos maestros que son administrados externamente:
 - Correo electrónico
 
 **Funcionalidad:**
+
 - Consulta de usuarios disponibles para referencia
 - Solo lectura desde el backoffice
 - Autenticación manejada por Django auth (no por este catálogo)
 
 #### RF-04.5: Catálogos Complementarios
+
 **Prioridad:** Baja
 **Descripción:** Catálogos adicionales para clasificación y organización de trámites.
 
 **Catálogos incluidos:**
+
 - `cat_actividad`: Actividades realizadas durante trámite
 - `cat_categoria`: Categorías de trámites
 - `cat_inciso`: Incisos presupuestarios (si aplica)
 - `cat_requisito`: Requisitos por tipo de trámite
 
 **Funcionalidad:**
+
 - Consulta de catálogos complementarios
 - Referencia en relaciones many-to-many
 - Solo lectura desde el backoffice
@@ -194,6 +220,7 @@ El sistema consulta catálogos maestros que son administrados externamente:
 ### RF-05: Auditoría Completa
 
 Cada acción realizada en el sistema debe registrarse en tabla de auditoría:
+
 - Qué usuario realizó la acción
 - Qué trámite fue afectado
 - Qué estado cambió (antes → después)
@@ -205,6 +232,7 @@ Cada acción realizada en el sistema debe registrarse en tabla de auditoría:
 ### RF-06: Búsquedas y Filtros
 
 Los usuarios deben poder buscar y filtrar trámites por:
+
 - Folio único
 - Tipo de trámite
 - Estado actual
@@ -215,6 +243,7 @@ Los usuarios deben poder buscar y filtrar trámites por:
 ### RF-07: Estadísticas Básicas
 
 Coordinadores y administradores deben poder consultar:
+
 - Número de trámites por estado
 - Trámites por analista
 - Tiempos promedio de proceso
@@ -223,6 +252,7 @@ Coordinadores y administradores deben poder consultar:
 ### RF-08: Vistas por Rol
 
 El sistema debe presentar diferentes vistas según el rol:
+
 - **Todos**: Administradores y Coordinadores ven todos los trámites activos
 - **Buzón (Mis Trámites)**: Analistas ven solo sus trámites asignados
 - **Disponibles**: Todos ven los trámites sin asignar en pool
@@ -247,6 +277,7 @@ El sistema debe presentar diferentes vistas según el rol:
 **Referencias Técnicas:**
 
 1. **Google Core Web Vitals (Estándar Web Internacional)**
+
    - **LCP (Largest Contentful Paint)**: < 2.5s para una buena experiencia de carga
      - Referencia: https://web.dev/articles/vitals
      - Métrica principal de performance web usada por Google para SEO
@@ -255,26 +286,30 @@ El sistema debe presentar diferentes vistas según el rol:
      - Reemplazó a FID en marzo 2024 como métrica de respuesta
      - Mide la latencia de interacciones del usuario
 
-2. **Nielsen Norman Group (Estándar de UX)**
+1. **Nielsen Norman Group (Estándar de UX)**
+
    - **0.1 segundo (100ms)**: Respuesta instantánea - usuario siente que controla directamente el sistema
    - **1.0 segundo**: Flujo de pensamiento continuo - usuario no pierde el hilo mental
    - **10 segundos**: Límite de atención del usuario - después de esto, la paciencia disminuye drásticamente
      - Referencia: https://www.nngroup.com/articles/response-times-3-important-limits/
      - Límites establecidos por investigación de UX desde 1993, válidos en 2025
 
-3. **ISO 25010:2011 (Estándar de Calidad de Software)**
+1. **ISO 25010:2011 (Estándar de Calidad de Software)**
+
    - **Time Behaviour**: Característica de calidad que mide tiempos de respuesta y throughput
    - Define métricas de performance para sistemas en operación
      - Referencia: https://iso25000.com/index.php/en/iso-25000-standards/iso-25010
      - Estándar internacional para calidad de producto de software
 
-4. **Sello de Excelencia en Gobierno Digital (México)**
+1. **Sello de Excelencia en Gobierno Digital (México)**
+
    - **Criterio 3.4**: Disminuir el tiempo de entrega por canal con la utilización del canal digital
    - Aunque no especifica cifras numéricas, establece la necesidad de mejorar tiempos de respuesta
      - Referencia: https://www.gob.mx/sellodeexcelencia/articulos/criterios-de-seleccion-183170
      - Estándar mexicano para certificación de trámites digitales
 
-5. **ORFIS (Oficina para la Reforma Institucional y la Innovación Social - México)**
+1. **ORFIS (Oficina para la Reforma Institucional y la Innovación Social - México)**
+
    - **Estándar 3**: Desempeño y Adaptabilidad - Velocidad de carga
    - Reconoce la velocidad de carga como estándar actual para sitios web de gobierno
      - Referencia: Estándares y tendencias para sitios web de gobierno (2016)
@@ -287,21 +322,25 @@ Los tiempos de respuesta mostrados son **objetivos iniciales basados en estánda
 Estos valores serán **ajustados y refinados** después de:
 
 1. **Implementación de pruebas de carga** (Locust, k6, JMeter)
+
    - Simular usuarios concurrentes reales
    - Medir performance bajo diferentes escenarios de carga
    - Identificar cuellos de botella en backend y frontend
 
-2. **Medición de baseline en ambiente de staging**
+1. **Medición de baseline en ambiente de staging**
+
    - Establecer baseline de performance antes de producción
    - Medir tiempos de respuesta reales de endpoints Django
    - Optimizar consultas SQL, índices, y caché
 
-3. **Análisis de métricas reales en producción**
+1. **Análisis de métricas reales en producción**
+
    - Implementar APM (Application Performance Monitoring)
    - Medir LCP, INP, CLS con Google PageSpeed Insights
    - Monitorizar tiempos de respuesta de usuarios reales
 
-4. **Optimización iterativa basada en datos**
+1. **Optimización iterativa basada en datos**
+
    - Implementar caché de catálogos (LocMemCache, Redis si es necesario)
    - Optimizar consultas SQL con select_related, prefetch_related
    - Implementar paginación eficiente en listados grandes
@@ -320,45 +359,54 @@ Estos valores serán **ajustados y refinados** después de:
 **Referencias de Gobierno Digital - México y Baja California:**
 
 **México - Estándares Nacionales:**
+
 1. **Sello de Excelencia en Gobierno Digital**
+
    - Criterio de impacto: "Disminuir el tiempo de entrega por canal con la utilización del canal de atención en línea"
    - Criterios de eficiencia: Interoperabilidad, fuentes de confianza, integración de canales
    - Criterios de satisfacción: Encuestas de satisfacción ciudadana, participación digital
    - Referencia: https://www.gob.mx/sellodeexcelencia/articulos/criterios-de-seleccion-183170
    - Certificación de trámites digitales de alta calidad
 
-2. **ORFIS - Oficina para la Reforma Institucional y la Innovación Social**
+1. **ORFIS - Oficina para la Reforma Institucional y la Innovación Social**
+
    - Estándar 3: Desempeño y Adaptabilidad - Velocidad de carga como estándar actual
    - Estándar 1: Experiencia de Usuario (UX) - Información útil, utilizable, atractiva, encontrable
    - Estándar 2: Indexabilidad y Búsquedas Internas - Buscador con funciones avanzadas
    - Referencia: Estándares y tendencias para sitios web de gobierno (2016)
    - https://www.orfis.gob.mx/BibliotecaVirtual/archivos/02122016103210.pdf
 
-3. **Lineamientos de Digitalización de Trámites y Servicios**
+1. **Lineamientos de Digitalización de Trámites y Servicios**
+
    - Lineamientos relativos a la digitalización estandarizada con apego a la Estrategia Digital
    - Indicador: Tecnologías de la Información
    - Referencia: https://www.gob.mx/buengobierno/documentos/lineamientos-de-la-digitalizacion-de-tramites-y-servicios
    - Guía para estandarización de trámites digitales en el gobierno federal
 
-4. **Guía para la estandarización y certificación de los trámites digitales**
+1. **Guía para la estandarización y certificación de los trámites digitales**
+
    - Acuerdo por el que se emite la Guía para la estandarización y certificación de los trámites digitales con el Sello de Excelencia en Gobierno Digital
    - Referencia: https://dof.gob.mx/nota_detalle_popup.php?codigo=5446678
    - Marco normativo para trámites digitales de alta calidad
 
 **Baja California - Recursos Estatales:**
+
 1. **Agencia Digital del Estado de Baja California (ADBC)**
+
    - RETYS: Registro Estatal de Trámites y Servicios - plataforma centralizada oficial
    - Modelo Único de Atención Ciudadana para trámites gubernamentales
    - Referencia: https://www.adbc.gob.mx/Herramienta/15 (RETYS)
    - Referencia: https://www.ventanillabc.bajacalifornia.gob.mx/muac/assets/doc/Lineamientos.pdf (Lineamientos)
    - Implementación local de Estrategia Digital Nacional
 
-2. **Coordinación de Gobierno Digital - Baja California**
+1. **Coordinación de Gobierno Digital - Baja California**
+
    - Revisión Técnica de las TICS - Cámara Digital, Normas y Estándares, Software y Manuales
    - Referencia: https://www.bajacalifornia.gob.mx/adbc/dictaminacion/
    - Lineamientos técnicos para implementación de gobierno digital en el estado
 
 **Notas Importantes:**
+
 - Aunque los estándares nacionales de gobierno digital en México enfatizan la mejora de tiempos de respuesta (Sello de Excelencia: "disminuir tiempo de entrega"), **no existen cifras numéricas específicas** documentadas públicamente
 - Por lo tanto, este documento usa **estándares internacionales de la industria** (Core Web Vitals, Nielsen Norman, ISO 25010) complementados con principios de gobierno digital mexicano
 - Estos objetivos de performance se consideran **alineados con las prioridades de gobierno digital mexicano** de mejora continua y satisfacción ciudadana
@@ -394,6 +442,7 @@ Estos valores serán **ajustados y refinados** después de:
 Los mensajes de error mostrados a los usuarios no deben contener detalles internos del sistema. Los detalles técnicos se registran exclusivamente en la bitácora del servidor.
 
 **Prohibido en mensajes al usuario:**
+
 - IDs internos (estatus, primary keys, códigos numéricos)
 - Rutas de archivos, IPs, puertos
 - Excepciones Python, tracebacks, SQL
@@ -401,10 +450,12 @@ Los mensajes de error mostrados a los usuarios no deben contener detalles intern
 - Nombres de tablas, columnas, constraints
 
 **Permitido en mensajes al usuario:**
+
 - El folio del trámite (dato que el usuario ya conoce)
 - Instrucciones claras en español ("Intenta nuevamente más tarde")
 
 **Obligatorio:**
+
 - Cuando ocurre un error, el detalle técnico se registra en bitácora vía `logger.error()` con `exc_info=True` **antes** de mostrar el mensaje genérico al usuario
 - Las operaciones exitosas siguen el flujo de auditoría normal (RF-05)
 - Excepciones custom exponen un atributo `user_message` separado del mensaje interno
@@ -417,6 +468,7 @@ Los mensajes de error mostrados a los usuarios no deben contener detalles intern
 ### RD-01: Unidad de Trámite
 
 Cada trámite debe contener como mínimo:
+
 - Folio único e inmutable
 - Tipo de trámite (referencia a catálogo)
 - Datos del solicitante (nombre, teléfono, correo electrónico)
@@ -435,6 +487,7 @@ Cada trámite debe contener como mínimo:
 ### RD-03: Auditoría
 
 Cada acción debe留下 registro imborrable:
+
 - Usuario que realizó la acción
 - Fecha y hora exacta
 - Tipo de acción realizada
@@ -443,6 +496,7 @@ Cada acción debe留下 registro imborrable:
 ### RD-04: Catálogos
 
 Los catálogos de referencia son inmutables desde el backoffice:
+
 - Solo lectura desde la aplicación
 - Modificados por sistemas externos o procedimientos administrativos
 - Mapeados a modelos Django con patrón READ_ONLY
@@ -461,6 +515,7 @@ Los catálogos de referencia son inmutables desde el backoffice:
 ### 8.1 Terminología
 
 **Convención de acentos (aplicado en todo el sistema):**
+
 - Campo `observacion` (sin acento)
 - Estado `en_diligencia` (sin acento)
 - Campo `es_activo` (sin acento)
@@ -475,6 +530,7 @@ Los catálogos de referencia son inmutables desde el backoffice:
 ### 8.3 Referencias Externas
 
 Para especificaciones técnicas, ver:
+
 - [01-ARQUITECTURA.md](01-ARQUITECTURA.md) - Arquitectura técnica
 - [02-HISTORIAS-USUARIO.md](02-HISTORIAS-USUARIO.md) - Historias de usuario por rol
 - [03-MODELO-DE-DATOS.md](03-MODELO-DE-DATOS.md) - Modelo de datos completo

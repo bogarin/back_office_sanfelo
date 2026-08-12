@@ -12,6 +12,7 @@ import logging
 import os
 import time
 from pathlib import Path
+from typing import TypedDict
 
 import django
 import paramiko
@@ -22,6 +23,15 @@ from tramites.exceptions import SFTPConnectionError
 from tramites.sftp import SFTPService, validate_folio
 
 logger = logging.getLogger(__name__)
+
+
+class _CacheFile(TypedDict):
+    """Metadata of a single cached file for cleanup bookkeeping."""
+
+    path: Path
+    size: int
+    age: float
+    mtime: float
 
 
 class Command(BaseCommand):
@@ -59,7 +69,7 @@ class Command(BaseCommand):
         action = options['action']
         folio = options.get('folio')
         filename = options.get('filename')
-        output_dir = options.get('output_dir')
+        output_dir = options.get('output_dir') or '.'
 
         match action:
             case 'ping':
@@ -299,8 +309,8 @@ class Command(BaseCommand):
             python manage.py sftp cleanup_cache
         """
         cache_dir = Path(settings.SFTP_CACHE_DIR)
-        ttl = getattr(settings, 'SFTP_CACHE_TTL', 3600)
-        max_size_mb = getattr(settings, 'SFTP_CACHE_MAX_SIZE_MB', 500)
+        ttl = int(getattr(settings, 'SFTP_CACHE_TTL', 3600))
+        max_size_mb = int(getattr(settings, 'SFTP_CACHE_MAX_SIZE_MB', 500))
         max_size_bytes = max_size_mb * 1024 * 1024
 
         self.stdout.write('🧹 Limpiando caché SFTP...')
@@ -315,12 +325,12 @@ class Command(BaseCommand):
             return
 
         # Get all files and directories in cache (symlink-safe)
-        all_files = []
+        all_files: list[_CacheFile] = []
         all_dirs = []
         total_size = 0
         current_time = time.time()
 
-        for dirpath, dirnames, filenames in os.walk(cache_dir, follow_symlinks=False):
+        for dirpath, dirnames, filenames in os.walk(cache_dir, followlinks=False):
             for fname in filenames:
                 file_path = Path(dirpath) / fname
                 if file_path.is_file():
@@ -391,7 +401,7 @@ class Command(BaseCommand):
 
         # Clean up orphaned .downloading temp files (older than 2x TTL)
         temp_threshold = 2 * ttl
-        for dirpath, dirnames, filenames in os.walk(cache_dir, follow_symlinks=False):
+        for dirpath, dirnames, filenames in os.walk(cache_dir, followlinks=False):
             for fname in filenames:
                 file_path = Path(dirpath) / fname
                 if fname.endswith('.downloading') and file_path.is_file():
