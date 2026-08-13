@@ -1,7 +1,7 @@
 # Referencia: Sistema RBAC (Roles y Permisos)
 
 > **Fuente de verdad:** `core/rbac/constants.py`, `core/rbac/__init__.py`, `core/models.py`, `tramites/models/tramite.py`
-> Última actualización: 9 de mayo de 2026
+> Última actualización: 12 de agosto de 2026
 
 ______________________________________________________________________
 
@@ -108,8 +108,9 @@ Cada rol ve trámites a través de un proxy model diferente:
 | Proxy Model | Queryset | Roles |
 |-------------|----------|-------|
 | `Tramite` | Todos los trámites activos (estatus 201-205) | Administrador, Coordinador |
-| `Buzon` | Trámites asignados al usuario actual | Analista |
-| `Disponible` | Trámites sin asignar | Todos los roles |
+| `Buzon` | Trámites asignados al usuario actual (excluye estatus 205) | Analista |
+| `Disponible` | Trámites sin asignar (excluye estatus 205) | Todos los roles |
+| `EnDiligencia` | Trámites en estatus 205 (`EN_DILIGENCIA`) | Coordinador, Administrador |
 | `Cerrado` | Trámites finalizados (estatus 301-304) | Coordinador |
 
 > **Referencia:** `tramites/models/tramite.py`
@@ -175,20 +176,20 @@ El modelo `Tramite` implementa permisos a nivel de objeto (object-level permissi
 | Rol | Condición |
 |-----|-----------|
 | Superuser / Administrador / Coordinador | Siempre `True` |
-| Analista | Solo si `tramite.asignado_user_id == user.id` |
+| Analista | Solo si `tramite.asignado_user_id == user.id` y el estatus NO es 205 (`EN_DILIGENCIA`) |
 
 #### `can_download(user)`
 
 | Rol | Condición |
 |-----|-----------|
 | Superuser / Administrador / Coordinador | Siempre `True` |
-| Analista | Si está asignado al trámite, **o** si el trámite no tiene asignado y está activo |
+| Analista | Si está asignado al trámite, **o** si el trámite no tiene asignado y está activo. **Excepto** trámites en estatus 205 (EN_DILIGENCIA): siempre `False` |
 
 #### `can_assign(user)` / `can_release(user)`
 
 | Rol | Condición |
 |-----|-----------|
-| Superuser / Administrador / Coordinador | `True` |
+| Superuser / Administrador / Coordinador | `True` (siempre `False` para trámites en estatus 205) |
 | Analista | `False` |
 
 #### `can_execute_action(user)`
@@ -202,11 +203,13 @@ El modelo `Tramite` implementa permisos a nivel de objeto (object-level permissi
 
 Retorna una lista de nombres de acción que el usuario puede ejecutar en el estatus actual. Si `can_execute_action()` es `False`, retorna `[]`.
 
+En `EN_DILIGENCIA` (205) la acción `cancelar` solo se ofrece a coordinadores/administradores/superusers; para un analista retorna `[]` incluso si está asignado (regla del coordinador: solo coordinadores y administradores pueden cancelar trámites en diligencia).
+
 | Estatus actual | Acciones disponibles |
 |----------------|---------------------|
 | EN_REVISION (202) | `['requerir_documentos', 'enviar_a_firma', 'cancelar']` |
 | REQUERIMIENTO (203) | `['cancelar']` |
-| EN_DILIGENCIA (205) | `['cancelar']` |
+| EN_DILIGENCIA (205) | `['cancelar']` — solo coordinador/administrador; analista: `[]` |
 | Otro estatus | `[]` |
 
 ### Consumidores

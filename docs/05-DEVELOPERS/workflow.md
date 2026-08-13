@@ -1,7 +1,7 @@
 # Workflow de Trámites — Guía para Desarrolladores
 
 > **Fuente de verdad:** `tramites/models/tramite.py` (`TRANSITIONS` dict + métodos de acción)
-> Última actualización: 9 de mayo de 2026
+> Última actualización: 12 de agosto de 2026
 
 ______________________________________________________________________
 
@@ -153,8 +153,8 @@ Los métodos de acción viven en el modelo `Tramite` y son la API pública para 
 |--------|------------|---------------------|-------------|
 | `asignar()` | 201→202, 202→202, →201 | `can_assign()` o `can_execute_action()` | Asignar, reasignar o liberar un trámite |
 | `requerir_documentos()` | 202→203 | `can_execute_action()` | Requiere documentos adicionales al ciudadano |
-| `enviar_a_firma()` | 202→205 | `can_execute_action()` | Envía el trámite a firma |
-| `cancelar()` | 202/203/205→301/302/304 | `can_execute_action()` | Cancela el trámite con un estatus terminal |
+| `enviar_a_firma()` | 202→205 | `can_execute_action()` | Envía el trámite a firma; al pasar a 205 sale del buzón del analista |
+| `cancelar()` | 202/203/205→301/302/304 | Desde 202/203: `can_execute_action()`; desde 205: solo coordinador/administrador | Cancela el trámite con un estatus terminal |
 
 ### `asignar(analista, asignado_por, observacion='')`
 
@@ -229,7 +229,8 @@ Cancela el trámite con un estatus terminal. Es la acción más estricta: requie
 1. `estatus_cierre` debe ser `POR_RECOGER` (301), `RECHAZADO` (302) o `CANCELADO` (304)
 1. `_assert_activo()` — estado activo
 1. `_validate_transition(estatus_cierre)` — transición válida
-1. `_assert_asignado_a(analista)` — asignado al usuario que ejecuta
+1. Desde 202/203: `_assert_asignado_a(analista)` — asignado al usuario que ejecuta
+1. Desde 205 (`EN_DILIGENCIA`): solo el coordinador/administrador/superuser puede cancelar; un analista recibe `PermissionDenied` aunque esté asignado
 
 **Ejemplo:**
 
@@ -240,6 +241,8 @@ tramite.cancelar(
     observacion='Documentación completa. Listo para entrega.',
 )
 ```
+
+> **Regla del coordinador (estatus 205):** `cancelar()` es la única acción disponible desde `EN_DILIGENCIA` (205), y solo puede ejecutarla el coordinador, administrador o superuser — un analista (incluso si es el asignado) recibe `PermissionDenied`. Además, la liberación está bloqueada en 205: `_liberar()` lanza `EstadoNoPermitidoError` y `can_release()` retorna `False` para todo rol mientras el trámite esté en diligencia.
 
 ### Métodos internos
 
@@ -305,10 +308,10 @@ El método `available_actions(user)` combina `can_execute_action()` con el estat
 |----------------|---------------------|
 | `EN_REVISION` (202) | `['requerir_documentos', 'enviar_a_firma', 'cancelar']` |
 | `REQUERIMIENTO` (203) | `['cancelar']` |
-| `EN_DILIGENCIA` (205) | `['cancelar']` |
+| `EN_DILIGENCIA` (205) | `['cancelar']` — solo coordinador/administrador; analista: `[]` |
 | Otro estatus | `[]` (sin acciones) |
 
-Si `can_execute_action(user)` retorna `False`, `available_actions` retorna `[]` independientemente del estatus.
+Si `can_execute_action(user)` retorna `False`, `available_actions` retorna `[]` independientemente del estatus. En `EN_DILIGENCIA` (205) la acción `cancelar` solo se ofrece a coordinadores/administradores/superusers; para un analista retorna `[]` incluso si está asignado.
 
 ### Consumidores de permisos
 
@@ -377,7 +380,7 @@ tramite.enviar_a_firma(
 )
 ```
 
-El estatus cambia a `EN_DILIGENCIA` (205). Desde este estado, la única acción disponible es `cancelar`.
+El estatus cambia a `EN_DILIGENCIA` (205). El trámite sale del buzón del analista y ya no aparece como disponible; desde este estado, la única acción disponible es `cancelar`, y solo puede ejecutarla el coordinador o administrador.
 
 #### Opción C: Cancelar directamente (202 → 301/302/304)
 
@@ -408,14 +411,14 @@ tramite.cancelar(
 
 ### Paso 4: Cancelación desde estados intermedios (203/205 → 301/302/304)
 
-Si el trámite está en `REQUERIMIENTO` (203) o `EN_DILIGENCIA` (205), se puede cancelar con cualquier estatus terminal:
+Si el trámite está en `REQUERIMIENTO` (203), el analista asignado puede cancelarlo con cualquier estatus terminal. Desde `EN_DILIGENCIA` (205), solo el coordinador o administrador puede cancelar:
 
 ```python
-# Cancelar desde requerimiento
+# Cancelar desde requerimiento (analista asignado)
 tramite.cancelar(analista=analista, estatus_cierre=301, observacion='...')
 
-# Cancelar desde diligencia
-tramite.cancelar(analista=analista, estatus_cierre=304, observacion='...')
+# Cancelar desde diligencia (solo coordinador/administrador)
+tramite.cancelar(analista=coordinador, estatus_cierre=304, observacion='...')
 ```
 
 ### Paso 5: Finalización completa (301 → 303)
@@ -438,13 +441,14 @@ ______________________________________________________________________
 
 ## 6. Proxy Models en el Workflow
 
-Los proxy models (`Buzon`, `Disponible`, `Tramite`, `Cerrado`) son vistas filtradas del mismo modelo base, diseñadas para controlar qué trámites ve cada rol en el admin de Django.
+Los proxy models (`Buzon`, `Disponible`, `Tramite`, `EnDiligencia`, `Cerrado`) son vistas filtradas del mismo modelo base, diseñadas para controlar qué trámites ve cada rol en el admin de Django.
 
 | Proxy Model | Filtros | Roles | Sección en sidebar |
 |-------------|---------|-------|--------------------|
 | `Tramite` | Estatus activos (201–205) | Administrador, Coordinador | "Trámites en curso" |
-| `Buzon` | `asignado_user_id == request.user.id` + activos | Analista | "Mis trámites" |
-| `Disponible` | `asignado_user_id IS NULL` + estatus 201 | Todos los roles | "Disponibles" |
+| `Buzon` | `asignado_user_id == request.user.id` + activos (excluye 205) | Analista | "Mis trámites" |
+| `Disponible` | `asignado_user_id IS NULL` + estatus 201 (excluye 205) | Todos los roles | "Disponibles" |
+| `EnDiligencia` | Estatus `EN_DILIGENCIA` (205) | Coordinador, Administrador | "En diligencia" |
 | `Cerrado` | Estatus finalizados (301–304) | Coordinador | "Finalizados" |
 
 ### Cómo se relacionan con el workflow
@@ -466,6 +470,7 @@ graph LR
         D["Disponible"]
         B["Buzon"]
         T["Tramite"]
+        E["EnDiligencia"]
         C["Cerrado"]
     end
 
@@ -474,6 +479,7 @@ graph LR
     P202 --> T
     P203 --> T
     P205 --> T
+    P205 --> E
     F301 --> C
     F302 --> C
     F303 --> C
@@ -496,7 +502,7 @@ class Disponible(Tramite):
 
 #### `Buzon` — Mis trámites
 
-Solo muestra trámites asignados al usuario actual (`asignado_user_id == request.user.id`) en estados activos. Es la vista principal del analista.
+Solo muestra trámites asignados al usuario actual (`asignado_user_id == request.user.id`) en estados activos, **excluyendo** los que están en `EN_DILIGENCIA` (205). Es la vista principal del analista.
 
 ```python
 class Buzon(Tramite):
@@ -504,6 +510,18 @@ class Buzon(Tramite):
         proxy = True
         verbose_name = 'Mis trámites'
         verbose_name_plural = 'Buzón de trámites'
+```
+
+#### `EnDiligencia` — Trámites en diligencia
+
+Muestra solo trámites en estatus `EN_DILIGENCIA` (205). Visible únicamente para coordinadores y administradores, que desde ahí pueden ejecutar `cancelar()`.
+
+```python
+class EnDiligencia(Tramite):
+    class Meta:
+        proxy = True
+        verbose_name = 'Trámite en diligencia'
+        verbose_name_plural = 'Trámites en diligencia'
 ```
 
 #### `Tramite` — Todos los trámites activos

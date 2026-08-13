@@ -373,6 +373,37 @@ class Meta:
 
 ______________________________________________________________________
 
+#### 4.2.4 Modelo: `EnDiligencia` (Trámites en Diligencia)
+
+**Descripción:** Modelo proxy para vista de trámites en estatus 205 (`EN_DILIGENCIA`) para el Coordinador.
+
+**Propósito:** Permitir a coordinadores y administradores ver los trámites enviados a diligencia para gestionar su cancelación. Es la vista dedicada para el estatus 205 (los trámites en 205 también aparecen en "Trámites en curso", que lista todo el rango 2xx).
+
+**Filtros automáticos en Admin:**
+
+- `ultima_actividad_estatus_id == 205` (EN_DILIGENCIA)
+
+**Access Control:**
+
+- Solo accesible para `COORDINADOR` y `ADMINISTRADOR`
+- `ANALISTA` NO ve esta vista (los trámites en 205 se excluyen también de su Buzón y de Disponibles)
+- Única acción disponible sobre estos trámites: `cancelar()` (coordinador/admin)
+
+**Meta:**
+
+```python
+class Meta:
+    proxy = True
+    verbose_name = 'Trámite en diligencia'
+    verbose_name_plural = 'Trámites en diligencia'
+    ordering = ('-creado', '-urgente')
+```
+
+**Access Pattern:** READ_ONLY (heredado de Tramite)
+**Manager:** ReadOnlyManager (heredado de Tramite)
+
+______________________________________________________________________
+
 ### 4.3 Modelo: `Actividades` (Auditoría)
 
 **Descripción:** Registro de todas las acciones realizadas sobre trámites. Fuente de verdad para el historial.

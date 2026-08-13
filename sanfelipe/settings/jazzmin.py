@@ -90,6 +90,13 @@ def configure_jazzmin(tenancy_settings: dict[str, Any]) -> dict[str, Any]:
                         'permissions': ['tramites.acceso_coordinador'],
                     },
                     {
+                        'name': 'En diligencia',
+                        'url': 'admin:tramites_endiligencia_changelist',
+                        'icon': 'fas fa-hard-hat',
+                        # Solo coordinador/administrador
+                        'permissions': ['tramites.acceso_coordinador'],
+                    },
+                    {
                         'name': 'Trámites finalizados',
                         'url': 'admin:tramites_cerrado_changelist',
                         'icon': 'fas fa-flag-checkered',

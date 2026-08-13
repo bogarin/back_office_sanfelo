@@ -1,7 +1,7 @@
 # Referencia de Modelos Django
 
 > **Módulo:** `tramites.models`
-> **Última actualización:** Mayo 2026
+> **Última actualización:** Agosto 2026
 
 ______________________________________________________________________
 
@@ -37,7 +37,7 @@ Antes de documentar cada modelo, es clave entender los managers personalizados q
 | `ReadOnlyManager` | `ReadOnlyQuerySet` | `all()`, `filter()`, `get()` | `create()`, `update()`, `delete()`, `bulk_create()` | Catálogos, relaciones |
 | `CachedReadOnlyManager` | `ReadOnlyQuerySet` + caché | Lectura + `all_cached()`, `get_cached()`, `all_cached_as_dict()` | Todas las escrituras | `Requisito` (28 filas, consultas frecuentes) |
 | `CreateOnlyManager` | `CreateOnlyQuerySet` | `create()`, `bulk_create()` | `update()`, `delete()`, `save()` en instancias existentes | `Actividades` (audit log) |
-| `TramiteQuerySet` | `models.QuerySet` | Todo (lectura) + atajos `en_proceso()`, `finalizados()`, `asignados_a()`, `sin_asignar()` | N/A (modelo sobre vista) | `Tramite` |
+| `TramiteQuerySet` | `models.QuerySet` | Todo (lectura) + atajos `en_proceso()`, `finalizados()`, `asignados_a()`, `sin_asignar()`, `excluyendo_diligencia()`, `en_diligencia()` | N/A (modelo sobre vista) | `Tramite` |
 
 Todos los managers exponen métodos de caché (`all_cached()`, `get_cached()`) con invalidación manual vía `invalidate_cache()`.
 
@@ -294,6 +294,8 @@ No es una tabla — es una vista PostgreSQL de solo lectura. Las escrituras se r
 | `finalizados()` | `ultima_actividad_estatus_id >= 301` | Trámites terminados |
 | `asignados_a(user_id)` | `asignado_user_id = user_id` | Trámites de un analista |
 | `sin_asignar()` | `asignado_user_id IS NULL` | Trámites en el pool |
+| `excluyendo_diligencia()` | `excluye ultima_actividad_estatus_id = 205` | Excluye trámites en diligencia (buzón, disponibles) |
+| `en_diligencia()` | `ultima_actividad_estatus_id = 205` | Solo trámites en diligencia (vista "En diligencia") |
 
 ### Acciones de workflow (métodos de instancia)
 
@@ -304,10 +306,10 @@ Todas las acciones de workflow delegan a `registrar_actividad()` que inserta un 
 | `asignar(analista, asignado_por, obs)` | `→ 202` | Asigna a analista. `analista=None` libera. |
 | `requerir_documentos(analista, obs)` | `202 → 203` | Solicita documentos adicionales |
 | `enviar_a_firma(analista, obs)` | `202 → 205` | Envía a firma |
-| `cancelar(analista, estatus_cierre, obs)` | `202/203/205 → 301/302/304` | Cancela con estatus terminal |
+| `cancelar(analista, estatus_cierre, obs)` | `202/203/205 → 301/302/304` | Cancela con estatus terminal. Desde 205 (`EN_DILIGENCIA`) requiere coordinador/administrador/superuser; desde 202/203 requiere el analista asignado |
 | `_liberar(liberado_por, obs)` | `→ 201` | Vuelve al pool (interno) |
 
-**Validaciones:** `_assert_activo()`, `_assert_asignado_a()`, `_validate_transition()`.
+**Validaciones:** `_assert_activo()`, `_assert_asignado_a()` (desde 202/203), `_validate_transition()`. `cancelar()` desde 205 valida el rol en lugar de `_assert_asignado_a()`: solo coordinador/administrador/superuser. `_liberar()` está bloqueado en 205 (`EstadoNoPermitidoError`).
 
 **Matriz de transiciones válidas** (definida en `TRANSITIONS`):
 
@@ -332,26 +334,27 @@ EN_DILIGENCIA (205) ──→ CANCELADO (304)
 
 | Método | Regla |
 |--------|-------|
-| `can_view(user)` | Superuser/Admin/Coordinador → siempre; Analista → solo si asignado |
-| `can_download(user)` | Superuser/Admin/Coordinador → siempre; Analista → asignados o activos sin asignar |
+| `can_view(user)` | Superuser/Admin/Coordinador → siempre; Analista → solo si asignado y NO en estatus 205 (`EN_DILIGENCIA`) |
+| `can_download(user)` | Superuser/Admin/Coordinador → siempre; Analista → asignados o activos sin asignar, excepto estatus 205 (siempre `False`) |
 | `can_assign(user)` | Solo Coordinador/Admin/Superuser |
-| `can_release(user)` | Solo Coordinador/Admin/Superuser |
+| `can_release(user)` | Solo Coordinador/Admin/Superuser (siempre `False` en estatus 205) |
 | `can_execute_action(user)` | Superuser/Admin/Coordinador → siempre; Analista → solo si asignado |
-| `available_actions(user)` | Lista de acciones según rol + estatus actual |
+| `available_actions(user)` | Lista de acciones según rol + estatus actual. En 205: `['cancelar']` solo para coordinador/admin; analista: `[]` |
 
 ______________________________________________________________________
 
 ## Modelos proxy (`tramites/models/tramite.py`)
 
-Los tres proxy models comparten la misma tabla (`v_tramites_unificado`) pero filtrados por rol. No agregan campos — solo personalizan el queryset y la presentación en Django Admin.
+Los cuatro proxy models comparten la misma tabla (`v_tramites_unificado`) pero filtrados por rol. No agregan campos — solo personalizan el queryset y la presentación en Django Admin.
 
 | Modelo proxy | Admin para | Filtro implícito | `verbose_name` |
 |-------------|-----------|-------------------|----------------|
-| `Buzon` | Analistas | Trámites asignados al usuario actual | "Buzón de trámites" |
-| `Disponible` | Analistas | Trámites en proceso y sin asignar | "Trámites disponibles" |
+| `Buzon` | Analistas | Trámites asignados al usuario actual, excluyendo 205 | "Buzón de trámites" |
+| `Disponible` | Analistas | Trámites en proceso y sin asignar, excluyendo 205 | "Trámites disponibles" |
+| `EnDiligencia` | Coordinadores | Trámites en estatus 205 (`EN_DILIGENCIA`) | "Trámites en diligencia" |
 | `Cerrado` | Coordinadores | Trámites finalizados | "Trámites finalizados" |
 
-El filtrado real se implementa en las clases `ModelAdmin` correspondientes (no en el modelo), usando `TramiteQuerySet.en_proceso()`, `.asignados_a()`, `.sin_asignar()` y `.finalizados()`.
+El filtrado real se implementa en las clases `ModelAdmin` correspondientes (no en el modelo), usando `TramiteQuerySet.en_proceso()`, `.excluyendo_diligencia()`, `.asignados_a()`, `.sin_asignar()`, `.en_diligencia()` y `.finalizados()`.
 
 ______________________________________________________________________
 

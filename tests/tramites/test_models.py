@@ -12,8 +12,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
 
+from core.rbac.constants import BackOfficeRole
 from tramites.exceptions import EstadoNoPermitidoError, TramiteNoAsignableError
 from tramites.models import Tramite
 from tramites.models.catalogos import TramiteEstatus
@@ -28,26 +30,32 @@ User = get_user_model()
 
 @pytest.fixture
 def analista(django_db_setup):
-    """Create an analyst user."""
-    return User.objects.create_user(
+    """Create an analyst user (member of the Analista group)."""
+    user = User.objects.create_user(
         username='analista_test',
         email='analista@example.com',
         password='testpass123',
         first_name='Juan',
         last_name='Pérez',
     )
+    group = Group.objects.get_or_create(name=BackOfficeRole.ANALISTA)[0]
+    user.groups.add(group)
+    return user
 
 
 @pytest.fixture
 def coordinador(django_db_setup):
-    """Create a coordinator user."""
-    return User.objects.create_user(
+    """Create a coordinator user (member of the Coordinador group)."""
+    user = User.objects.create_user(
         username='coordinador_test',
         email='coordinador@example.com',
         password='testpass123',
         first_name='María',
         last_name='Gómez',
     )
+    group = Group.objects.get_or_create(name=BackOfficeRole.COORDINADOR)[0]
+    user.groups.add(group)
+    return user
 
 
 @pytest.fixture
@@ -120,6 +128,48 @@ def tramite_en_revision_asignado(analista, django_db_blocker):
         tramite_nombre='Prueba en Revisión',
         ultima_actividad_estatus_id=TramiteEstatus.Estatus.EN_REVISION,
         ultima_actividad_estatus='EN REVISIÓN',
+        asignado_user_id=analista.id,
+        asignado_username=analista.username,
+        asignado_nombre=analista.get_full_name(),
+        tramite_categoria_id=1,
+        tramite_categoria_nombre='General',
+        urgente=False,
+        es_propietario=True,
+        creado='2024-01-01 00:00:00',
+    )
+
+
+@pytest.fixture
+def tramite_en_diligencia(analista, django_db_blocker):
+    """Create a tramite in EN_DILIGENCIA (205) assigned to the shared analyst."""
+    return Tramite(
+        id=2,
+        folio='TRAM-000002',
+        tramite_id=1,
+        tramite_nombre='Prueba en Diligencia',
+        ultima_actividad_estatus_id=TramiteEstatus.Estatus.EN_DILIGENCIA,
+        ultima_actividad_estatus='EN DILIGENCIA',
+        asignado_user_id=analista.id,
+        asignado_username=analista.username,
+        asignado_nombre=analista.get_full_name(),
+        tramite_categoria_id=1,
+        tramite_categoria_nombre='General',
+        urgente=False,
+        es_propietario=True,
+        creado='2024-01-01 00:00:00',
+    )
+
+
+@pytest.fixture
+def tramite_requerimiento(analista, django_db_blocker):
+    """Create a tramite in REQUERIMIENTO (203) assigned to the shared analyst."""
+    return Tramite(
+        id=3,
+        folio='TRAM-000003',
+        tramite_id=1,
+        tramite_nombre='Prueba Requerimiento',
+        ultima_actividad_estatus_id=TramiteEstatus.Estatus.REQUERIMIENTO,
+        ultima_actividad_estatus='REQUERIMIENTO',
         asignado_user_id=analista.id,
         asignado_username=analista.username,
         asignado_nombre=analista.get_full_name(),
@@ -1295,3 +1345,255 @@ def test_asignar_estatus_invalido_finaliza_sin_crear_actividad(
             estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
             observacion='Observación de prueba',
         )
+
+
+# ---- Tests for EN_DILIGENCIA (205) behavior ----
+
+
+@pytest.mark.django_db
+@patch('tramites.models.Tramite.registrar_actividad')
+def test_cancelar_coordinador_desde_diligencia_exitoso(
+    mock_registrar, analista, tramite_en_diligencia
+):
+    """
+    Happy path: Coordinator can cancel from EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Creates Actividades with terminal estatus
+    - Coordinator authorization passes
+    """
+    tramite = tramite_en_diligencia
+
+    # Create a mock coordinator
+    coordinador = Mock()
+    coordinador.id = 999
+    coordinador.is_superuser = False
+    coordinador.is_administrador = False
+    coordinador.is_coordinador = True
+    coordinador.is_analista = False
+    coordinador.username = 'coordinador_test'
+
+    tramite.cancelar(
+        analista=coordinador,
+        estatus_cierre=TramiteEstatus.Estatus.CANCELADO,
+        observacion='Cancelado por coordinador',
+    )
+
+    assert mock_registrar.call_count == 1
+    call_args = mock_registrar.call_args
+    assert call_args[0][0] == TramiteEstatus.Estatus.CANCELADO
+    assert call_args.kwargs['analista_id'] == coordinador.id
+
+
+@pytest.mark.django_db
+def test_cancelar_analista_desde_diligencia_denied(analista, tramite_en_diligencia):
+    """
+    Edge case: Analyst cannot cancel from EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Raises PermissionDenied
+    - No Actividades created
+    """
+    tramite = tramite_en_diligencia
+
+    with pytest.raises(
+        PermissionDenied, match='Solo el coordinador o administrador puede cancelar'
+    ):
+        tramite.cancelar(
+            analista=analista,
+            estatus_cierre=TramiteEstatus.Estatus.CANCELADO,
+            observacion='Test',
+        )
+
+
+@pytest.mark.django_db
+@patch('tramites.models.Tramite.registrar_actividad')
+def test_cancelar_analista_desde_requerimiento_exitoso(
+    mock_registrar, analista, tramite_requerimiento
+):
+    """
+    Happy path: Analyst can still cancel from REQUERIMIENTO (203).
+
+    Expected behavior:
+    - Creates Actividades with terminal estatus
+    - Analyst authorization passes
+    """
+    tramite = tramite_requerimiento
+
+    tramite.cancelar(
+        analista=analista,
+        estatus_cierre=TramiteEstatus.Estatus.CANCELADO,
+        observacion='Cancelado por analista',
+    )
+
+    assert mock_registrar.call_count == 1
+    call_args = mock_registrar.call_args
+    assert call_args[0][0] == TramiteEstatus.Estatus.CANCELADO
+    assert call_args.kwargs['analista_id'] == analista.id
+
+
+@pytest.mark.django_db
+def test_liberar_desde_diligencia_raises_estado_no_permitido(coordinador, tramite_en_diligencia):
+    """
+    Edge case: Cannot liberate a trámite in EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Raises EstadoNoPermitidoError
+    - No Actividades created
+    """
+    tramite = tramite_en_diligencia
+
+    with pytest.raises(EstadoNoPermitidoError, match='No es posible liberar'):
+        tramite._liberar(
+            liberado_por=coordinador,
+            observacion='Liberación',
+        )
+
+
+@pytest.mark.django_db
+def test_available_actions_analista_diligencia_returns_empty(analista, tramite_en_diligencia):
+    """
+    Edge case: Analyst gets empty actions list for EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Returns [] for analyst
+    """
+    tramite = tramite_en_diligencia
+
+    actions = tramite.available_actions(analista)
+    assert actions == []
+
+
+@pytest.mark.django_db
+def test_available_actions_coordinador_diligencia_includes_cancelar(
+    analista, tramite_en_diligencia
+):
+    """
+    Happy path: Coordinator gets cancelar action for EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Returns ['cancelar'] for coordinator
+    """
+    tramite = tramite_en_diligencia
+
+    # Create a mock coordinator
+    coordinador = Mock()
+    coordinador.is_superuser = False
+    coordinador.is_administrador = False
+    coordinador.is_coordinador = True
+    coordinador.is_analista = False
+
+    actions = tramite.available_actions(coordinador)
+    assert 'cancelar' in actions
+
+
+@pytest.mark.django_db
+def test_can_view_analista_diligencia_returns_false(analista, tramite_en_diligencia):
+    """
+    Edge case: Analyst cannot view trámite in EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Returns False for analyst
+    """
+    tramite = tramite_en_diligencia
+
+    result = tramite.can_view(analista)
+    assert result is False
+
+
+@pytest.mark.django_db
+def test_can_view_coordinador_diligencia_returns_true(tramite_en_diligencia):
+    """
+    Happy path: Coordinator can view trámite in EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Returns True for coordinator
+    """
+    tramite = tramite_en_diligencia
+
+    # Create a mock coordinator
+    coordinador = Mock()
+    coordinador.is_superuser = False
+    coordinador.is_administrador = False
+    coordinador.is_coordinador = True
+    coordinador.is_analista = False
+
+    result = tramite.can_view(coordinador)
+    assert result is True
+
+
+@pytest.mark.django_db
+def test_can_release_diligencia_returns_false(tramite_en_diligencia):
+    """
+    Edge case: Cannot release trámite in EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Returns False even for coordinator
+    """
+    tramite = tramite_en_diligencia
+
+    # Create a mock coordinator
+    coordinador = Mock()
+    coordinador.is_superuser = False
+    coordinador.is_administrador = False
+    coordinador.is_coordinador = True
+    coordinador.is_analista = False
+
+    result = tramite.can_release(coordinador)
+    assert result is False
+
+
+@pytest.mark.django_db
+def test_can_assign_diligencia_returns_false(tramite_en_diligencia):
+    """
+    Edge case: Cannot assign/reassign trámite in EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Returns False even for coordinator
+    """
+    tramite = tramite_en_diligencia
+
+    # Create a mock coordinator
+    coordinador = Mock()
+    coordinador.is_superuser = False
+    coordinador.is_administrador = False
+    coordinador.is_coordinador = True
+    coordinador.is_analista = False
+
+    result = tramite.can_assign(coordinador)
+    assert result is False
+
+
+@pytest.mark.django_db
+def test_can_download_analista_diligencia_returns_false(analista, tramite_en_diligencia):
+    """
+    Edge case: Analyst cannot download documents from EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Returns False for analyst, even if assigned
+    """
+    tramite = tramite_en_diligencia
+
+    result = tramite.can_download(analista)
+    assert result is False
+
+
+@pytest.mark.django_db
+def test_can_download_coordinador_diligencia_returns_true(tramite_en_diligencia):
+    """
+    Happy path: Coordinator can download documents from EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Returns True for coordinator
+    """
+    tramite = tramite_en_diligencia
+
+    # Create a mock coordinator
+    coordinador = Mock()
+    coordinador.is_superuser = False
+    coordinador.is_administrador = False
+    coordinador.is_coordinador = True
+    coordinador.is_analista = False
+
+    result = tramite.can_download(coordinador)
+    assert result is True

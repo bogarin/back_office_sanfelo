@@ -2,7 +2,7 @@
 
 **Autores:** Noe Nieto, Jose Ramon Bogarin, Carlos Ahizotl
 **Estatus:** Aprobado
-**Fecha de actualización:** 4 Mayo 2026
+**Fecha de actualización:** 12 Agosto 2026
 
 ## 1. Introducción
 
@@ -452,12 +452,34 @@ ______________________________________________________________________
 - ✅ Campo de observación obligatorio para justificar cambio
 - ✅ Confirmación antes de cambiar estatus
 - ✅ Auditoría del cambio en log de actividades
+- ✅ Puedo `cancelar` trámites en diligencia (205): es la única acción disponible desde ese estatus
 
 **Prioridad:** Alta
 **Epic:** Gestión de workflow
 **Referencias:**
 
 - [01-ARQUITECTURA.md](01-ARQUITECTURA.md) - Workflow engine (TRANSITIONS)
+
+______________________________________________________________________
+
+### HU-29: Ver Trámites en Diligencia
+
+**Como** coordinador,
+**quiero** ver los trámites en diligencia (205) en una vista dedicada,
+**para** gestionar su cancelación cuando la fase de campo concluya.
+
+**Criterios de aceptación:**
+
+- ✅ Vista dedicada "En diligencia" filtrada a estatus EN_DILIGENCIA (205)
+- ✅ Acceso exclusivo para coordinadores y administradores
+- ✅ Acción "Cancelar Trámite" disponible para cerrar trámites en diligencia
+- ✅ Analistas no ven trámites en diligencia (ni en buzón ni en disponibles)
+
+**Prioridad:** Alta
+**Epic:** Gestión de workflow
+**Referencias:**
+
+- [00-REQUERIMIENTOS.md](00-REQUERIMIENTOS.md) - RF-08 (Vistas por rol)
 
 ______________________________________________________________________
 
@@ -473,6 +495,7 @@ ______________________________________________________________________
 
 - ✅ Vista "Buzón" filtrada por `asignado_user_id == user.id`
 - ✅ Solo trámites en estados activos (2xx)
+- ✅ El buzón excluye trámites en diligencia (205): al ejecutar `enviar_a_firma()` el trámite sale del buzón del analista
 - ✅ Filtros: estado, tipo de trámite, fecha, urgente
 - ✅ Paginación de 50 trámites por página
 - ✅ Ordenamiento por defecto: creado DESC, urgente DESC
@@ -496,6 +519,7 @@ ______________________________________________________________________
 
 - ✅ Vista "Disponibles" filtrada por `asignado_user_id IS NULL`
 - ✅ Solo trámites en estado PRESENTADO (201)
+- ✅ La vista excluye trámites en diligencia (205): un trámite en 205 nunca aparece como disponible
 - ✅ Filtros: tipo de trámite, fecha, urgente
 - ✅ Paginación de 50 trámites por página
 - ✅ Acción "Tomar" disponible para autoasignación
@@ -540,6 +564,9 @@ ______________________________________________________________________
 
 - ✅ Selector de estatus filtrado por transiciones válidas (diccionario TRANSITIONS)
 - ✅ Solo puedo cambiar estatus de trámites asignados a mí
+- ✅ Desde EN_REVISION (202): acciones `requerir_documentos`, `enviar_a_firma` y `cancelar`; desde REQUERIMIENTO (203): acción `cancelar`
+- ✅ No puedo `cancelar` desde EN_DILIGENCIA (205): esa acción es exclusiva del coordinador
+- ✅ Después de `enviar_a_firma()` el trámite sale de mi buzón y no quedan acciones disponibles para el analista
 - ✅ Campo de observación obligatorio para justificar cambio
 - ✅ Confirmación antes de cambiar estatus
 - ✅ Auditoría del cambio en log de actividades
@@ -645,7 +672,7 @@ ______________________________________________________________________
 | **Programador** | HU-01, HU-02, HU-04 | HU-03 | - |
 | **Sysadmin/DBA** | HU-06 | HU-05, HU-07, HU-08 | - |
 | **Administrador** | HU-09, HU-12 | HU-10, HU-13 | HU-11 |
-| **Coordinador** | HU-14, HU-15, HU-16, HU-17, HU-20 | HU-18, HU-19 | - |
+| **Coordinador** | HU-14, HU-15, HU-16, HU-17, HU-20, HU-29 | HU-18, HU-19 | - |
 | **Analista** | HU-21, HU-22, HU-23, HU-24, HU-25 | HU-26, HU-27, HU-28 | - |
 
 ______________________________________________________________________
@@ -670,12 +697,15 @@ Analistas SOLO pueden:
 
 - Ver y cambiar estatus de sus trámites asignados
 - Descargar documentos de trámites asignados o disponibles activos
+- NO pueden ver ni actuar sobre trámites en diligencia (205): quedan fuera de su buzón y del pool
 
 Coordinadores y Administradores pueden:
 
 - Ver y cambiar estatus de CUALQUIER trámite
 - Descargar documentos de CUALQUIER trámite
 - Asignar/reasignar/liberar trámites
+- Ver trámites en diligencia (205) en la vista dedicada "En diligencia"
+- Cancelar trámites en diligencia (205) — única acción disponible desde ese estatus
 
 ______________________________________________________________________
 

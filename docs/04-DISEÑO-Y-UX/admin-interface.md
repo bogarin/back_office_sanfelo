@@ -7,7 +7,7 @@ El Backoffice de Trámites **no utiliza vistas personalizadas** para las operaci
 ### Principios de diseño
 
 - **Solo lectura por defecto**: Los trámites se originan en un sistema externo; el backoffice no crea ni elimina registros, solo gestiona el flujo de trabajo (asignación, revisión, cancelación).
-- **Modelos proxy**: Se usan modelos proxy (`Buzon`, `Disponible`, `Cerrado`) sobre la vista `v_tramites_unificado` para crear vistas de admin separadas con querysets filtrados.
+- **Modelos proxy**: Se usan modelos proxy (`Buzon`, `Disponible`, `EnDiligencia`, `Cerrado`) sobre la vista `v_tramites_unificado` para crear vistas de admin separadas con querysets filtrados.
 - **Permisos basados en roles**: `RoleCheckMixin` restringe cada vista de admin a los roles que deben acceder.
 - **Templates personalizados**: Las vistas de detalle (`change_view`) usan templates custom que muestran timeline, documentos SFTP y acciones de workflow.
 
@@ -19,9 +19,10 @@ ______________________________________________________________________
 
 | Clase Admin | Modelo Proxy | Roles Permitidos | Propósito | Queryset |
 |---|---|---|---|---|
-| `BuzonTramitesAdmin` | `Buzon` | Analista, Coordinador, Administrador | Trámites asignados al usuario actual | `.en_proceso().asignados_a(user.id)` |
-| `TramitesDisponiblesAdmin` | `Disponible` | Analista, Coordinador, Administrador | Trámites sin asignar disponibles para tomar | `.en_proceso().sin_asignar()` |
+| `BuzonTramitesAdmin` | `Buzon` | Analista, Coordinador, Administrador | Trámites asignados al usuario actual (excluye 205) | `.en_proceso().excluyendo_diligencia().asignados_a(user.id)` |
+| `TramitesDisponiblesAdmin` | `Disponible` | Analista, Coordinador, Administrador | Trámites sin asignar disponibles para tomar (excluye 205) | `.en_proceso().excluyendo_diligencia().sin_asignar()` |
 | `TramitesAdmin` | `Tramite` | Coordinador, Administrador | Todos los trámites activos en curso | `.en_proceso()` |
+| `TramitesEnDiligenciaAdmin` | `EnDiligencia` | Coordinador, Administrador | Trámites en diligencia (205) para gestión de cancelación | `.en_diligencia()` |
 | `TramitesCerradosAdmin` | `Cerrado` | Coordinador, Administrador | Trámites finalizados (solo lectura) | `.finalizados()` |
 
 ### Usuarios
@@ -34,7 +35,7 @@ ______________________________________________________________________
 
 ## TramiteBaseAdmin
 
-Clase base abstracta de la que heredan las cuatro vistas de admin de trámites. Define la configuración compartida de columnas, filtros, acciones y la vista de detalle.
+Clase base abstracta de la que heredan las cinco vistas de admin de trámites. Define la configuración compartida de columnas, filtros, acciones y la vista de detalle.
 
 **Archivo:** `tramites/admin.py`
 
@@ -89,11 +90,12 @@ Filtros adicionales por admin:
 #### BuzonTramitesAdmin (`Buzon`)
 
 - Oculta la columna `asignado_display` del `list_display` (todos son del usuario actual).
-- Queryset: solo trámites activos asignados al usuario en sesión.
+- Queryset: solo trámites activos asignados al usuario en sesión, excluyendo los que están en diligencia (205).
 
 #### TramitesDisponiblesAdmin (`Disponible`)
 
 - Oculta la columna `asignado_display` del `list_display` (todos sin asignar).
+- Queryset: solo trámites activos sin asignar, excluyendo los que están en diligencia (205).
 - Acción batch única: `tomar_asignacion`.
 - `acciones_disponibles`: botón "📌 Tomar" por fila.
 - `get_actions()` filtra para solo exponer `tomar_asignacion`.
@@ -400,6 +402,7 @@ Grupo **"Trámites"**:
 | Mis trámites | `admin:tramites_buzon_changelist` | `fas fa-user` | `tramites.acceso_analista` | Analista, Administrador |
 | Disponibles | `admin:tramites_disponible_changelist` | `fas fa-inbox` | `tramites.acceso_analista` | Analista, Administrador |
 | Trámites en curso | `admin:tramites_tramite_changelist` | `fas fa-inbox` | `tramites.acceso_coordinador` | Coordinador, Administrador |
+| En diligencia | `admin:tramites_endiligencia_changelist` | `fas fa-hard-hat` | `tramites.acceso_coordinador` | Coordinador, Administrador |
 | Trámites finalizados | `admin:tramites_cerrado_changelist` | `fas fa-flag-checkered` | `tramites.acceso_coordinador` | Coordinador, Administrador |
 
 ### UI Tweaks

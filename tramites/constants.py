@@ -49,6 +49,9 @@ ESTATUS_PROCESO_LOWER = 201
 ESTATUS_PROCESO_UPPER = 301
 ESTATUS_FINALIZADO_LOWER = 301
 
+# Specific status IDs (used in managers and queries)
+ESTATUS_EN_DILIGENCIA = 205
+
 _STATUS_GROUPS = {
     1: 'inicio',
     2: 'proceso',

@@ -19,7 +19,7 @@ from .relaciones import (
     TramiteCatalogoRequisito,
     TramiteCatalogoTipoRequisito,
 )
-from .tramite import Buzon, Cerrado, Disponible, Tramite
+from .tramite import Buzon, Cerrado, Disponible, EnDiligencia, Tramite
 
 __all__ = [
     'Actividad',
@@ -29,6 +29,7 @@ __all__ = [
     'Categoria',
     'Cerrado',
     'Disponible',
+    'EnDiligencia',
     'Perito',
     'Requisito',
     'RequisitoFile',

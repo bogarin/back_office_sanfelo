@@ -2,7 +2,7 @@
 
 **Autores:** Noe Nieto, Jose Ramon Bogarin, Carlos Ahizotl
 **Estatus:** Aprobado
-**Fecha de actualización:** 4 Mayo 2026
+**Fecha de actualización:** 12 Agosto 2026
 
 ## 1. Resumen Ejecutivo
 
@@ -48,7 +48,7 @@ El sistema debe soportar el flujo completo de trámites con 11 estados organizad
 - **201 - PRESENTADO**: Pago confirmado, trámite entra a bandeja para asignación
 - **202 - EN_REVISION**: Analista está revisando documentos y validando requisitos
 - **203 - REQUERIMIENTO**: Falta información, ciudadano debe corregir o completar
-- **205 - EN_DILIGENCIA**: Fase de campo: mediciones, inspecciones, visitas a terreno
+- **205 - EN_DILIGENCIA**: Fase de campo: mediciones, inspecciones, visitas a terreno. Solo el coordinador puede cerrar (cancelar) desde este estatus; al entrar en diligencia el trámite sale del buzón del analista y del pool
 
 #### Estados Finalizados (3xx)
 
@@ -63,6 +63,7 @@ El sistema debe soportar el flujo completo de trámites con 11 estados organizad
 - Coordinador asigna → En Revisión (202)
 - Analista requiere documentos → Requerimiento (203)
 - Analista solicita fase de campo → En Diligencia (205)
+- Coordinador cancela desde En Diligencia (205) → Por Recoger/Rechazado/Cancelado (301/302/304) — exclusivo del coordinador
 - Analista finaliza → Finalizado (303) o Rechazado (302)
 
 ### RF-02: Asignación de Trámites
@@ -84,6 +85,7 @@ Los analistas deben poder:
 - Ver solo sus trámites asignados (Buzón)
 - Ver trámites disponibles para autoasignación
 - Ver trámites finalizados (solo coordinadores)
+- NO pueden ver ni actuar sobre trámites en diligencia (205): esos trámites los gestiona el coordinador
 
 ### RF-03: Gestión de Documentos (SFTP)
 
@@ -256,6 +258,7 @@ El sistema debe presentar diferentes vistas según el rol:
 - **Todos**: Administradores y Coordinadores ven todos los trámites activos
 - **Buzón (Mis Trámites)**: Analistas ven solo sus trámites asignados
 - **Disponibles**: Todos ven los trámites sin asignar en pool
+- **En diligencia**: Coordinadores ven trámites en estatus 205 (vista dedicada)
 - **Cerrados**: Coordinadores ven trámenes finalizados (estados 3xx)
 
 ## 5. Requerimientos No Funcionales
@@ -523,6 +526,7 @@ Los catálogos de referencia son inmutables desde el backoffice:
 ### 8.2 Restricciones de Negocio
 
 - Solo coordinadores y administradores pueden asignar trámites
+- Solo coordinadores y administradores pueden cancelar trámites en diligencia (205)
 - Analistas solo pueden cambiar estatus de trámites asignados
 - El historial de actividades es inmodificable (append-only)
 - Catálogos son solo lectura desde el backoffice

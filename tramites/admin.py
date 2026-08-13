@@ -35,6 +35,7 @@ from tramites.models import (
     Buzon,
     Cerrado,
     Disponible,
+    EnDiligencia,
     Tramite,
     TramiteCatalogo,
 )
@@ -703,7 +704,13 @@ class BuzonTramitesAdmin(RoleCheckMixin, TramiteBaseAdmin):
         return [z for z in cols if not z.startswith('asignado')]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).en_proceso().asignados_a(request.user.id)
+        return (
+            super()
+            .get_queryset(request)
+            .en_proceso()
+            .excluyendo_diligencia()
+            .asignados_a(request.user.id)
+        )
 
 
 @admin.register(Disponible)
@@ -733,7 +740,7 @@ class TramitesDisponiblesAdmin(RoleCheckMixin, TramiteBaseAdmin):
         return {k: v for k, v in actions.items() if k == 'tomar_asignacion'}
 
     def get_queryset(self, request):
-        return super().get_queryset(request).en_proceso().sin_asignar()
+        return super().get_queryset(request).en_proceso().excluyendo_diligencia().sin_asignar()
 
     @admin.display(description='Acciones Rápidas')
     def acciones_disponibles(self, obj):
@@ -789,3 +796,17 @@ class TramitesCerradosAdmin(RoleCheckMixin, TramiteBaseAdmin):
         return render_quick_action(
             'Modificar Asignación', attrs={'action': 'modificar_asignacion', 'pk': obj.pk}
         )
+
+
+@admin.register(EnDiligencia)
+class TramitesEnDiligenciaAdmin(RoleCheckMixin, TramiteBaseAdmin):
+    """Trámites en diligencia (205) — solo Coordinadores y Administradores."""
+
+    allowed_roles = ('is_coordinador', 'is_administrador')
+
+    # La única acción posible sobre un trámite en diligencia es cancelar()
+    # (vía el detalle); no se puede asignar/liberar desde el changelist.
+    actions = ()
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).en_diligencia()

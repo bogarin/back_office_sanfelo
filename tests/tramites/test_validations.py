@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
 from core.rbac.constants import BackOfficeRole
+from tramites.constants import ESTATUS_EN_DILIGENCIA
 from tramites.exceptions import EstadoNoPermitidoError, TramiteNoAsignableError
 from tramites.models import Tramite
 from tramites.models.catalogos import TramiteEstatus
@@ -101,6 +102,15 @@ def test_finalizados_excludes_active_statuses():
     assert TramiteEstatus.Estatus.PRESENTADO not in final
     assert TramiteEstatus.Estatus.EN_REVISION not in final
     assert TramiteEstatus.Estatus.REQUERIMIENTO not in final
+
+
+def test_estatus_en_diligencia_constant_matches_enum():
+    """The ESTATUS_EN_DILIGENCIA constant must match the Estatus enum (205).
+
+    Guards against the two sources of truth silently diverging: the constant
+    is used in managers/querysets, the enum in model permission methods.
+    """
+    assert ESTATUS_EN_DILIGENCIA == TramiteEstatus.Estatus.EN_DILIGENCIA
 
 
 # ---------------------------------------------------------------------------

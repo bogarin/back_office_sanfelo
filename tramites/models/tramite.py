@@ -191,11 +191,15 @@ class Tramite(models.Model):
 
         Rules:
         - Superuser / Administrador / Coordinador: always ``True``
-        - Analista: only if assigned to this trámite
+        - Analista: only if assigned to this trámite AND not in EN_DILIGENCIA
         """
         if user.is_superuser or user.is_administrador or user.is_coordinador:
             return True
-        return user.is_analista and self.asignado_user_id == user.id
+        if user.is_analista:
+            if self.ultima_actividad_estatus_id == TramiteEstatus.Estatus.EN_DILIGENCIA:
+                return False
+            return self.asignado_user_id == user.id
+        return False
 
     def can_download(self, user: User) -> bool:
         """Whether *user* may download documents attached to this trámite.
@@ -207,6 +211,9 @@ class Tramite(models.Model):
         if user.is_superuser or user.is_administrador or user.is_coordinador:
             return True
         if not user.is_analista:
+            return False
+        # Analysts cannot access documents of trámites en diligencia
+        if self.ultima_actividad_estatus_id == TramiteEstatus.Estatus.EN_DILIGENCIA:
             return False
         # Assigned to this analyst → always allow
         if self.asignado_user_id == user.id:
@@ -223,14 +230,20 @@ class Tramite(models.Model):
         """Whether *user* may assign or reassign this trámite.
 
         Only Coordinadores and Administradores can assign trámites to analysts.
+        A trámite in EN_DILIGENCIA cannot be assigned/reassigned.
         """
+        if self.ultima_actividad_estatus_id == TramiteEstatus.Estatus.EN_DILIGENCIA:
+            return False
         return user.is_coordinador or user.is_administrador or user.is_superuser
 
     def can_release(self, user: User) -> bool:
         """Whether *user* may release this trámite back to the pool.
 
         Only Coordinadores and Administradores can release assigned trámites.
+        A trámite in EN_DILIGENCIA cannot be released.
         """
+        if self.ultima_actividad_estatus_id == TramiteEstatus.Estatus.EN_DILIGENCIA:
+            return False
         return user.is_coordinador or user.is_administrador or user.is_superuser
 
     def can_execute_action(self, user: User) -> bool:
@@ -267,11 +280,11 @@ class Tramite(models.Model):
             if TramiteEstatus.Estatus.EN_DILIGENCIA not in disabled:
                 actions.append('enviar_a_firma')
             _append_cancelar_if_available(disabled, actions)
-        elif status in (
-            TramiteEstatus.Estatus.REQUERIMIENTO,
-            TramiteEstatus.Estatus.EN_DILIGENCIA,
-        ):
+        elif status == TramiteEstatus.Estatus.REQUERIMIENTO:
             _append_cancelar_if_available(disabled, actions)
+        elif status == TramiteEstatus.Estatus.EN_DILIGENCIA:
+            if user.is_coordinador or user.is_administrador or user.is_superuser:
+                _append_cancelar_if_available(disabled, actions)
 
         return actions
 
@@ -458,7 +471,14 @@ class Tramite(models.Model):
 
         self._assert_activo()
         self._validate_transition(estatus_cierre)
-        self._assert_asignado_a(analista)
+
+        if self.ultima_actividad_estatus_id == TramiteEstatus.Estatus.EN_DILIGENCIA:
+            if not (analista.is_coordinador or analista.is_administrador or analista.is_superuser):
+                raise PermissionDenied(
+                    'Solo el coordinador o administrador puede cancelar trámites en diligencia.'
+                )
+        else:
+            self._assert_asignado_a(analista)
         self.registrar_actividad(
             estatus_cierre,
             analista_id=analista.id,
@@ -478,6 +498,15 @@ class Tramite(models.Model):
         """
         if liberado_por is None:
             raise ValueError('Se requiere un usuario para liberar el trámite.')
+
+        if self.ultima_actividad_estatus_id == TramiteEstatus.Estatus.EN_DILIGENCIA:
+            logger.warning(
+                'Intento de liberar trámite %s en estatus EN_DILIGENCIA',
+                self.folio,
+            )
+            raise EstadoNoPermitidoError(
+                user_message='No es posible liberar un trámite que se encuentra en diligencia.'
+            )
 
         self._assert_activo()
         self.registrar_actividad(
@@ -549,4 +578,14 @@ class Cerrado(Tramite):
         proxy = True
         verbose_name = 'Trámites finalizados'
         verbose_name_plural = 'Trámites finalizados'
+        ordering = ('-creado', '-urgente')
+
+
+class EnDiligencia(Tramite):
+    """Modelo proxy para el admin de trámites en diligencia (Coordinador)."""
+
+    class Meta:
+        proxy = True
+        verbose_name = 'Trámite en diligencia'
+        verbose_name_plural = 'Trámites en diligencia'
         ordering = ('-creado', '-urgente')

@@ -14,7 +14,7 @@ from django.test import override_settings
 
 from core.rbac.constants import BackOfficeRole
 from tramites.admin import RoleCheckMixin, TramiteBaseAdmin
-from tramites.models import Buzon, Cerrado, Disponible, Tramite
+from tramites.models import Buzon, Cerrado, Disponible, EnDiligencia, Tramite
 
 
 def _make_user(*, roles=frozenset(), is_superuser=False, user_id=1):
@@ -267,6 +267,8 @@ def _mock_base_queryset():
     qs.finalizados.return_value = qs
     qs.asignados_a.return_value = qs
     qs.sin_asignar.return_value = qs
+    qs.excluyendo_diligencia.return_value = qs
+    qs.en_diligencia.return_value = qs
     return qs
 
 
@@ -418,3 +420,112 @@ def test_non_dau_excludes_clave_catastral(admin_search_tramites, dept):
     assert 'folio' in fields
     assert 'solicitante_nombre' in fields
     assert 'clave_catastral' not in fields
+
+
+# =============================================================================
+# B5-31: get_queryset — EN_DILIGENCIA filtering
+# =============================================================================
+
+
+def _mock_base_queryset_with_diligencia():
+    qs = MagicMock()
+    qs.en_proceso.return_value = qs
+    qs.finalizados.return_value = qs
+    qs.asignados_a.return_value = qs
+    qs.sin_asignar.return_value = qs
+    qs.excluyendo_diligencia.return_value = qs
+    qs.en_diligencia.return_value = qs
+    return qs
+
+
+@pytest.fixture
+def admin_qs_buzon_diligencia():
+    return (
+        _get_admin_instance(Buzon),
+        _mock_base_queryset_with_diligencia(),
+        _make_request(_make_user(user_id=42, roles=frozenset({BackOfficeRole.ANALISTA}))),
+    )
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_calls_excluyendo_diligencia_buzon(mock_super_qs, admin_qs_buzon_diligencia):
+    admin, base_qs, request = admin_qs_buzon_diligencia
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.excluyendo_diligencia.assert_called_once()
+
+
+@pytest.fixture
+def admin_qs_disponibles_diligencia():
+    return (
+        _get_admin_instance(Disponible),
+        _mock_base_queryset_with_diligencia(),
+        _make_request(),
+    )
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_calls_excluyendo_diligencia_disponibles(mock_super_qs, admin_qs_disponibles_diligencia):
+    admin, base_qs, request = admin_qs_disponibles_diligencia
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.excluyendo_diligencia.assert_called_once()
+
+
+@pytest.fixture
+def admin_qs_en_diligencia():
+    return (
+        _get_admin_instance(EnDiligencia),
+        _mock_base_queryset_with_diligencia(),
+        _make_request(),
+    )
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_queryset')
+def test_calls_en_diligencia(mock_super_qs, admin_qs_en_diligencia):
+    admin, base_qs, request = admin_qs_en_diligencia
+    mock_super_qs.return_value = base_qs
+    admin.get_queryset(request)
+    base_qs.en_diligencia.assert_called_once()
+
+
+@pytest.fixture
+def admin_perms_en_diligencia():
+    return _get_admin_instance(EnDiligencia), _make_request()
+
+
+@pytest.mark.parametrize(
+    'role',
+    [
+        frozenset({BackOfficeRole.COORDINADOR}),
+        frozenset({BackOfficeRole.ADMINISTRADOR}),
+    ],
+)
+def test_has_change_permission_obj_none_allows_role_en_diligencia(admin_perms_en_diligencia, role):
+    admin, request = admin_perms_en_diligencia
+    request.user = _make_user(roles=role)
+    assert admin.has_change_permission(request, obj=None) is True
+
+
+def test_has_change_permission_obj_none_superuser_allowed_en_diligencia(admin_perms_en_diligencia):
+    admin, request = admin_perms_en_diligencia
+    request.user = _make_user(is_superuser=True)
+    assert admin.has_change_permission(request, obj=None) is True
+
+
+def test_has_change_permission_obj_none_analista_denied_en_diligencia(admin_perms_en_diligencia):
+    admin, request = admin_perms_en_diligencia
+    request.user = _make_user(roles=frozenset({BackOfficeRole.ANALISTA}))
+    assert admin.has_change_permission(request, obj=None) is False
+
+
+def test_has_change_permission_obj_none_anonymous_denied_en_diligencia(admin_perms_en_diligencia):
+    admin, request = admin_perms_en_diligencia
+    request.user = _make_user(roles=frozenset())
+    assert admin.has_change_permission(request, obj=None) is False
+
+
+def test_en_diligencia_admin_no_batch_actions():
+    """The EnDiligencia admin must not expose assign/release batch actions."""
+    admin = _get_admin_instance(EnDiligencia)
+    assert admin.actions == ()

@@ -33,6 +33,7 @@ from django.db import models
 
 from core.managers import ReadOnlyQuerySet
 from tramites.constants import (
+    ESTATUS_EN_DILIGENCIA,
     ESTATUS_FINALIZADO_LOWER,
     ESTATUS_PROCESO_LOWER,
     ESTATUS_PROCESO_UPPER,
@@ -62,6 +63,14 @@ class TramiteQuerySet(models.QuerySet):
     def sin_asignar(self):
         """Trámites without assignment."""
         return self.filter(asignado_user_id__isnull=True)
+
+    def excluyendo_diligencia(self):
+        """Exclude trámites in EN_DILIGENCIA status (205)."""
+        return self.exclude(ultima_actividad_estatus_id=ESTATUS_EN_DILIGENCIA)
+
+    def en_diligencia(self):
+        """Filter to trámites in EN_DILIGENCIA status (205)."""
+        return self.filter(ultima_actividad_estatus_id=ESTATUS_EN_DILIGENCIA)
 
 
 class CachedReadOnlyManager(models.Manager.from_queryset(ReadOnlyQuerySet)):  # type: ignore[misc]

@@ -113,13 +113,14 @@ sequenceDiagram
 
 **Vistas de trámites:**
 
-El sistema presenta **4 vistas de trámites** según el rol del usuario:
+El sistema presenta **5 vistas de trámites** según el rol del usuario:
 
 | Vista | Visible por | Descripción |
 |-------|-------------|-------------|
 | **Todos** | Administradores y Coordinadores | Todos los trámites activos (no filtrados) |
-| **Buzón (Mis Trámites)** | Analistas | Solo trámites asignados al usuario actual (asignado_user_id == user.id) |
-| **Disponibles** | Todos (Analistas + Coordinadores) | Trámites sin asignar en pool (asignado_user_id IS NULL) |
+| **Buzón (Mis Trámites)** | Analistas | Solo trámites asignados al usuario actual (asignado_user_id == user.id), excluyendo estatus 205 (EN_DILIGENCIA) |
+| **Disponibles** | Todos (Analistas + Coordinadores) | Trámites sin asignar en pool (asignado_user_id IS NULL), excluyendo estatus 205 |
+| **En diligencia** | Coordinadores y Administradores | Trámites en estatus 205 (EN_DILIGENCIA), vista dedicada para su cancelación |
 | **Cerrados** | Coordinadores y Administradores | Trámenes finalizados (estados 3xx) |
 
 **Acciones rápidas:**
@@ -133,7 +134,7 @@ El sistema presenta **4 vistas de trámites** según el rol del usuario:
 El sidebar de Jazzmin presenta secciones según los permisos del usuario:
 
 - ACCESO_ANALISTA → Ve "Buzón" y "Disponibles"
-- ACCESO_COORDINADOR → Ve "En curso" (Todos) y "Cerrados"
+- ACCESO_COORDINADOR → Ve "En curso" (Todos), "En diligencia" y "Cerrados"
 
 ______________________________________________________________________
 
@@ -255,12 +256,12 @@ ______________________________________________________________________
 
 | Método | Retorna | Lógica |
 |--------|---------|--------|
-| `can_view(user)` | `bool` | Admin/Coord: siempre. Analista: solo si asignado |
+| `can_view(user)` | `bool` | Admin/Coord: siempre. Analista: solo si asignado y NO en estatus 205 |
 | `can_download(user)` | `bool` | Admin/Coord: siempre. Analista: asignados o disponibles activos |
 | `can_assign(user)` | `bool` | Solo Coord/Admin |
-| `can_release(user)` | `bool` | Solo Coord/Admin |
+| `can_release(user)` | `bool` | Solo Coord/Admin, y nunca para trámites en estatus 205 |
 | `can_execute_action(user)` | `bool` | Admin/Coord: siempre. Analista: solo si asignado |
-| `available_actions(user)` | `list[str]` | Lista de acciones según estatus actual y rol |
+| `available_actions(user)` | `list[str]` | Lista de acciones según estatus actual y rol. En 205: solo Coord/Admin obtienen `['cancelar']` |
 
 **Ejemplos:**
 
@@ -421,9 +422,9 @@ class Tramite(models.Model):
 
 ______________________________________________________________________
 
-#### 4.3.4 Modelos Proxy (Buzon, Disponible, Cerrado)
+#### 4.3.4 Modelos Proxy (Buzon, Disponible, EnDiligencia, Cerrado)
 
-**Descripción:** 3 modelos proxy que extienden de `Tramite` proporcionando vistas filtradas según contexto y permisos.
+**Descripción:** 4 modelos proxy que extienden de `Tramite` proporcionando vistas filtradas según contexto y permisos.
 
 **Relación de herencia:**
 
@@ -434,27 +435,37 @@ graph TB
     end
 
     subgraph "Modelos Proxy"
-        B[Buzon<br/>Mis Trámites<br/>asignado_user_id == user.id]
-        D[Disponible<br/>Pool<br/>asignado_user_id IS NULL]
+        B[Buzon<br/>Mis Trámites<br/>asignado_user_id == user.id, excluye 205]
+        D[Disponible<br/>Pool<br/>asignado_user_id IS NULL, excluye 205]
+        E[EnDiligencia<br/>En diligencia<br/>estatus == 205]
         C[Cerrado<br/>Finalizados<br/>estatus IN 3xx]
     end
 
     T -->|hereda| B
     T -->|hereda| D
+    T -->|hereda| E
     T -->|hereda| C
 ```
 
 **Modelo Buzon:**
 
 - Filtra por `asignado_user_id == request.user.id`
+- Excluye trámites en estatus 205 (EN_DILIGENCIA)
 - Solo accesible para Analistas
 - Muestra trámites en estados activos (2xx)
 
 **Modelo Disponible:**
 
 - Filtra por `asignado_user_id IS NULL`
+- Excluye trámites en estatus 205 (EN_DILIGENCIA)
 - Accesible para Analistas y Coordinadores
 - Solo trámites en estado PRESENTADO (201)
+
+**Modelo EnDiligencia:**
+
+- Filtra por `ultima_actividad_estatus_id == 205` (EN_DILIGENCIA)
+- Accesible solo para Coordinadores y Administradores
+- Única acción disponible: `cancelar()` (coordinador/admin)
 
 **Modelo Cerrado:**
 
@@ -581,7 +592,7 @@ class BackOfficeRole(StrEnum):
 ```python
 class TramitePermission:
     ACCESO_ANALISTA = 'acceso_analista'      # Buzón + Disponibles
-    ACCESO_COORDINADOR = 'acceso_coordinador'  # En curso + Cerrados
+    ACCESO_COORDINADOR = 'acceso_coordinador'  # En curso + En diligencia + Cerrados
 
 ROLE_CUSTOM_PERMISSIONS = {
     BackOfficeRole.ADMINISTRADOR: [ACCESO_ANALISTA, ACCESO_COORDINADOR],
@@ -620,7 +631,7 @@ ______________________________________________________________________
 | App | Propósito |
 |-----|-----------|
 | `core` | Infraestructura: RBAC, middleware, db router, management commands, Custom User, managers |
-| `tramites` | Modelos de negocio: Tramite, Buzon, Disponible, Cerrado, Actividades, Catálogos, Admin config |
+| `tramites` | Modelos de negocio: Tramite, Buzon, Disponible, EnDiligencia, Cerrado, Actividades, Catálogos, Admin config |
 | `jazzmin` | Tema Bootstrap para Django Admin |
 | `django.contrib.auth` | Authentication system |
 | `django.contrib.sessions` | Sessions management |
