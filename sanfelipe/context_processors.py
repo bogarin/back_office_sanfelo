@@ -14,8 +14,8 @@ def version(request):
     }
 
 
-def active_department(request):
-    """Expose ACTIVE_DEPARTMENT to all templates for conditional rendering."""
+def BACKOFFICE_DEPARTMENT(request):
+    """Expose BACKOFFICE_DEPARTMENT to all templates for conditional rendering."""
     return {
-        'ACTIVE_DEPARTMENT': getattr(settings, 'ACTIVE_DEPARTMENT', 'DAU'),
+        'BACKOFFICE_DEPARTMENT': getattr(settings, 'BACKOFFICE_DEPARTMENT', 'DAU'),
     }

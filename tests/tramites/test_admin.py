@@ -392,7 +392,7 @@ def test_does_not_call_en_proceso(mock_super_qs, admin_qs_cerrados):
 
 
 # =============================================================================
-# get_search_fields — dynamic by ACTIVE_DEPARTMENT
+# get_search_fields — dynamic by BACKOFFICE_DEPARTMENT
 # =============================================================================
 
 
@@ -401,7 +401,7 @@ def admin_search_tramites():
     return _get_admin_instance(Tramite), _make_request()
 
 
-@override_settings(ACTIVE_DEPARTMENT='DAU')
+@override_settings(BACKOFFICE_DEPARTMENT='DAU')
 def test_dau_includes_clave_catastral(admin_search_tramites):
     admin, request = admin_search_tramites
     fields = admin.get_search_fields(request)
@@ -413,7 +413,7 @@ def test_dau_includes_clave_catastral(admin_search_tramites):
 @pytest.mark.parametrize('dept', ['SEC', 'TES'])
 def test_non_dau_excludes_clave_catastral(admin_search_tramites, dept):
     admin, request = admin_search_tramites
-    with override_settings(ACTIVE_DEPARTMENT=dept):
+    with override_settings(BACKOFFICE_DEPARTMENT=dept):
         fields = admin.get_search_fields(request)
     assert 'folio' in fields
     assert 'solicitante_nombre' in fields

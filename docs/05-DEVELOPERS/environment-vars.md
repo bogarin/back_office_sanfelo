@@ -230,9 +230,9 @@ ______________________________________________________________________
 
 | Variable | Tipo | Default | Requerida |
 |----------|------|---------|-----------|
-| `DJANGO_DEFAULT_PAGE_SIZE` | int | `25` | No |
+| `BACKOFFICE_TRAMITES_PER_PAGE` | int | `25` | No |
 
-### `DJANGO_DEFAULT_PAGE_SIZE`
+### `BACKOFFICE_TRAMITES_PER_PAGE`
 
 Cantidad de elementos por página en las vistas de lista del admin.
 
@@ -346,15 +346,15 @@ ______________________________________________________________________
 
 | Variable | Tipo | Default | Requerida |
 |----------|------|---------|-----------|
-| `ACTIVE_DEPARTMENT` | string | `DAU` | No |
+| `BACKOFFICE_DEPARTMENT` | string | `DAU` | No |
 
-### `ACTIVE_DEPARTMENT`
+### `BACKOFFICE_DEPARTMENT`
 
 Código del departamento activo. Determina qué campos se muestran en las plantillas y el comportamiento departamental.
 
 - Valores válidos: `DAU`, `SEC`, `TES`
-- Expuesta a plantillas via context processor `sanfelipe.context_processors.active_department`
-- Uso en templates: `{% if ACTIVE_DEPARTMENT == 'DAU' %}`
+- Expuesta a plantillas via context processor `sanfelipe.context_processors.BACKOFFICE_DEPARTMENT`
+- Uso en templates: `{% if BACKOFFICE_DEPARTMENT == 'DAU' %}`
 
 ______________________________________________________________________
 
@@ -362,13 +362,13 @@ ______________________________________________________________________
 
 | Variable | Tipo | Default | Requerida |
 |----------|------|---------|-----------|
-| `DISABLED_TRANSITIONS` | lista coma | (vacío) | No |
+| `BACKOFFICE_DISABLED_TRANSITIONS` | lista coma | (vacío) | No |
 
-### `DISABLED_TRANSITIONS`
+### `BACKOFFICE_DISABLED_TRANSITIONS`
 
 Lista separada por comas de IDs de estatus *destino* a deshabilitar. Los valores se convierten a `int` al cargar settings.
 
-- **SEC example:** `DISABLED_TRANSITIONS=205` deshabilita EN_DILIGENCIA
+- **SEC example:** `BACKOFFICE_DISABLED_TRANSITIONS=205` deshabilita EN_DILIGENCIA
 - **Default:** vacío (todas las transiciones habilitadas)
 - Los IDs corresponden a `TramiteEstatus.Estatus` en `tramites/models/catalogos.py`
 
@@ -547,8 +547,8 @@ POSTGRES_PASSWORD=STRONG_DB_PASSWORD
 HTTP_PORT=8090
 
 # === MULTI-DEPARTAMENTO ===
-# ACTIVE_DEPARTMENT=DAU
-# DISABLED_TRANSITIONS=
+# BACKOFFICE_DEPARTMENT=DAU
+# BACKOFFICE_DISABLED_TRANSITIONS=
 # SESSION_COOKIE_NAME=sessionid
 # CSRF_COOKIE_NAME=csrftoken
 ```

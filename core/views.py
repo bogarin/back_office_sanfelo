@@ -53,7 +53,7 @@ def health_check(request: HttpRequest) -> HttpResponse:
 
 @cache_control(max_age=3600)
 def pwa_manifest(request: HttpRequest) -> JsonResponse:
-    department = settings.ACTIVE_DEPARTMENT.lower()
+    department = settings.BACKOFFICE_DEPARTMENT.lower()
     icon_base = f'{settings.STATIC_URL}{department}'
     icons = [
         {
@@ -71,9 +71,9 @@ def pwa_manifest(request: HttpRequest) -> JsonResponse:
     ]
     return JsonResponse(
         {
-            'id': f'{settings.ACTIVE_DEPARTMENT}/v1',
-            'name': f'{settings.ACTIVE_DEPARTMENT} - {settings.BACKOFFICE_SITE_TITLE}',
-            'short_name': f'Backoffice {settings.ACTIVE_DEPARTMENT}',
+            'id': f'{settings.BACKOFFICE_DEPARTMENT}/v1',
+            'name': f'{settings.BACKOFFICE_DEPARTMENT} - {settings.BACKOFFICE_SITE_TITLE}',
+            'short_name': f'Backoffice {settings.BACKOFFICE_DEPARTMENT}',
             'description': settings.BACKOFFICE_WELCOME_SIGN,
             'display': 'minimal-ui',
             'start_url': '/admin/',

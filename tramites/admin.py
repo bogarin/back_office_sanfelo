@@ -228,8 +228,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
     """
 
     save_on_top = True
-    list_per_page = 25
-    list_max_show_all = 100
+    list_per_page = settings.BACKOFFICE_TRAMITES_PER_PAGE
     list_editable = ()
 
     def has_add_permission(self, request):
@@ -280,7 +279,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
 
     def get_search_fields(self, request):
         fields = list(super().get_search_fields(request))
-        if settings.ACTIVE_DEPARTMENT == 'DAU':
+        if settings.BACKOFFICE_DEPARTMENT == 'DAU':
             fields.append('clave_catastral')
         return tuple(fields)
 

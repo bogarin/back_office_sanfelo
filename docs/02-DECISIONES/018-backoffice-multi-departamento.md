@@ -45,7 +45,7 @@ Cada instancia se diferencia **únicamente** por su archivo `.env`:
 |---|---|---|
 | DB destino | `POSTGRESQL_DB_URL` | Apunta a `dau_db` / `sec_db` / `tes_db` |
 | Branding | `BACKOFFICE_SITE_*` (tenancy.py) | Título, header, logo por depto |
-| Transiciones deshabilitadas | `DISABLED_TRANSITIONS` (nueva env var) | Lista de IDs a excluir del dict TRANSITIONS |
+| Transiciones deshabilitadas | `BACKOFFICE_DISABLED_TRANSITIONS` (nueva env var) | Lista de IDs a excluir del dict TRANSITIONS |
 | Vista de trámites | Diferente SQL por DB | `v_tramites_unificado` adaptada en cada DB |
 | Folio prefix | GUC `app.depto_prefix` | `ALTER DATABASE sec_db SET app.depto_prefix = 'SEC';` |
 
@@ -56,7 +56,7 @@ Cada instancia se diferencia **únicamente** por su archivo `.env`:
 - **Mismo SFTP regex** — `FOLIO_REGEX = ^[A-Z]+-\d{6}-[A-Z]{4}-[A-Z]$` ya matchea SEC/TES
 - **Mismos tests** — los tests usan SQLite con `managed=True`
 
-### `DISABLED_TRANSITIONS`
+### `BACKOFFICE_DISABLED_TRANSITIONS`
 
 Nueva variable de entorno que filtra el dict `TRANSITIONS` en `tramite.py`.
 

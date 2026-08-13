@@ -156,7 +156,7 @@ TEMPLATES = [
                 'django.template.context_processors.csp',
                 # Custom context processors
                 'sanfelipe.context_processors.version',
-                'sanfelipe.context_processors.active_department',
+                'sanfelipe.context_processors.BACKOFFICE_DEPARTMENT',
             ],
         },
     },
@@ -368,40 +368,6 @@ EMAIL_USE_TLS = env.bool('DJANGO_EMAIL_USE_TLS', default=True)
 EMAIL_HOST_USER = env('DJANGO_EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('DJANGO_EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = env('DJANGO_DEFAULT_FROM_EMAIL', default='noreply@sanfelipe.gob.ar')
-
-# =============================================================================
-# DEPARTMENT SETTINGS
-# =============================================================================
-
-# Active department code (DAU, SEC, TES).
-# Used for conditional template rendering and department-specific behavior.
-ACTIVE_DEPARTMENT = env('ACTIVE_DEPARTMENT', default='DAU').strip().upper()
-if ACTIVE_DEPARTMENT not in {'DAU', 'SEC', 'TES'}:
-    raise ImproperlyConfigured(
-        f"ACTIVE_DEPARTMENT must be one of {{'DAU', 'SEC', 'TES'}}, got '{ACTIVE_DEPARTMENT}'"
-    )
-
-# =============================================================================
-# TRAMITES SETTINGS
-# =============================================================================
-
-# Pagination
-DEFAULT_PAGE_SIZE = env.int('DJANGO_DEFAULT_PAGE_SIZE', default=25)
-
-# Statistics cache timeout (in seconds)
-# Reduces round-trip queries to external database
-# Default: 5 minutes (300 seconds)
-TRAMITE_STATS_CACHE_TIMEOUT = env.int(
-    'TRAMITE_STATS_CACHE_TIMEOUT',
-    default=300,  # 5 minutes
-)
-
-# Transitions disabled per department (comma-separated estatus IDs).
-# SEC example: DISABLED_TRANSITIONS=205 (disables EN_DILIGENCIA).
-# Values are converted to int at load time for correct comparison with TRANSITIONS keys.
-DISABLED_TRANSITIONS: list[int] = [
-    int(x) for x in env.list('DISABLED_TRANSITIONS', default=[]) if x.strip()
-]
 
 # =============================================================================
 # SANITY CHECK

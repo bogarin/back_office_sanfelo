@@ -9,6 +9,7 @@ This module contains all tenancy-specific configuration that varies per departme
 Note: Jazzmin configuration is handled separately in jazzmin.py
 """
 
+from django.core.exceptions import ImproperlyConfigured
 from environ import Env
 
 
@@ -26,7 +27,18 @@ def configure_tenancy(env: Env) -> dict:
     Returns:
         Dictionary containing all tenancy settings
     """
+    # =============================================================================
+    # Department configuration
+    # =============================================================================
+    # Used for conditional template rendering and department-specific behavior.
+    BACKOFFICE_DEPARTMENT = env('BACKOFFICE_DEPARTMENT', default='DAU').strip().upper()
+    if BACKOFFICE_DEPARTMENT not in {'DAU', 'SEC', 'TES'}:
+        raise ImproperlyConfigured(
+            'BACKOFFICE_DEPARTMENT must be one of '
+            f"{{'DAU', 'SEC', 'TES'}}, got '{BACKOFFICE_DEPARTMENT}'"
+        )
     return {
+        'BACKOFFICE_DEPARTMENT': BACKOFFICE_DEPARTMENT,
         # =============================================================================
         # SITE BRANDING (UI Customization)
         # =============================================================================
@@ -52,4 +64,14 @@ def configure_tenancy(env: Env) -> dict:
             'BACKOFFICE_COPYRIGHT',
             default='Municipio de San Felipe - Todos los derechos reservados',
         ),
+        # =============================================================================
+        # TRAMITES SETTINGS
+        # =============================================================================
+        'BACKOFFICE_TRAMITES_PER_PAGE': env.int('BACKOFFICE_TRAMITES_PER_PAGE', default=25),
+        # Transitions disabled per department (comma-separated estatus IDs).
+        # SEC example: BACKOFFICE_DISABLED_TRANSITIONS=205 (disables EN_DILIGENCIA).
+        # Values are converted to int at load time for correct comparison with TRANSITIONS keys.
+        'BACKOFFICE_DISABLED_TRANSITIONS': [
+            int(x) for x in env.list('BACKOFFICE_DISABLED_TRANSITIONS', default=[]) if x.strip()
+        ],
     }

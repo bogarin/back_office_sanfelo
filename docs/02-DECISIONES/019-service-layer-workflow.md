@@ -12,7 +12,7 @@ El modelo `Tramite` (`tramites/models/tramite.py`) tiene 484 líneas y 18 métod
 
 AUDIT-002 clasificó esto como **H-002-001 (Crítico)**: "God Model — lógica de negocio atrapada en ORM" y **H-002-002 (Crítico)**: "Sin capa de servicios". La sección 7 del mismo audit recomienda: "Evaluar adopción de librería de state machine (e.g., `django-fsm`) para el workflow de trámites."
 
-Con la adición de soporte multi-departamento (ADR-018), la complejidad aumenta: se agrega `DISABLED_TRANSITIONS` (per-department filtering), helper functions, y actualizaciones a `available_actions`. Agregar esta complejidad al God Model empeora el problema.
+Con la adición de soporte multi-departamento (ADR-018), la complejidad aumenta: se agrega `BACKOFFICE_DISABLED_TRANSITIONS` (per-department filtering), helper functions, y actualizaciones a `available_actions`. Agregar esta complejidad al God Model empeora el problema.
 
 ### Restricciones arquitectónicas
 
@@ -26,7 +26,7 @@ Con la adición de soporte multi-departamento (ADR-018), la complejidad aumenta:
 
 - **A) Service layer** — Extraer workflow a `tramites/services.py` con clase `TramiteWorkflowService`
 - **B) django-fsm u otra librería FSM** — Decoradores `@transition` en métodos del modelo
-- **C) Mantener status quo** — Agregar DISABLED_TRANSITIONS directamente al God Model
+- **C) Mantener status quo** — Agregar BACKOFFICE_DISABLED_TRANSITIONS directamente al God Model
 - **D) Multi-modelos especializados por departamento** — Abstract `TramiteBase` + concrete `TramiteDAU`/`TramiteSEC`/`TramiteTES` con modelo swappable vía `ACTIVE_TRAMITE_MODEL`
 
 ### Evaluación de Opción D: Multi-modelos especializados
@@ -122,7 +122,7 @@ tramites/models/tramite.py   ← ADELGAZADO
 | `TRANSITIONS` dict | Constante compartida entre modelo y service |
 | Proxy models (`Buzon`, `Disponible`, `Cerrado`) | Solo definen Meta alternativas |
 
-### Integración con DISABLED_TRANSITIONS
+### Integración con BACKOFFICE_DISABLED_TRANSITIONS
 
 Las funciones `_get_disabled_transitions()` y `_is_transition_allowed()` viven en `services.py`. El service las usa internamente para:
 
@@ -130,7 +130,7 @@ Las funciones `_get_disabled_transitions()` y `_is_transition_allowed()` viven e
 - `available_actions()` — ocultar botones de acciones deshabilitadas
 - Logging de auditoría al instanciar el service
 
-El modelo `Tramite` no conoce `DISABLED_TRANSITIONS` — la configuración per-departamento permanece encapsulada en el service.
+El modelo `Tramite` no conoce `BACKOFFICE_DISABLED_TRANSITIONS` — la configuración per-departamento permanece encapsulada en el service.
 
 ### API de consumo
 
@@ -154,7 +154,7 @@ actions = svc.available_actions()
 | Archivo | Contenido |
 |---|---|
 | `tests/tramites/test_models.py` | Permisos `can_*`, campos, proxy models |
-| `tests/tramites/test_services.py` | **NUEVO** — workflow methods, guards, DISABLED_TRANSITIONS, `available_actions` |
+| `tests/tramites/test_services.py` | **NUEVO** — workflow methods, guards, BACKOFFICE_DISABLED_TRANSITIONS, `available_actions` |
 
 Los tests existentes de workflow (37 en `test_models.py`) se migran a `test_services.py` adaptando el patrón de fixture: en vez de `tramite.requerir_documentos(...)`, usan `svc.requerir_documentos(...)`.
 
@@ -163,7 +163,7 @@ Los tests existentes de workflow (37 en `test_models.py`) se migran a `test_serv
 - **Bueno, porque** resuelve H-002-001 (God Model) — el modelo baja de ~484 a ~200 líneas
 - **Bueno, porque** resuelve H-002-002 (service layer) — la lógica de negocio ya no está atrapada en el ORM
 - **Bueno, porque** el workflow es testeable sin instanciar el modelo — solo se necesita un mock del tramite
-- **Bueno, porque** `DISABLED_TRANSITIONS` se encapsula en el service — el modelo no conoce departamentos
+- **Bueno, porque** `BACKOFFICE_DISABLED_TRANSITIONS` se encapsula en el service — el modelo no conoce departamentos
 - **Bueno, porque** no agrega dependencias externas
 - **Bueno, porque** los consumidores existentes solo cambian la forma de invocación, no la lógica
 - **Malo, porque** agrega una capa de indirección — `TramiteWorkflowService(tramite, user)` en vez de `tramite.metodo(user)`
@@ -175,6 +175,6 @@ ______________________________________________________________________
 ## Ver también
 
 - [ADR-014: Custom User, Workflow, Permissions](014-custom-user-workflow-permissions.md) — Decisión original del dict TRANSITIONS (parcialmente superseded en implementación, no en diseño)
-- [ADR-018: Backoffice Multi-Departamento](018-backoffice-multi-departamento.md) — DISABLED_TRANSITIONS
+- [ADR-018: Backoffice Multi-Departamento](018-backoffice-multi-departamento.md) — BACKOFFICE_DISABLED_TRANSITIONS
 - [AUDIT-002: Limpieza de Código](../03-AUDITORIAS/002-limpieza-de-codigo.md) — H-002-001, H-002-002
 - [PLAN.md](../../PLAN.md) — Fase de implementación

@@ -57,7 +57,7 @@ def _get_disabled_transitions() -> set[int]:
     Values are coerced to ``int`` as defense-in-depth: settings converts
     at load time, but ``override_settings()`` in tests may pass raw strings.
     """
-    return {int(x) for x in getattr(django_settings, 'DISABLED_TRANSITIONS', [])}
+    return {int(x) for x in getattr(django_settings, 'BACKOFFICE_DISABLED_TRANSITIONS', [])}
 
 
 _CERRAR_DESTINATIONS = frozenset(
