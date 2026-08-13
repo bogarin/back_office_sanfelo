@@ -1353,7 +1353,7 @@ def test_asignar_estatus_invalido_finaliza_sin_crear_actividad(
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
 def test_cancelar_coordinador_desde_diligencia_exitoso(
-    mock_registrar, analista, tramite_en_diligencia
+    mock_registrar, coordinador, tramite_en_diligencia
 ):
     """
     Happy path: Coordinator can cancel from EN_DILIGENCIA (205).
@@ -1363,15 +1363,6 @@ def test_cancelar_coordinador_desde_diligencia_exitoso(
     - Coordinator authorization passes
     """
     tramite = tramite_en_diligencia
-
-    # Create a mock coordinator
-    coordinador = Mock()
-    coordinador.id = 999
-    coordinador.is_superuser = False
-    coordinador.is_administrador = False
-    coordinador.is_coordinador = True
-    coordinador.is_analista = False
-    coordinador.username = 'coordinador_test'
 
     tramite.cancelar(
         analista=coordinador,

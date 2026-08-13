@@ -86,6 +86,34 @@ def admin_user(db, admin_group):  # noqa: ARG001
     return user
 
 
+@pytest.fixture
+def coordinador_user(db, coordinador_group):  # noqa: ARG001
+    """Create a coordinador user."""
+    user = User.objects.create_user(
+        username='test_coordinador',
+        email='coordinador@example.com',
+        password='testpass123',
+        first_name='María',
+        last_name='Gómez',
+        is_staff=True,
+    )
+    user.groups.add(coordinador_group)
+    return user
+
+
+@pytest.fixture
+def analista_user(db, analista_group):  # noqa: ARG001
+    """Create an analista user."""
+    user = User.objects.create_user(
+        username='test_analista',
+        email='analista@example.com',
+        password='testpass123',
+        is_staff=True,
+    )
+    user.groups.add(analista_group)
+    return user
+
+
 # =============================================================================
 # REQUEST FIXTURES
 # =============================================================================

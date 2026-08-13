@@ -505,7 +505,7 @@ class Tramite(models.Model):
                 self.folio,
             )
             raise EstadoNoPermitidoError(
-                user_message='No es posible liberar un trámite que se encuentra en diligencia.'
+                user_message='No es posible liberar un trámite en diligencia.'
             )
 
         self._assert_activo()
