@@ -308,24 +308,24 @@ def test_en_revision_has_all_actions(tramite_en_revision, avail_superuser):
     tramite_en_revision.asignado_user_id = avail_superuser.id
     actions = tramite_en_revision.available_actions(avail_superuser)
     assert 'requerir_documentos' in actions
-    assert 'en_diligencia' in actions
-    assert 'cerrar' in actions
+    assert 'enviar_a_firma' in actions
+    assert 'cancelar' in actions
 
 
 @pytest.mark.django_db
-def test_requerimiento_only_cerrar(tramite_en_revision, avail_superuser):
+def test_requerimiento_only_cancelar(tramite_en_revision, avail_superuser):
     tramite_en_revision.ultima_actividad_estatus_id = TramiteEstatus.Estatus.REQUERIMIENTO
     tramite_en_revision.asignado_user_id = avail_superuser.id
     actions = tramite_en_revision.available_actions(avail_superuser)
-    assert actions == ['cerrar']
+    assert actions == ['cancelar']
 
 
 @pytest.mark.django_db
-def test_en_diligencia_only_cerrar(tramite_en_revision, avail_superuser):
+def test_enviar_a_firma_only_cancelar(tramite_en_revision, avail_superuser):
     tramite_en_revision.ultima_actividad_estatus_id = TramiteEstatus.Estatus.EN_DILIGENCIA
     tramite_en_revision.asignado_user_id = avail_superuser.id
     actions = tramite_en_revision.available_actions(avail_superuser)
-    assert actions == ['cerrar']
+    assert actions == ['cancelar']
 
 
 @pytest.mark.django_db

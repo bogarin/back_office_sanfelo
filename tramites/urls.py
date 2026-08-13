@@ -15,9 +15,9 @@ urlpatterns = [
         name='sin-asignar',
     ),
     path(
-        'tramite/<int:pk>/cerrar/',
-        views.cerrar_tramite_view,
-        name='cerrar-tramite',
+        'tramite/<int:pk>/cancelar/',
+        views.cancelar_tramite_view,
+        name='cancelar-tramite',
     ),
     path(
         'tramite/<int:pk>/download/<str:filename>/',

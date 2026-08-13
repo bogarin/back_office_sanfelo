@@ -7,9 +7,9 @@ ______________________________________________________________________
 
 ## Resumen
 
-El workflow de trámites es una máquina de estados finitos implementada como un diccionario `TRANSITIONS` en el modelo `Tramite`. Cada transición de estado está definida explícitamente como `(from_status, to_status) → True`, y los métodos de acción (`asignar`, `requerir_documentos`, `en_diligencia`, `cerrar`) validan contra este diccionario antes de ejecutarse.
+El workflow de trámites es una máquina de estados finitos implementada como un diccionario `TRANSITIONS` en el modelo `Tramite`. Cada transición de estado está definida explícitamente como `(from_status, to_status) → True`, y los métodos de acción (`asignar`, `requerir_documentos`, `enviar_a_firma`, `cancelar`) validan contra este diccionario antes de ejecutarse.
 
-Este documento describe los estados, transiciones, acciones, permisos y el flujo típico de un trámite desde su creación hasta su cierre.
+Este documento describe los estados, transiciones, acciones, permisos y el flujo típico de un trámite desde su creación hasta su cancelación.
 
 ______________________________________________________________________
 
@@ -69,9 +69,9 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
     (202, 201): True,
     # Requerir documentos: en revisión → requerimiento
     (202, 203): True,
-    # En diligencia: en revisión → en diligencia
+    # Enviar a firma: en revisión → en diligencia
     (202, 205): True,
-    # Cerrar desde estados activos → estados terminales
+    # Cancelar desde estados activos → estados terminales
     (202, 301): True,  # por recoger
     (202, 302): True,  # rechazado
     (202, 304): True,  # cancelado
@@ -101,7 +101,7 @@ stateDiagram-v2
         EN_REVISION --> EN_REVISION : reasignar(otro analista)
         EN_REVISION --> PRESENTADO : liberar()
         EN_REVISION --> REQUERIMIENTO : requerir_documentos()
-        EN_REVISION --> EN_DILIGENCIA : en_diligencia()
+        EN_REVISION --> EN_DILIGENCIA : enviar_a_firma()
     }
 
     state "Finalizado (3xx)" as finalizado {
@@ -114,15 +114,15 @@ stateDiagram-v2
         CANCELADO --> [*]
     }
 
-    EN_REVISION --> POR_RECOGER : cerrar(301)
-    EN_REVISION --> RECHAZADO : cerrar(302)
-    EN_REVISION --> CANCELADO : cerrar(304)
-    REQUERIMIENTO --> POR_RECOGER : cerrar(301)
-    REQUERIMIENTO --> RECHAZADO : cerrar(302)
-    REQUERIMIENTO --> CANCELADO : cerrar(304)
-    EN_DILIGENCIA --> POR_RECOGER : cerrar(301)
-    EN_DILIGENCIA --> RECHAZADO : cerrar(302)
-    EN_DILIGENCIA --> CANCELADO : cerrar(304)
+    EN_REVISION --> POR_RECOGER : cancelar(301)
+    EN_REVISION --> RECHAZADO : cancelar(302)
+    EN_REVISION --> CANCELADO : cancelar(304)
+    REQUERIMIENTO --> POR_RECOGER : cancelar(301)
+    REQUERIMIENTO --> RECHAZADO : cancelar(302)
+    REQUERIMIENTO --> CANCELADO : cancelar(304)
+    EN_DILIGENCIA --> POR_RECOGER : cancelar(301)
+    EN_DILIGENCIA --> RECHAZADO : cancelar(302)
+    EN_DILIGENCIA --> CANCELADO : cancelar(304)
 ```
 
 ### Validación de transiciones
@@ -153,8 +153,8 @@ Los métodos de acción viven en el modelo `Tramite` y son la API pública para 
 |--------|------------|---------------------|-------------|
 | `asignar()` | 201→202, 202→202, →201 | `can_assign()` o `can_execute_action()` | Asignar, reasignar o liberar un trámite |
 | `requerir_documentos()` | 202→203 | `can_execute_action()` | Requiere documentos adicionales al ciudadano |
-| `en_diligencia()` | 202→205 | `can_execute_action()` | Pone el trámite en fase de campo |
-| `cerrar()` | 202/203/205→301/302/304 | `can_execute_action()` | Cierra el trámite con un estatus terminal |
+| `enviar_a_firma()` | 202→205 | `can_execute_action()` | Envía el trámite a firma |
+| `cancelar()` | 202/203/205→301/302/304 | `can_execute_action()` | Cancela el trámite con un estatus terminal |
 
 ### `asignar(analista, asignado_por, observacion='')`
 
@@ -204,7 +204,7 @@ tramite.requerir_documentos(
 )
 ```
 
-### `en_diligencia(analista, observacion)`
+### `enviar_a_firma(analista, observacion)`
 
 Pone el trámite en fase de campo (inspecciones, mediciones, etc.).
 
@@ -213,15 +213,15 @@ Pone el trámite en fase de campo (inspecciones, mediciones, etc.).
 **Ejemplo:**
 
 ```python
-tramite.en_diligencia(
+tramite.enviar_a_firma(
     analista=request.user,
     observacion='Se requiere inspección ocular del inmueble',
 )
 ```
 
-### `cerrar(analista, estatus_cierre, observacion)`
+### `cancelar(analista, estatus_cierre, observacion)`
 
-Cierra el trámite con un estatus terminal. Es la acción más estricta: requiere observación obligatoria.
+Cancela el trámite con un estatus terminal. Es la acción más estricta: requiere observación obligatoria.
 
 **Validaciones:**
 
@@ -234,7 +234,7 @@ Cierra el trámite con un estatus terminal. Es la acción más estricta: requier
 **Ejemplo:**
 
 ```python
-tramite.cerrar(
+tramite.cancelar(
     analista=request.user,
     estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
     observacion='Documentación completa. Listo para entrega.',
@@ -303,9 +303,9 @@ El método `available_actions(user)` combina `can_execute_action()` con el estat
 
 | Estatus actual | Acciones disponibles |
 |----------------|---------------------|
-| `EN_REVISION` (202) | `['requerir_documentos', 'en_diligencia', 'cerrar']` |
-| `REQUERIMIENTO` (203) | `['cerrar']` |
-| `EN_DILIGENCIA` (205) | `['cerrar']` |
+| `EN_REVISION` (202) | `['requerir_documentos', 'enviar_a_firma', 'cancelar']` |
+| `REQUERIMIENTO` (203) | `['cancelar']` |
+| `EN_DILIGENCIA` (205) | `['cancelar']` |
 | Otro estatus | `[]` (sin acciones) |
 
 Si `can_execute_action(user)` retorna `False`, `available_actions` retorna `[]` independientemente del estatus.
@@ -324,7 +324,7 @@ ______________________________________________________________________
 
 ## 5. Flujo Típico
 
-Este es el recorrido completo de un trámite desde que llega al backoffice hasta su cierre:
+Este es el recorrido completo de un trámite desde que llega al backoffice hasta su cancelación:
 
 ### Paso 1: Llegada al backoffice (estado 201 — PRESENTADO)
 
@@ -364,58 +364,58 @@ tramite.requerir_documentos(
 )
 ```
 
-El estatus cambia a `REQUERIMIENTO` (203). Desde este estado, la única acción disponible es `cerrar`.
+El estatus cambia a `REQUERIMIENTO` (203). Desde este estado, la única acción disponible es `cancelar`.
 
-#### Opción B: En diligencia (202 → 205)
+#### Opción B: Enviar a firma (202 → 205)
 
 Se requiere trabajo de campo (inspección, medición):
 
 ```python
-tramite.en_diligencia(
+tramite.enviar_a_firma(
     analista=analista_lopez,
     observacion='Inspección ocular requerida para deslinde',
 )
 ```
 
-El estatus cambia a `EN_DILIGENCIA` (205). Desde este estado, la única acción disponible es `cerrar`.
+El estatus cambia a `EN_DILIGENCIA` (205). Desde este estado, la única acción disponible es `cancelar`.
 
-#### Opción C: Cerrar directamente (202 → 301/302/304)
+#### Opción C: Cancelar directamente (202 → 301/302/304)
 
 La documentación es suficiente para una resolución:
 
 ```python
 # Dictamen positivo
-tramite.cerrar(
+tramite.cancelar(
     analista=analista_lopez,
     estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
     observacion='Documentación completa y verificada.',
 )
 
 # Rechazo
-tramite.cerrar(
+tramite.cancelar(
     analista=analista_lopez,
     estatus_cierre=TramiteEstatus.Estatus.RECHAZADO,
     observacion='No cumple con los requisitos del artículo 14.',
 )
 
 # Cancelación
-tramite.cerrar(
+tramite.cancelar(
     analista=analista_lopez,
     estatus_cierre=TramiteEstatus.Estatus.CANCELADO,
     observacion='Solicitud de cancelación por el ciudadano.',
 )
 ```
 
-### Paso 4: Cierre desde estados intermedios (203/205 → 301/302/304)
+### Paso 4: Cancelación desde estados intermedios (203/205 → 301/302/304)
 
-Si el trámite está en `REQUERIMIENTO` (203) o `EN_DILIGENCIA` (205), se puede cerrar con cualquier estatus terminal:
+Si el trámite está en `REQUERIMIENTO` (203) o `EN_DILIGENCIA` (205), se puede cancelar con cualquier estatus terminal:
 
 ```python
-# Cerrar desde requerimiento
-tramite.cerrar(analista=analista, estatus_cierre=301, observacion='...')
+# Cancelar desde requerimiento
+tramite.cancelar(analista=analista, estatus_cierre=301, observacion='...')
 
-# Cerrar desde diligencia
-tramite.cerrar(analista=analista, estatus_cierre=304, observacion='...')
+# Cancelar desde diligencia
+tramite.cancelar(analista=analista, estatus_cierre=304, observacion='...')
 ```
 
 ### Paso 5: Finalización completa (301 → 303)
@@ -546,7 +546,7 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
 def available_actions(self, user: User) -> list[str]:
     # ...
     if status == TramiteEstatus.Estatus.REQUERIMIENTO:
-        actions.extend(['reanudar_revision', 'cerrar'])
+        actions.extend(['reanudar_revision', 'cancelar'])
     # ...
 ```
 

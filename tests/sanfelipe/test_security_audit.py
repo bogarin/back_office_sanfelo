@@ -4,7 +4,7 @@ Validates that security fixes from the pre-release audit remain enforced.
 Each test maps to a specific finding (SEC-NNN) from the audit.
 
 Testable findings covered:
-- SEC-001: Open Redirect protection in cerrar_tramite_view
+- SEC-001: Open Redirect protection in cancelar_tramite_view
 - SEC-002: CSP configuration includes required directives
 - SEC-003: Path traversal defense-in-depth uses if/raise (not assert)
 - SEC-006: asignar_rol view requires elevated permissions
@@ -30,7 +30,7 @@ from sanfelipe.settings.security import configure_security
 from tramites.exceptions import SFTPConnectionError
 from tramites.models import Tramite
 from tramites.sftp import SFTPService
-from tramites.views import _get_client_ip, _safe_redirect_url, cerrar_tramite_view
+from tramites.views import _get_client_ip, _safe_redirect_url, cancelar_tramite_view
 
 User = get_user_model()
 
@@ -204,11 +204,11 @@ def test_path_traversal_check_is_not_assert():
 # =============================================================================
 
 
-def test_safe_redirect_url_is_used_in_cerrar_tramite():
-    """Verify cerrar_tramite_view uses _safe_redirect_url for 'next' param."""
-    source = inspect.getsource(cerrar_tramite_view)
+def test_safe_redirect_url_is_used_in_cancelar_tramite():
+    """Verify cancelar_tramite_view uses _safe_redirect_url for 'next' param."""
+    source = inspect.getsource(cancelar_tramite_view)
     assert '_safe_redirect_url' in source, (
-        'cerrar_tramite_view must use _safe_redirect_url for the next parameter (SEC-001)'
+        'cancelar_tramite_view must use _safe_redirect_url for the next parameter (SEC-001)'
     )
 
 

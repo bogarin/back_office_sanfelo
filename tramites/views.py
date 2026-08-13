@@ -27,7 +27,7 @@ from tramites.exceptions import (
     BackofficeError,
     SFTPConnectionError,
 )
-from tramites.forms import ESTATUS_CIERRE_CHOICES, CerrarTramiteForm
+from tramites.forms import ESTATUS_CANCELACION_CHOICES, CancelarTramiteForm
 from tramites.models import Tramite
 from tramites.sftp import SFTPService, validate_filename
 
@@ -125,20 +125,20 @@ def download_pdf(
 
 
 # =============================================================================
-# Cerrar Trámite (intermediate form view)
+# Cancelar Trámite (intermediate form view)
 # =============================================================================
 
 
 @staff_member_required
-def cerrar_tramite_view(request: HttpRequest, pk: int) -> HttpResponse:
-    """Vista intermedia para cerrar un trámite.
+def cancelar_tramite_view(request: HttpRequest, pk: int) -> HttpResponse:
+    """Vista intermedia para cancelar un trámite.
 
     Muestra un formulario con:
-    - Dropdown con estatus de cierre (Por Recoger, Rechazado, Cancelado)
+    - Dropdown con estatus de cancelación (Por Recoger, Rechazado, Cancelado)
     - Campo de observación obligatorio
 
     GET: Renderiza el formulario intermedio.
-    POST: Valida y ejecuta ``tramite.cerrar()``, redirige al detalle.
+    POST: Valida y ejecuta ``tramite.cancelar()``, redirige al detalle.
 
     Args:
         request: The HTTP request.
@@ -158,48 +158,48 @@ def cerrar_tramite_view(request: HttpRequest, pk: int) -> HttpResponse:
         fallback=reverse('admin:tramites_tramite_change', args=[pk]),
     )
 
-    if 'cerrar' not in tramite.available_actions(request.user):
-        messages.error(request, 'No es posible cerrar este trámite en su estatus actual.')
+    if 'cancelar' not in tramite.available_actions(request.user):
+        messages.error(request, 'No es posible cancelar este trámite en su estatus actual.')
         return redirect(return_url)
 
     if request.method == 'POST':
-        form = CerrarTramiteForm(request.POST)
+        form = CancelarTramiteForm(request.POST)
         if form.is_valid():
             estatus_cierre = int(form.cleaned_data['estatus_cierre'])
             observacion = form.cleaned_data['observacion']
 
             try:
-                tramite.cerrar(
+                tramite.cancelar(
                     analista=request.user,
                     estatus_cierre=estatus_cierre,
                     observacion=observacion,
                 )
-                messages.success(request, f'Trámite {tramite.folio} cerrado exitosamente.')
+                messages.success(request, f'Trámite {tramite.folio} cancelado exitosamente.')
                 return redirect(return_url)
 
             except BackofficeError as e:
                 messages.error(request, e.user_message)
             except ValueError as e:
-                logger.warning('ValueError en cerrar_tramite %s: %s', tramite.folio, e)
+                logger.warning('ValueError en cancelar_tramite %s: %s', tramite.folio, e)
                 messages.error(
                     request,
                     'Los datos proporcionados no son válidos. '
                     'Verifica la información e intenta de nuevo.',
                 )
             except Exception as e:
-                logger.error('Error cerrando trámite %s: %s', tramite.folio, e, exc_info=True)
-                messages.error(request, 'Error inesperado al cerrar el trámite.')
+                logger.error('Error cancelando trámite %s: %s', tramite.folio, e, exc_info=True)
+                messages.error(request, 'Error inesperado al cancelar el trámite.')
     else:
-        form = CerrarTramiteForm()
+        form = CancelarTramiteForm()
 
     context = {
         'tramite': tramite,
         'form': form,
-        'estatus_cierre_choices': ESTATUS_CIERRE_CHOICES,
+        'estatus_cancelacion_choices': ESTATUS_CANCELACION_CHOICES,
         'opts': Tramite._meta,
         'return_url': return_url,
     }
-    return render(request, 'admin/tramite_cerrar.html', context)
+    return render(request, 'admin/tramite_cancelar.html', context)
 
 
 # =============================================================================

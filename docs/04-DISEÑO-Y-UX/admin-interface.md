@@ -6,7 +6,7 @@ El Backoffice de Trámites **no utiliza vistas personalizadas** para las operaci
 
 ### Principios de diseño
 
-- **Solo lectura por defecto**: Los trámites se originan en un sistema externo; el backoffice no crea ni elimina registros, solo gestiona el flujo de trabajo (asignación, revisión, cierre).
+- **Solo lectura por defecto**: Los trámites se originan en un sistema externo; el backoffice no crea ni elimina registros, solo gestiona el flujo de trabajo (asignación, revisión, cancelación).
 - **Modelos proxy**: Se usan modelos proxy (`Buzon`, `Disponible`, `Cerrado`) sobre la vista `v_tramites_unificado` para crear vistas de admin separadas con querysets filtrados.
 - **Permisos basados en roles**: `RoleCheckMixin` restringe cada vista de admin a los roles que deben acceder.
 - **Templates personalizados**: Las vistas de detalle (`change_view`) usan templates custom que muestran timeline, documentos SFTP y acciones de workflow.
@@ -207,9 +207,9 @@ Vista de detalle de trámite (reemplaza el `change_form` estándar).
 - Botón "Regresar a Listado"
 - Panel "Acciones Disponibles" (condicional, basado en `available_actions`):
   - **Requerir Documentos** (btn-warning) — POST directo
-  - **Poner en Diligencia** (btn-info) — POST directo
-  - **Cerrar Trámite** (btn-danger) — enlace a vista intermedia
-- Campo de observación (para requerir y diligencia)
+  - **Enviar a Firma** (btn-info) — POST directo
+  - **Cancelar Trámite** (btn-danger) — enlace a vista intermedia
+- Campo de observación (para requerir y firma)
 
 **Datos contextuales inyectados por `change_view`:**
 
@@ -218,7 +218,7 @@ Vista de detalle de trámite (reemplaza el `change_form` estándar).
 | `tramite` | Instancia del trámite |
 | `timeline_entries` | Lista de entradas del timeline (actividades + archivos) |
 | `form` | `TramiteDetailForm` con campo `observacion` |
-| `available_actions` | Lista de acciones permitidas (requerir, diligencia, cerrar) |
+| `available_actions` | Lista de acciones permitidas (requerir, firma, cancelar) |
 | `has_change_permission` | Permiso de cambio (siempre False para objetos) |
 | `has_view_permission` | Permiso de visualización |
 
@@ -226,9 +226,9 @@ Vista de detalle de trámite (reemplaza el `change_form` estándar).
 
 **JavaScript:** `admin/js/tramite_actions.js` (maneja envío del formulario de acciones).
 
-### `templates/admin/tramite_cerrar.html`
+### `templates/admin/tramite_cancelar.html`
 
-Vista intermedia para cerrar un trámite (accedida via URL `tramites:cerrar-tramite`).
+Vista intermedia para cancelar un trámite (accedida via URL `tramites:cancelar-tramite`).
 
 **Contenido:**
 
@@ -236,8 +236,8 @@ Vista intermedia para cerrar un trámite (accedida via URL `tramites:cerrar-tram
 - Alerta de advertencia: "Esta acción es irreversible"
 - Formulario:
   - Selector de `estatus_cierre` (Por Recoger, Rechazado, Cancelado)
-  - Campo `observacion` obligatorio (motivo de cierre)
-  - Botones: Cancelar / Confirmar Cierre
+  - Campo `observacion` obligatorio (motivo de cancelación)
+  - Botones: Cancelar / Confirmar Cancelación
 
 ### `templates/admin/modificar_asignacion.html`
 
@@ -516,7 +516,7 @@ Las URLs de trámites se montan bajo el prefijo `admin/tramites/` via `get_urls(
 
 | URL | Nombre | Vista | Descripción |
 |---|---|---|---|
-| `tramite/<int:pk>/cerrar/` | `tramites:cerrar-tramite` | `views.cerrar_tramite_view` | Vista intermedia para cerrar trámite |
+| `tramite/<int:pk>/cancelar/` | `tramites:cancelar-tramite` | `views.cancelar_tramite_view` | Vista intermedia para cancelar trámite |
 | `tramite/<int:pk>/download/<str:filename>/` | `tramites:download-pdf` | `views.download_pdf` | Descarga de documentos PDF desde SFTP |
 | `sin_asignar/` | `tramites:sin-asignar` | `RedirectView` → changelist con filtro | Redirect legacy |
 | `<id>/password/` | `core_user_password_change` | `BackofficeUserAdmin.user_change_password` | Cambio de contraseña (registrada via `get_urls()`) |

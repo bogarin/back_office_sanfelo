@@ -6,7 +6,7 @@ El sistema backoffice acumulaba tres problemas interrelacionados:
 
 1. **Sin Custom User Model**: El proyecto usaba `auth.User` por defecto de Django, lo que impedía agregar properties de rol (`is_administrador`, `is_coordinador`, `is_analista`) directamente en el modelo. Los chequeos de rol estaban dispersos como `BackOfficeRole.COORDINADOR in getattr(user, 'roles', set())` a lo largo de admin, views y templates.
 
-1. **Workflow sin estructura**: Las transiciones de estado del trámite estaban codificadas como condicionales dispersos en cada método (`requerir_documentos`, `en_diligencia`, `finalizar`). Cada método repetía la validación `if self.ultima_actividad_estatus_id != TramiteEstatus.Estatus.EN_REVISION: raise ...`. Esto violaba DRY y hacía difícil agregar nuevas transiciones.
+1. **Workflow sin estructura**: Las transiciones de estado del trámite estaban codificadas como condicionales dispersos en cada método (`requerir_documentos`, `enviar_a_firma`, `finalizar`). Cada método repetía la validación `if self.ultima_actividad_estatus_id != TramiteEstatus.Estatus.EN_REVISION: raise ...`. Esto violaba DRY y hacía difícil agregar nuevas transiciones.
 
 1. **Permisos sin encapsulación**: La autorización de descargas (`_check_download_permission` en `views.py`) duplicaba la lógica de roles que ya existía en admin. El `change_view` del admin no tenía protección IDOR — cualquier usuario staff podía ver cualquier trámite. El template mostraba botones de acción sin validar si el usuario/estatus los permitía.
 
@@ -34,7 +34,7 @@ El sistema backoffice acumulaba tres problemas interrelacionados:
 
 **User Model — Opción A**: `AbstractUser` con properties que delegan a `_get_roles()` (cache→DB fallback). Sin campos extra en BD, sin migraciones de datos. Las properties son `@property` que leen de `user.roles` (poblado por `CacheUserRolesMiddleware`) con fallback a query de grupos.
 
-**Workflow — Opción A**: Dict `TRANSITIONS: dict[tuple[int, int], bool]` a nivel módulo que mapea `(from_status, to_status) → True`. Cada método de acción (`requerir_documentos`, `en_diligencia`, `finalizar`) delega a `_validate_transition(to_status)`. `_liberar()` es la excepción: solo usa `_assert_activo()` porque liberación es un "reset" que aplica a cualquier estado activo.
+**Workflow — Opción A**: Dict `TRANSITIONS: dict[tuple[int, int], bool]` a nivel módulo que mapea `(from_status, to_status) → True`. Cada método de acción (`requerir_documentos`, `enviar_a_firma`, `finalizar`) delega a `_validate_transition(to_status)`. `_liberar()` es la excepción: solo usa `_assert_activo()` porque liberación es un "reset" que aplica a cualquier estado activo.
 
 **Permisos — Opción A**: Seis métodos en `Tramite`: `can_view()`, `can_download()`, `can_assign()`, `can_release()`, `can_execute_action()`, `available_actions()`. Fat Models: la lógica vive en el modelo, los consumidores (admin, views, template) delegan al modelo.
 
@@ -69,7 +69,7 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
     (EN_REVISION, EN_REVISION): True,       # reasignar
     (EN_REVISION, PRESENTADO): True,        # liberar
     (EN_REVISION, REQUERIMIENTO): True,     # requerir
-    (EN_REVISION, EN_DILIGENCIA): True,     # diligencia
+    (EN_REVISION, EN_DILIGENCIA): True,     # firma
     (EN_REVISION, FINALIZADO): True,        # finalizar
     (REQUERIMIENTO, FINALIZADO): True,      # finalizar
     (EN_DILIGENCIA, FINALIZADO): True,      # finalizar

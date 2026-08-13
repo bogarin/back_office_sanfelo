@@ -303,8 +303,8 @@ Todas las acciones de workflow delegan a `registrar_actividad()` que inserta un 
 |--------|-----------|-------------|
 | `asignar(analista, asignado_por, obs)` | `→ 202` | Asigna a analista. `analista=None` libera. |
 | `requerir_documentos(analista, obs)` | `202 → 203` | Solicita documentos adicionales |
-| `en_diligencia(analista, obs)` | `202 → 205` | Pone en diligencia |
-| `cerrar(analista, estatus_cierre, obs)` | `202/203/205 → 301/302/304` | Cierra con estatus terminal |
+| `enviar_a_firma(analista, obs)` | `202 → 205` | Envía a firma |
+| `cancelar(analista, estatus_cierre, obs)` | `202/203/205 → 301/302/304` | Cancela con estatus terminal |
 | `_liberar(liberado_por, obs)` | `→ 201` | Vuelve al pool (interno) |
 
 **Validaciones:** `_assert_activo()`, `_assert_asignado_a()`, `_validate_transition()`.

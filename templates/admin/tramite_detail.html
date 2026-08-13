@@ -300,27 +300,27 @@
                                         </button>
                                     {% endif %}
 
-                                    {% if 'en_diligencia' in available_actions %}
+                                    {% if 'enviar_a_firma' in available_actions %}
                                         <button
                                             type="submit"
                                             class="btn btn-info"
-                                            data-action="en_diligencia"
+                                            data-action="enviar_a_firma"
                                         >
-                                            <i class="fas fa-clock px-2"></i>Poner en Diligencia
+                                            <i class="fas fa-clock px-2"></i>Enviar a Firma
                                         </button>
                                     {% endif %}
 
-                                    {% if 'cerrar' in available_actions %}
+                                    {% if 'cancelar' in available_actions %}
                                         <a
-                                            href="{% url 'tramites:cerrar-tramite' pk=tramite.pk %}?next={{ request.path }}"
+                                            href="{% url 'tramites:cancelar-tramite' pk=tramite.pk %}?next={{ request.path }}"
                                             class="btn btn-danger"
                                         >
-                                            <i class="fas fa-times-circle px-2"></i>Cerrar Trámite
+                                            <i class="fas fa-times-circle px-2"></i>Cancelar Trámite
                                         </a>
                                     {% endif %}
                                 </div>
 
-                                {% if 'requerir_documentos' in available_actions or 'en_diligencia' in available_actions %}
+                                {% if 'requerir_documentos' in available_actions or 'enviar_a_firma' in available_actions %}
                                     <div class="form-group mt-3">
                                         <label for="id_observacion" class="font-weight-bold">
                                             <i class="fas fa-comment mr-1"></i>Observación:

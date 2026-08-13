@@ -28,37 +28,37 @@ class TramiteDetailForm(forms.Form):
     )
 
 
-# Estatus de cierre disponibles para el dropdown.
+# Estatus de cancelación disponibles para el dropdown.
 # Se define como módulo-level constant para reutilización en form y template.
-ESTATUS_CIERRE_CHOICES = (
+ESTATUS_CANCELACION_CHOICES = (
     (TramiteEstatus.Estatus.POR_RECOGER, 'Por Recoger'),
     (TramiteEstatus.Estatus.RECHAZADO, 'Rechazado'),
     (TramiteEstatus.Estatus.CANCELADO, 'Cancelado'),
 )
 
 
-class CerrarTramiteForm(forms.Form):
-    """Formulario intermedio para cerrar un trámite.
+class CancelarTramiteForm(forms.Form):
+    """Formulario intermedio para cancelar un trámite.
 
-    Requiere que el analista seleccione un estatus de cierre y proporcione
-    una observación obligatoria explicando el motivo del cierre.
+    Requiere que el analista seleccione un estatus de cancelación y proporcione
+    una observación obligatoria explicando el motivo de la cancelación.
     """
 
     estatus_cierre = forms.ChoiceField(
-        label='Estatus de cierre',
-        choices=ESTATUS_CIERRE_CHOICES,
+        label='Estatus de cancelación',
+        choices=ESTATUS_CANCELACION_CHOICES,
         widget=forms.Select(attrs={'class': 'form-control'}),
-        help_text='Selecciona el estatus con el que se cerrará el trámite',
+        help_text='Selecciona el estatus con el que se cancelará el trámite',
     )
     observacion = forms.CharField(
-        label='Motivo de cierre',
+        label='Motivo de cancelación',
         required=True,
         widget=forms.Textarea(
             attrs={
                 'rows': 4,
-                'placeholder': 'Explica el motivo por el que se cierra este trámite...',
+                'placeholder': 'Explica el motivo por el que se cancela este trámite...',
                 'class': 'form-control',
             }
         ),
-        help_text='La observación es obligatoria para cerrar un trámite',
+        help_text='La observación es obligatoria para cancelar un trámite',
     )

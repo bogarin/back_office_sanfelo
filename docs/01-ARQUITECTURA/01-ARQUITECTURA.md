@@ -212,7 +212,7 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
     # Require documents: en_revision → requerimiento
     (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.REQUERIMIENTO): True,
 
-    # En_diligencia: en_revision → en_diligencia
+    # Enviar_a_firma: en_revision → en_diligencia
     (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.EN_DILIGENCIA): True,
 
     # Finalize from any active "in-process" state

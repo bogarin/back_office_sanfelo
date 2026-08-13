@@ -1014,14 +1014,14 @@ def test_requerir_documentos_usuario_no_asignado_raises_permission(
     assert mock_registrar.call_count == 0
 
 
-# ---- Tests for Tramite.en_diligencia() method ----
+# ---- Tests for Tramite.enviar_a_firma() method ----
 
 
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
-def test_en_diligencia_exitoso(mock_registrar, analista, tramite_en_revision_asignado):
+def test_enviar_a_firma_exitoso(mock_registrar, analista, tramite_en_revision_asignado):
     """
-    Happy path: Set in diligence successfully.
+    Happy path: Send to signature successfully.
 
     Expected behavior:
     - Creates Actividades with estatus EN_DILIGENCIA (205)
@@ -1029,25 +1029,25 @@ def test_en_diligencia_exitoso(mock_registrar, analista, tramite_en_revision_asi
     """
     tramite = tramite_en_revision_asignado
 
-    tramite.en_diligencia(
+    tramite.enviar_a_firma(
         analista=analista,
-        observacion='Trámite puesto en diligencia por falta de información',
+        observacion='Trámite enviado a firma por falta de información',
     )
 
     assert mock_registrar.call_count == 1
     call_args = mock_registrar.call_args
     assert call_args[0][0] == TramiteEstatus.Estatus.EN_DILIGENCIA
     assert call_args.kwargs['analista_id'] == analista.id
-    assert 'diligencia' in call_args.kwargs['observacion'].lower()
+    assert 'firma' in call_args.kwargs['observacion'].lower()
 
 
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
-def test_en_diligencia_estatus_no_en_revision_raises_error(
+def test_enviar_a_firma_estatus_no_en_revision_raises_error(
     mock_registrar, analista, tramite_activo
 ):
     """
-    Edge case: Set in diligence when not in EN_REVISION status.
+    Edge case: Send to signature when not in EN_REVISION status.
 
     Expected behavior:
     - Raises EstadoNoPermitidoError
@@ -1055,7 +1055,7 @@ def test_en_diligencia_estatus_no_en_revision_raises_error(
     tramite = tramite_activo  # PRESENTADO, not EN_REVISION
 
     with pytest.raises(EstadoNoPermitidoError, match='estatus actual'):
-        tramite.en_diligencia(
+        tramite.enviar_a_firma(
             analista=analista,
             observacion='Test',
         )
@@ -1066,11 +1066,11 @@ def test_en_diligencia_estatus_no_en_revision_raises_error(
 @pytest.mark.django_db
 @patch('tramites.models.Tramite._assert_asignado_a')
 @patch('tramites.models.Tramite.registrar_actividad')
-def test_en_diligencia_usuario_no_asignado_raises_permission(
+def test_enviar_a_firma_usuario_no_asignado_raises_permission(
     mock_registrar, mock_verificar, analista, tramite_en_revision_asignado
 ):
     """
-    Edge case: Set in diligence by non-assigned analyst.
+    Edge case: Send to signature by non-assigned analyst.
 
     Expected behavior:
     - Raises PermissionDenied from _assert_asignado_a
@@ -1081,7 +1081,7 @@ def test_en_diligencia_usuario_no_asignado_raises_permission(
     mock_verificar.side_effect = PermissionDenied('No asignado')
 
     with pytest.raises(PermissionDenied):
-        tramite.en_diligencia(
+        tramite.enviar_a_firma(
             analista=analista,
             observacion='Test',
         )
@@ -1092,16 +1092,16 @@ def test_en_diligencia_usuario_no_asignado_raises_permission(
     assert mock_registrar.call_count == 0
 
 
-# ---- Tests for Tramite.cerrar() method ----
+# ---- Tests for Tramite.cancelar() method ----
 
 
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
-def test_cerrar_exitoso_actividad_por_recoger(
+def test_cancelar_exitoso_actividad_por_recoger(
     mock_registrar, analista, tramite_en_revision_asignado
 ):
     """
-    Happy path: Close tramite with POR_RECOGER status.
+    Happy path: Cancel tramite with POR_RECOGER status.
 
     Expected behavior:
     - Creates Actividades with estatus POR_RECOGER (301)
@@ -1109,7 +1109,7 @@ def test_cerrar_exitoso_actividad_por_recoger(
     """
     tramite = tramite_en_revision_asignado
 
-    tramite.cerrar(
+    tramite.cancelar(
         analista=analista,
         estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
         observacion='Trámite listo para recoger',
@@ -1124,16 +1124,18 @@ def test_cerrar_exitoso_actividad_por_recoger(
 
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
-def test_cerrar_exitoso_actividad_rechazado(mock_registrar, analista, tramite_en_revision_asignado):
+def test_cancelar_exitoso_actividad_rechazado(
+    mock_registrar, analista, tramite_en_revision_asignado
+):
     """
-    Happy path: Close tramite with RECHAZADO status.
+    Happy path: Cancel tramite with RECHAZADO status.
 
     Expected behavior:
     - Creates Actividades with estatus RECHAZADO (302)
     """
     tramite = tramite_en_revision_asignado
 
-    tramite.cerrar(
+    tramite.cancelar(
         analista=analista,
         estatus_cierre=TramiteEstatus.Estatus.RECHAZADO,
         observacion='Documentos incompletos',
@@ -1146,16 +1148,18 @@ def test_cerrar_exitoso_actividad_rechazado(mock_registrar, analista, tramite_en
 
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
-def test_cerrar_exitoso_actividad_cancelado(mock_registrar, analista, tramite_en_revision_asignado):
+def test_cancelar_exitoso_actividad_cancelado(
+    mock_registrar, analista, tramite_en_revision_asignado
+):
     """
-    Happy path: Close tramite with CANCELADO status.
+    Happy path: Cancel tramite with CANCELADO status.
 
     Expected behavior:
     - Creates Actividades with estatus CANCELADO (304)
     """
     tramite = tramite_en_revision_asignado
 
-    tramite.cerrar(
+    tramite.cancelar(
         analista=analista,
         estatus_cierre=TramiteEstatus.Estatus.CANCELADO,
         observacion='Solicitante canceló el trámite',
@@ -1168,11 +1172,11 @@ def test_cerrar_exitoso_actividad_cancelado(mock_registrar, analista, tramite_en
 
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
-def test_cerrar_observacion_vacia_raises_value_error(
+def test_cancelar_observacion_vacia_raises_value_error(
     mock_registrar, analista, tramite_en_revision_asignado
 ):
     """
-    Edge case: Try to close with empty observation.
+    Edge case: Try to cancel with empty observation.
 
     Expected behavior:
     - Raises ValueError
@@ -1181,7 +1185,7 @@ def test_cerrar_observacion_vacia_raises_value_error(
     tramite = tramite_en_revision_asignado
 
     with pytest.raises(ValueError, match='observación es requerida'):
-        tramite.cerrar(
+        tramite.cancelar(
             analista=analista,
             estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
             observacion='   ',  # Empty after strip
@@ -1191,9 +1195,9 @@ def test_cerrar_observacion_vacia_raises_value_error(
 
 
 @pytest.mark.django_db
-def test_cerrar_estatus_no_activo_raises_no_asignable(analista, tramite_no_activo):
+def test_cancelar_estatus_no_activo_raises_no_asignable(analista, tramite_no_activo):
     """
-    Edge case: Try to close non-active tramite.
+    Edge case: Try to cancel non-active tramite.
 
     Expected behavior:
     - Raises TramiteNoAsignableError
@@ -1201,7 +1205,7 @@ def test_cerrar_estatus_no_activo_raises_no_asignable(analista, tramite_no_activ
     tramite = tramite_no_activo
 
     with pytest.raises(TramiteNoAsignableError, match='ya no se encuentra activo'):
-        tramite.cerrar(
+        tramite.cancelar(
             analista=analista,
             estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
             observacion='Test',
@@ -1210,13 +1214,13 @@ def test_cerrar_estatus_no_activo_raises_no_asignable(analista, tramite_no_activ
 
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
-def test_cerrar_usuario_no_asignado_raises_permission_denied(
+def test_cancelar_usuario_no_asignado_raises_permission_denied(
     mock_registrar,
     analista,
     tramite_en_revision_asignado,
 ):
     """
-    Edge case: Try to close tramite not assigned to this analyst.
+    Edge case: Try to cancel tramite not assigned to this analyst.
 
     Expected behavior:
     - Raises PermissionDenied
@@ -1234,7 +1238,7 @@ def test_cerrar_usuario_no_asignado_raises_permission_denied(
     tramite = tramite_en_revision_asignado
 
     with pytest.raises(PermissionDenied, match='Este tramite esta asignado a otro analista'):
-        tramite.cerrar(
+        tramite.cancelar(
             analista=other_analista,
             estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
             observacion='Test',
@@ -1245,11 +1249,11 @@ def test_cerrar_usuario_no_asignado_raises_permission_denied(
 
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
-def test_cerrar_estatus_cierre_invalido_raises_value_error(
+def test_cancelar_estatus_cierre_invalido_raises_value_error(
     mock_registrar, analista, tramite_en_revision_asignado
 ):
     """
-    Edge case: Try to close with invalid closing status.
+    Edge case: Try to cancel with invalid closing status.
 
     Expected behavior:
     - Raises ValueError
@@ -1258,7 +1262,7 @@ def test_cerrar_estatus_cierre_invalido_raises_value_error(
     tramite = tramite_en_revision_asignado
 
     with pytest.raises(ValueError, match='estatus de cierre seleccionado no es válido'):
-        tramite.cerrar(
+        tramite.cancelar(
             analista=analista,
             estatus_cierre=TramiteEstatus.Estatus.FINALIZADO,
             observacion='Test',
@@ -1275,7 +1279,7 @@ def test_asignar_estatus_invalido_finaliza_sin_crear_actividad(
     analista, tramite_en_revision_asignado
 ):
     """
-    Edge case: Try to close with invalid status (not in REVISION/REQUERIMIENTO/EN_DILIGENCIA).
+    Edge case: Try to cancel with invalid status (not in REVISION/REQUERIMIENTO/EN_DILIGENCIA).
 
     Expected behavior:
     - Raises EstadoNoPermitidoError
@@ -1286,7 +1290,7 @@ def test_asignar_estatus_invalido_finaliza_sin_crear_actividad(
     tramite.ultima_actividad_estatus_id = TramiteEstatus.Estatus.PRESENTADO
 
     with pytest.raises(EstadoNoPermitidoError, match='estatus actual'):
-        tramite.cerrar(
+        tramite.cancelar(
             analista=analista,
             estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
             observacion='Observación de prueba',

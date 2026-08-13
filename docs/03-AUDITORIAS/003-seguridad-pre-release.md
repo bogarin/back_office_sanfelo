@@ -67,7 +67,7 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
 
 > Los que degradan significativamente la seguridad o permiten explotación dirigida.
 
-- **H-003-001:** ~~Open Redirect en `cerrar_tramite_view`~~ ✅ **Corregido**
+- **H-003-001:** ~~Open Redirect en `cancelar_tramite_view`~~ ✅ **Corregido**
   - **Severidad:** Alto
   - **Evidencia:** `tramites/views.py:127-130` — El parámetro `next` del query string se usaba como destino de redirección sin validación.
   - **Riesgo:** Robo de credenciales de personal del gobierno mediante redirección maliciosa.
@@ -159,7 +159,7 @@ Evaluación manual del código fuente contra OWASP Top 10 (2021) y mejores prác
 
 | Archivo | Cambio | Hallazgo |
 |---------|--------|----------|
-| `tramites/views.py` | Agregada `_safe_redirect_url()`, usada en `cerrar_tramite_view` | H-003-001 |
+| `tramites/views.py` | Agregada `_safe_redirect_url()`, usada en `cancelar_tramite_view` | H-003-001 |
 | `tramites/sftp.py` | `assert` → `if/raise` en path traversal check | H-003-003 |
 | `nginx/nginx.conf` | Headers de seguridad en `/static/` y `/media/` | H-003-004 |
 | `tramites/admin.py` | try/except para `User.DoesNotExist` en `modificar_asignacion` | H-003-008 |

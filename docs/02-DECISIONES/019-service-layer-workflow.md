@@ -8,7 +8,7 @@
 
 ## Contexto y Planteamiento del Problema
 
-El modelo `Tramite` (`tramites/models/tramite.py`) tiene 484 líneas y 18 métodos. Contiene la orquestación completa del workflow de trámites: 5 acciones de workflow (`asignar`, `requerir_documentos`, `en_diligencia`, `cerrar`, `registrar_actividad`), 3 guards internos (`_validate_transition`, `_assert_activo`, `_assert_asignado_a`), 5 métodos de permisos (`can_view`, `can_download`, `can_assign`, `can_release`, `can_execute_action`), y 1 método de UI (`available_actions`). No existe `services.py` en todo el proyecto.
+El modelo `Tramite` (`tramites/models/tramite.py`) tiene 484 líneas y 18 métodos. Contiene la orquestación completa del workflow de trámites: 5 acciones de workflow (`asignar`, `requerir_documentos`, `enviar_a_firma`, `cancelar`, `registrar_actividad`), 3 guards internos (`_validate_transition`, `_assert_activo`, `_assert_asignado_a`), 5 métodos de permisos (`can_view`, `can_download`, `can_assign`, `can_release`, `can_execute_action`), y 1 método de UI (`available_actions`). No existe `services.py` en todo el proyecto.
 
 AUDIT-002 clasificó esto como **H-002-001 (Crítico)**: "God Model — lógica de negocio atrapada en ORM" y **H-002-002 (Crítico)**: "Sin capa de servicios". La sección 7 del mismo audit recomienda: "Evaluar adopción de librería de state machine (e.g., `django-fsm`) para el workflow de trámites."
 
@@ -68,8 +68,8 @@ tramites/services.py          ← NUEVO
 │    __init__(tramite: Tramite, user: User)         │
 │    asignar(analista, observacion)                 │
 │    requerir_documentos(observacion)               │
-│    en_diligencia(observacion)                     │
-│    cerrar(estatus_cierre, observacion)            │
+│    enviar_a_firma(observacion)                    │
+│    cancelar(estatus_cierre, observacion)          │
 │    liberar(observacion)                           │
 │    available_actions() -> list[str]               │
 │    _validate_transition(to_status)                │
@@ -104,8 +104,8 @@ tramites/models/tramite.py   ← ADELGAZADO
 | `_asignar_analista()` | 422-454 | Mutación de estado |
 | `_liberar()` | 404-420 | Mutación de estado |
 | `requerir_documentos()` | 340-349 | Mutación de estado |
-| `en_diligencia()` | 351-360 | Mutación de estado |
-| `cerrar()` | 362-398 | Mutación de estado |
+| `enviar_a_firma()` | 351-360 | Mutación de estado |
+| `cancelar()` | 362-398 | Mutación de estado |
 | `registrar_actividad()` | 282-310 | Persistencia de estado |
 | `_validate_transition()` | 264-280 | Guard de transición |
 | `_assert_activo()` | 244-247 | Guard de transición |

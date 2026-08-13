@@ -58,7 +58,7 @@ Auditoría automatizada mediante análisis estático de 5 subagentes examinando 
 - **H-002-001:** God Model `Tramite` — 481 líneas, 18 métodos, orquestación completa de workflow
 
   - **Severidad:** Crítico
-  - **Evidencia:** `tramites/models/tramite.py:53-481`. Contiene 5 acciones de workflow (`asignar`, `requerir_documentos`, `en_diligencia`, `cerrar`, `registrar_actividad`), 5 checks de permisos, validación de transiciones, y generación de observaciones. No existe `services.py` en todo el proyecto.
+  - **Evidencia:** `tramites/models/tramite.py:53-481`. Contiene 5 acciones de workflow (`asignar`, `requerir_documentos`, `enviar_a_firma`, `cancelar`, `registrar_actividad`), 5 checks de permisos, validación de transiciones, y generación de observaciones. No existe `services.py` en todo el proyecto.
   - **Impacto:** Imposible testear workflow sin instanciar modelo. Lógica de negocio atrapada en ORM.
 
 - **H-002-002:** Sin capa de servicios — toda la lógica de negocio vive en modelos y vistas
@@ -113,7 +113,7 @@ Auditoría automatizada mediante análisis estático de 5 subagentes examinando 
 - **H-002-010:** i18n cargado pero `{% trans %}` nunca usado — 4 templates con ~82+ strings hardcodeados
 
   - **Severidad:** Alto
-  - **Evidencia:** `tramite_detail.html` (~40 strings), `tramite_cerrar.html` (~15), `modificar_asignacion.html` (~15), `asignar_tramites.html` (~12). Todas cargan `{% load i18n %}` pero usan cero tags `{% trans %}`.
+  - **Evidencia:** `tramite_detail.html` (~40 strings), `tramite_cancelar.html` (~15), `modificar_asignacion.html` (~15), `asignar_tramites.html` (~12). Todas cargan `{% load i18n %}` pero usan cero tags `{% trans %}`.
 
 - **H-002-011:** Acoplamiento core → tramites — 7 imports directos
 
@@ -205,7 +205,7 @@ Auditoría automatizada mediante análisis estático de 5 subagentes examinando 
   - **Severidad:** Medio
   - **Evidencia:** Todos los modelos — strings como `f'El trámite {self.folio} ya no se encuentra activo'` y todos los `verbose_name`/`help_text` sin envolver en `_()`.
 
-- **H-002-028:** Validación ausente en `CerrarTramiteForm.observacion`
+- **H-002-028:** Validación ausente en `CancelarTramiteForm.observacion`
 
   - **Severidad:** Medio
   - **Evidencia:** `tramites/forms.py:53-63` — `observacion` es `required=True` pero acepta 1 carácter o solo whitespace.
@@ -385,7 +385,7 @@ Auditoría automatizada mediante análisis estático de 5 subagentes examinando 
 | 31 | H-002-015 | Crear `Tramite.objects.en_proceso()` como manager method | ✅ Commit `4c8d30a` |
 | 32 | H-002-023 | Agregar try/except en `CacheUserRolesMiddleware` | ❌ Descartado — si la DB cae, el site cae; 500 es la respuesta correcta |
 | 33 | H-002-025 | Agregar type hints a APIs públicas | ✅ Commit pendiente — hints en `core/admin_utils.py` y `tramites/timeline.py` |
-| 34 | H-002-028 | Agregar `clean_observacion` a `CerrarTramiteForm` | ❌ Falso positivo — Django `CharField(strip=True)` ya rechaza whitespace-only; 29 tests de regresión creados |
+| 34 | H-002-028 | Agregar `clean_observacion` a `CancelarTramiteForm` | ❌ Falso positivo — Django `CharField(strip=True)` ya rechaza whitespace-only; 29 tests de regresión creados |
 | 35 | H-002-043 | Agregar `default_auto_field` a `CoreConfig` y `TramitesConfig` | ❌ No aplica — `SanfelipeConfig` ya lo define como global; backoffice interno, sin impacto |
 | 36 | H-002-030 | Configurar `ManifestStaticFilesStorage` en settings | ❌ No aplica — backoffice interno sin usuarios masivos; requiere `collectstatic` por deploy |
 

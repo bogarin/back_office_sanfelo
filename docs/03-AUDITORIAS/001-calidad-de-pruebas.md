@@ -157,7 +157,7 @@ Ninguna. La auditoría no generó cambios de arquitectura ni ADRs. Las correccio
 | Prioridad | Área | Detalle | Criterio de éxito |
 |-----------|------|---------|-------------------|
 | Media | **Cobertura por rutas (`--cov`)** | Esta auditoría evaluó calidad cualitativa (duplicados, estilo, efectividad). No se midió % de líneas/ramas cubiertas. | ≥ 80% line coverage, ≥ 70% branch coverage |
-| Media | **Tests E2E** | No existen tests end-to-end. El flujo completo (login → crear trámite → asignar → cerrar) no está verificado automáticamente. | Al menos 1 smoke test del flujo crítico con Selenium/Playwright |
+| Media | **Tests E2E** | No existen tests end-to-end. El flujo completo (login → crear trámite → asignar → cancelar) no está verificado automáticamente. | Al menos 1 smoke test del flujo crítico con Selenium/Playwright |
 | Baja | **Performance benchmarks** | No se evaluó tiempo de ejecución del suite. Con 344 tests, un regression en velocidad pasaría desapercibido. | Baseline < 30s total, regression threshold en CI |
 | Baja | **Tests de templates** | `test_timeline.py` cubre rendering parcialmente, pero no hay tests dedicados a verificar que los templates rendericen correctamente con datos reales. | Templates críticos con tests de regression visual o snapshots |
 | Baja | **Tests de views HTTP** | Las views de SFTP están cubiertas (`test_sftp.py`), pero otras views (dashboard, listados) no tienen tests HTTP dedicados fuera del lifecycle. | Cada view con al menos 1 test de status code + 1 test de permisos |

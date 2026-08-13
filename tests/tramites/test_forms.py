@@ -1,4 +1,4 @@
-"""Tests for tramites.forms: TramiteDetailForm, CerrarTramiteForm, ESTATUS_CIERRE_CHOICES.
+"""Tests for tramites.forms: TramiteDetailForm, CancelarTramiteForm, ESTATUS_CANCELACION_CHOICES.
 
 Validates field configuration, choice correctness, and whitespace rejection
 in observacion fields (H-002-028).
@@ -6,16 +6,16 @@ in observacion fields (H-002-028).
 
 import pytest
 
-from tramites.forms import CerrarTramiteForm, TramiteDetailForm
+from tramites.forms import CancelarTramiteForm, TramiteDetailForm
 from tramites.models.catalogos import TramiteEstatus
 
 # ---------------------------------------------------------------------------
-# ESTATUS_CIERRE_CHOICES module constant
+# ESTATUS_CANCELACION_CHOICES module constant
 # ---------------------------------------------------------------------------
 
 
 def test_contains_three_choices():
-    assert len(CerrarTramiteForm.base_fields['estatus_cierre'].choices) == 3  # ty: ignore[invalid-argument-type]
+    assert len(CancelarTramiteForm.base_fields['estatus_cierre'].choices) == 3  # ty: ignore[invalid-argument-type]
 
 
 @pytest.mark.parametrize(
@@ -28,7 +28,7 @@ def test_contains_three_choices():
 )
 def test_includes_closure_status(estatus_value):
     """Each terminal status must appear in estatus_cierre choices."""
-    form = CerrarTramiteForm()
+    form = CancelarTramiteForm()
     values = [choice[0] for choice in form.fields['estatus_cierre'].choices]
     assert estatus_value in values
 
@@ -47,7 +47,7 @@ def test_includes_closure_status(estatus_value):
 )
 def test_excludes_non_closure_status(estatus_value):
     """Non-closure statuses must NOT appear in estatus_cierre choices."""
-    form = CerrarTramiteForm()
+    form = CancelarTramiteForm()
     values = [choice[0] for choice in form.fields['estatus_cierre'].choices]
     assert estatus_value not in values
 
@@ -101,12 +101,12 @@ def test_observacion_single_char_accepted():
 
 
 # ---------------------------------------------------------------------------
-# CerrarTramiteForm
+# CancelarTramiteForm
 # ---------------------------------------------------------------------------
 
 
 def test_valid_with_por_recoger():
-    form = CerrarTramiteForm(
+    form = CancelarTramiteForm(
         data={
             'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
             'observacion': 'Trámite listo para entrega',
@@ -116,7 +116,7 @@ def test_valid_with_por_recoger():
 
 
 def test_valid_with_rechazado():
-    form = CerrarTramiteForm(
+    form = CancelarTramiteForm(
         data={
             'estatus_cierre': TramiteEstatus.Estatus.RECHAZADO,
             'observacion': 'Documentación incompleta',
@@ -126,7 +126,7 @@ def test_valid_with_rechazado():
 
 
 def test_valid_with_cancelado():
-    form = CerrarTramiteForm(
+    form = CancelarTramiteForm(
         data={
             'estatus_cierre': TramiteEstatus.Estatus.CANCELADO,
             'observacion': 'Solicitante desistió',
@@ -136,7 +136,7 @@ def test_valid_with_cancelado():
 
 
 def test_estatus_cierre_required():
-    form = CerrarTramiteForm(
+    form = CancelarTramiteForm(
         data={
             'observacion': 'Motivo válido',
         }
@@ -146,7 +146,7 @@ def test_estatus_cierre_required():
 
 
 def test_estatus_cierre_invalid_value_rejected():
-    form = CerrarTramiteForm(
+    form = CancelarTramiteForm(
         data={
             'estatus_cierre': 9999,
             'observacion': 'Motivo válido',
@@ -158,7 +158,7 @@ def test_estatus_cierre_invalid_value_rejected():
 
 def test_estatus_cierre_active_status_rejected():
     """Active statuses (e.g. EN_REVISION) must not be accepted as cierre."""
-    form = CerrarTramiteForm(
+    form = CancelarTramiteForm(
         data={
             'estatus_cierre': TramiteEstatus.Estatus.EN_REVISION,
             'observacion': 'Motivo válido',
@@ -169,7 +169,7 @@ def test_estatus_cierre_active_status_rejected():
 
 
 def test_observacion_required_cerrar():
-    form = CerrarTramiteForm(
+    form = CancelarTramiteForm(
         data={
             'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
         }
@@ -179,7 +179,7 @@ def test_observacion_required_cerrar():
 
 
 def test_observacion_empty_string_rejected_cerrar():
-    form = CerrarTramiteForm(
+    form = CancelarTramiteForm(
         data={
             'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
             'observacion': '',
@@ -191,7 +191,7 @@ def test_observacion_empty_string_rejected_cerrar():
 
 def test_observacion_whitespace_only_rejected_cerrar():
     """Whitespace-only observacion must be rejected (H-002-028)."""
-    form = CerrarTramiteForm(
+    form = CancelarTramiteForm(
         data={
             'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
             'observacion': '  \n\t  ',
@@ -203,7 +203,7 @@ def test_observacion_whitespace_only_rejected_cerrar():
 
 def test_observacion_strips_whitespace_cerrar():
     """Valid content surrounded by whitespace is accepted and stripped."""
-    form = CerrarTramiteForm(
+    form = CancelarTramiteForm(
         data={
             'estatus_cierre': TramiteEstatus.Estatus.POR_RECOGER,
             'observacion': '  motivo válido  ',
@@ -214,7 +214,7 @@ def test_observacion_strips_whitespace_cerrar():
 
 
 def test_both_fields_missing():
-    form = CerrarTramiteForm(data={})
+    form = CancelarTramiteForm(data={})
     assert not form.is_valid()
     assert 'estatus_cierre' in form.errors
     assert 'observacion' in form.errors

@@ -272,7 +272,7 @@ Grid de tarjetas resumen: `col-md-6 col-lg-4` (3 por fila en desktop).
 </div>
 ```
 
-#### Cards de detalle (vistas de trámite, asignación, cierre)
+#### Cards de detalle (vistas de trámite, asignación, cancelación)
 
 Estructura estándar para cards de contenido:
 
@@ -295,7 +295,7 @@ Variantes de header usadas:
 |------------------|-----|
 | `bg-secondary text-white` | Secciones de información (general) |
 | `bg-primary text-white` | Panel de acciones disponibles |
-| `bg-danger text-white` | Acciones destructivas (cerrar trámite) |
+| `bg-danger text-white` | Acciones destructivas (cancelar trámite) |
 
 ______________________________________________________________________
 
@@ -452,18 +452,18 @@ El sistema utiliza **Font Awesome 5** (incluido por Jazzmin). Todos los íconos 
 | ✅ Check | `fas fa-check` | Confirmar acciones |
 | ❌ Cancelar | `fas fa-times` | Cancelar acciones |
 | ⬅️ Regresar | `fas fa-arrow-left` | Botón "Regresar a Listado" |
-| ⚠️ Advertencia | `fas fa-exclamation-triangle` | Cierre de trámite, error 500 |
+| ⚠️ Advertencia | `fas fa-exclamation-triangle` | Cancelación de trámite, error 500 |
 | ℹ️ Alerta | `fas fa-exclamation-circle` | Advertencias inline |
 | 🔒 Bloqueado | `fas fa-lock` | Error 403 |
 | 🛡️ CSRF | `fas fa-shield-alt` | Error CSRF |
 | 🔍 Buscar | `fas fa-search` | Error 404 |
 | 🏠 Inicio | `fas fa-home` | Botón "Volver al inicio" en páginas de error |
 | 🔄 Reintentar | `fas fa-redo` | Botón en error CSRF |
-| 📋 Portapapeles | `fas fa-clipboard-check` | Sección "Selecciona el motivo de cierre" |
+| 📋 Portapapeles | `fas fa-clipboard-check` | Sección "Selecciona el motivo de cancelación" |
 | 🚩 Bandera | `fas fa-flag` | "Estatus de cierre" |
 | 💬 Comentario | `fas fa-comment` | Campos de observación |
-| 🕐 Reloj | `fas fa-clock` | "Poner en Diligencia" |
-| ❌ Cerrar círculo | `fas fa-times-circle` | "Cerrar Trámite", "Confirmar Cierre" |
+| 🕐 Reloj | `fas fa-clock` | "Enviar a Firma" |
+| ❌ Cerrar círculo | `fas fa-times-circle` | "Cancelar Trámite", "Confirmar Cancelación" |
 | 📋 Tareas | `fas fa-tasks` | "Acciones Disponibles" |
 | 👁️ Vista | `fas fa-eye` | Preview en debug |
 
@@ -479,7 +479,7 @@ Todos los templates extienden `admin/base_site.html`, que a su vez extiende el l
 |----------|----------|-----------|--------|
 | `admin/base_site.html` | `admin/base.html` | Footer con versión de la app (desde `pyproject.toml`) y copyright | Full layout |
 | `admin/tramite_detail.html` | `admin/base_site.html` | Vista de detalle de trámite con timeline | 2 columnas (9-3) |
-| `admin/tramite_cerrar.html` | `admin/base_site.html` | Formulario de cierre de trámite | 1 columna centrada (8) |
+| `admin/tramite_cancelar.html` | `admin/base_site.html` | Formulario de cancelación de trámite | 1 columna centrada (8) |
 | `admin/modificar_asignacion.html` | `admin/base_site.html` | Asignación/reasignación de trámites | 2 columnas (6-6) |
 | `admin/buzon_asignacion_changelist.html` | `admin/change_list.html` | Balance de carga en listado de buzón | Full width |
 | `admin/auth/user/asignar_rol.html` | `admin/base_site.html` | Asignación de roles a usuarios | 1 columna |

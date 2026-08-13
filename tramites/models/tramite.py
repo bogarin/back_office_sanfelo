@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 # Maps (from_status, to_status) → True for all valid state transitions.
-# Every business action (asignar, requerir, diligencia, cerrar) must
+# Every business action (asignar, requerir, enviar_a_firma, cancelar) must
 # go through _validate_transition() which checks this dict.
 TRANSITIONS: dict[tuple[int, int], bool] = {
     # Assign: presentado → en revisión
@@ -36,9 +36,9 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
     (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.PRESENTADO): True,
     # Require documents: en revisión → requerimiento
     (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.REQUERIMIENTO): True,
-    # En diligencia: en revisión → en diligencia
+    # Enviar a firma: en revisión → en diligencia
     (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.EN_DILIGENCIA): True,
-    # Close from any active "in-process" state
+    # Cancelar from any active "in-process" state
     (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.POR_RECOGER): True,
     (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.RECHAZADO): True,
     (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.CANCELADO): True,
@@ -69,13 +69,13 @@ _CERRAR_DESTINATIONS = frozenset(
 )
 
 
-def _append_cerrar_if_available(
+def _append_cancelar_if_available(
     disabled: set[int],
     actions: list[str],
 ) -> None:
-    """Append ``'cerrar'`` to *actions* if at least one close destination is enabled."""
+    """Append ``'cancelar'`` to *actions* if at least one close destination is enabled."""
     if any(dest not in disabled for dest in _CERRAR_DESTINATIONS):
-        actions.append('cerrar')
+        actions.append('cancelar')
 
 
 @register_model('default', AccessPattern.READ_ONLY, False)
@@ -236,7 +236,7 @@ class Tramite(models.Model):
     def can_execute_action(self, user: User) -> bool:
         """Whether *user* may execute workflow actions on this trámite.
 
-        Workflow actions: requerir_documentos, en_diligencia, cerrar.
+        Workflow actions: requerir_documentos, enviar_a_firma, cancelar.
         Only the assigned analyst (or a Coordinator/Admin) may execute them.
         """
         if user.is_superuser or user.is_administrador or user.is_coordinador:
@@ -252,7 +252,7 @@ class Tramite(models.Model):
 
         Returns:
             List of action strings: ``'requerir_documentos'``,
-            ``'en_diligencia'``, ``'cerrar'``.
+            ``'enviar_a_firma'``, ``'cancelar'``.
         """
         if not self.can_execute_action(user):
             return []
@@ -265,13 +265,13 @@ class Tramite(models.Model):
             if TramiteEstatus.Estatus.REQUERIMIENTO not in disabled:
                 actions.append('requerir_documentos')
             if TramiteEstatus.Estatus.EN_DILIGENCIA not in disabled:
-                actions.append('en_diligencia')
-            _append_cerrar_if_available(disabled, actions)
+                actions.append('enviar_a_firma')
+            _append_cancelar_if_available(disabled, actions)
         elif status in (
             TramiteEstatus.Estatus.REQUERIMIENTO,
             TramiteEstatus.Estatus.EN_DILIGENCIA,
         ):
-            _append_cerrar_if_available(disabled, actions)
+            _append_cancelar_if_available(disabled, actions)
 
         return actions
 
@@ -414,8 +414,8 @@ class Tramite(models.Model):
             observacion=observacion,
         )
 
-    def en_diligencia(self, analista: User, observacion: str) -> None:
-        """Pone el trámite en diligencia (202 → 205)."""
+    def enviar_a_firma(self, analista: User, observacion: str) -> None:
+        """Envía el trámite a firma (202 → 205)."""
         self._assert_activo()
         self._validate_transition(TramiteEstatus.Estatus.EN_DILIGENCIA)
         self._assert_asignado_a(analista)
@@ -425,8 +425,8 @@ class Tramite(models.Model):
             observacion=observacion,
         )
 
-    def cerrar(self, analista: User, estatus_cierre: int, observacion: str) -> None:
-        """Cierra el trámite con un estatus terminal (202/203/205 → 301/302/304).
+    def cancelar(self, analista: User, estatus_cierre: int, observacion: str) -> None:
+        """Cancela el trámite con un estatus terminal (202/203/205 → 301/302/304).
 
         Args:
             analista: User que ejecuta la acción
@@ -441,7 +441,7 @@ class Tramite(models.Model):
         """
         observacion = observacion.strip()
         if not observacion:
-            raise ValueError('La observación es requerida para cerrar un trámite.')
+            raise ValueError('La observación es requerida para cancelar un trámite.')
 
         estatus_validos = (
             TramiteEstatus.Estatus.POR_RECOGER,

@@ -130,9 +130,9 @@ TRANSITIONS = {
     (202, 201): True,
     # Requerir documentos: en revisión → requerimiento
     (202, 203): True,
-    # En diligencia: en revisión → en diligencia
+    # Enviar a firma: en revisión → en diligencia
     (202, 205): True,
-    # Cerrar desde estados activos → estados terminales
+    # Cancelar desde estados activos → estados terminales
     (202, 301): True,  # por recoger
     (202, 302): True,  # rechazado
     (202, 304): True,  # cancelado
@@ -145,7 +145,7 @@ TRANSITIONS = {
 }
 ```
 
-Cada método de acción (`requerir_documentos`, `en_diligencia`, `cerrar`) valida la transición vía `_validate_transition(to_status)`. La excepción es `_liberar()`: solo usa `_assert_activo()` porque la liberación es un "reset" que aplica a cualquier estado activo.
+Cada método de acción (`requerir_documentos`, `enviar_a_firma`, `cancelar`) valida la transición vía `_validate_transition(to_status)`. La excepción es `_liberar()`: solo usa `_assert_activo()` porque la liberación es un "reset" que aplica a cualquier estado activo.
 
 **Agregar una transición nueva** = agregar una línea al dict. No se necesita modificar lógica en los métodos.
 
@@ -204,9 +204,9 @@ Retorna una lista de nombres de acción que el usuario puede ejecutar en el esta
 
 | Estatus actual | Acciones disponibles |
 |----------------|---------------------|
-| EN_REVISION (202) | `['requerir_documentos', 'en_diligencia', 'cerrar']` |
-| REQUERIMIENTO (203) | `['cerrar']` |
-| EN_DILIGENCIA (205) | `['cerrar']` |
+| EN_REVISION (202) | `['requerir_documentos', 'enviar_a_firma', 'cancelar']` |
+| REQUERIMIENTO (203) | `['cancelar']` |
+| EN_DILIGENCIA (205) | `['cancelar']` |
 | Otro estatus | `[]` |
 
 ### Consumidores

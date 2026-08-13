@@ -560,10 +560,10 @@ class TramiteBaseAdmin(admin.ModelAdmin):
         - Información completa del trámite (readonly)
         - Historial de actividades (via tramite.historial_actividades)
         - Documentos PDF desde SFTP (via SFTPService.fetch_requisito_files())
-        - Acciones disponibles (requerir documentos, en diligencia)
+        - Acciones disponibles (requerir documentos, enviar a firma)
 
-        NOTE: La acción "cerrar trámite" se maneja en una vista intermedia
-        separada (``tramites:cerrar-tramite``) para evitar cierre accidental
+        NOTE: La acción "cancelar trámite" se maneja en una vista intermedia
+        separada (``tramites:cancelar-tramite``) para evitar cancelación accidental
         con un solo clic.
         """
 
@@ -577,7 +577,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
         if not tramite.can_view(request.user):
             raise PermissionDenied
 
-        # Procesar acciones POST (requerir, diligencia)
+        # Procesar acciones POST (requerir, enviar_a_firma)
         if request.method == 'POST':
             form = TramiteDetailForm(request.POST)
             if form.is_valid():
@@ -595,14 +595,14 @@ class TramiteBaseAdmin(admin.ModelAdmin):
                                 analista=request.user, observacion=observacion
                             )
                             messages.success(request, 'Requerimiento de documentos registrado')
-                        elif action == 'en_diligencia':
-                            tramite.en_diligencia(analista=request.user, observacion=observacion)
-                            messages.success(request, 'Trámite puesto en diligencia')
+                        elif action == 'enviar_a_firma':
+                            tramite.enviar_a_firma(analista=request.user, observacion=observacion)
+                            messages.success(request, 'Trámite enviado a firma')
 
                     except BackofficeError as e:
                         messages.error(request, e.user_message)
                     except ValueError as e:
-                        logger.warning('ValueError en cerrar_tramite %s: %s', tramite.folio, e)
+                        logger.warning('ValueError en cancelar_tramite %s: %s', tramite.folio, e)
                         messages.error(
                             request,
                             'Los datos proporcionados no son válidos. '

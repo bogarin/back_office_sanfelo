@@ -74,7 +74,7 @@ def test_transitions_constant_never_mutated():
 
 @pytest.mark.django_db
 def test_available_actions_excludes_disabled(analista, django_db_setup):  # noqa: ARG001
-    """available_actions() hides en_diligencia when 205 is disabled."""
+    """available_actions() hides enviar_a_firma when 205 is disabled."""
     tramite = Tramite(
         id=99,
         folio='TEST-000099',
@@ -95,9 +95,9 @@ def test_available_actions_excludes_disabled(analista, django_db_setup):  # noqa
     with override_settings(BACKOFFICE_DISABLED_TRANSITIONS=[205]):
         actions = tramite.available_actions(analista)
 
-    assert 'en_diligencia' not in actions
+    assert 'enviar_a_firma' not in actions
     assert 'requerir_documentos' in actions
-    assert 'cerrar' in actions
+    assert 'cancelar' in actions
 
 
 @pytest.mark.django_db
@@ -124,8 +124,8 @@ def test_available_actions_includes_non_disabled(analista, django_db_setup):  # 
         actions = tramite.available_actions(analista)
 
     assert 'requerir_documentos' in actions
-    assert 'en_diligencia' in actions
-    assert 'cerrar' in actions
+    assert 'enviar_a_firma' in actions
+    assert 'cancelar' in actions
 
 
 # ---------------------------------------------------------------------------
