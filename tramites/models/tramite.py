@@ -6,12 +6,12 @@ Maps to the view v_tramites_unificado in the backoffice schema.
 
 import logging
 
-from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import DatabaseError, models
 
 from core.model_config import AccessPattern, register_model
+from tramites import workflow
 from tramites.exceptions import EstadoNoPermitidoError, TramiteNoAsignableError
 from tramites.models.actividades import Actividades
 from tramites.models.catalogos import TramiteEstatus
@@ -23,59 +23,16 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # Workflow transitions definition
 # =============================================================================
+# Fuente de verdad: tabla declarativa en tramites/workflow.py.
+# TRANSITIONS se mantiene aquí como vista derivada para compatibilidad
+# (tests y ``_validate_transition`` consumen este dict).
 
-# Maps (from_status, to_status) → True for all valid state transitions.
-# Every business action (asignar, requerir, enviar_a_firma, cancelar) must
-# go through _validate_transition() which checks this dict.
-TRANSITIONS: dict[tuple[int, int], bool] = {
-    # Assign: presentado → en revisión
-    (TramiteEstatus.Estatus.PRESENTADO, TramiteEstatus.Estatus.EN_REVISION): True,
-    # Reassign: en revisión → en revisión (change analyst, same status)
-    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.EN_REVISION): True,
-    # Release: en revisión → presentado (back to pool)
-    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.PRESENTADO): True,
-    # Require documents: en revisión → requerimiento
-    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.REQUERIMIENTO): True,
-    # Enviar a firma: en revisión → en diligencia
-    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.EN_DILIGENCIA): True,
-    # Cancelar from any active "in-process" state
-    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.POR_RECOGER): True,
-    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.RECHAZADO): True,
-    (TramiteEstatus.Estatus.EN_REVISION, TramiteEstatus.Estatus.CANCELADO): True,
-    (TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.POR_RECOGER): True,
-    (TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.RECHAZADO): True,
-    (TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.CANCELADO): True,
-    (TramiteEstatus.Estatus.EN_DILIGENCIA, TramiteEstatus.Estatus.POR_RECOGER): True,
-    (TramiteEstatus.Estatus.EN_DILIGENCIA, TramiteEstatus.Estatus.RECHAZADO): True,
-    (TramiteEstatus.Estatus.EN_DILIGENCIA, TramiteEstatus.Estatus.CANCELADO): True,
-}
+TRANSITIONS: dict[tuple[int, int], bool] = workflow.TRANSITIONS
 
 
 def _get_disabled_transitions() -> set[int]:
-    """Return disabled destination status IDs from settings (read at call time).
-
-    Values are coerced to ``int`` as defense-in-depth: settings converts
-    at load time, but ``override_settings()`` in tests may pass raw strings.
-    """
-    return {int(x) for x in getattr(django_settings, 'BACKOFFICE_DISABLED_TRANSITIONS', [])}
-
-
-_CERRAR_DESTINATIONS = frozenset(
-    {
-        TramiteEstatus.Estatus.POR_RECOGER,
-        TramiteEstatus.Estatus.RECHAZADO,
-        TramiteEstatus.Estatus.CANCELADO,
-    }
-)
-
-
-def _append_cancelar_if_available(
-    disabled: set[int],
-    actions: list[str],
-) -> None:
-    """Append ``'cancelar'`` to *actions* if at least one close destination is enabled."""
-    if any(dest not in disabled for dest in _CERRAR_DESTINATIONS):
-        actions.append('cancelar')
+    """Alias de compatibilidad de :func:`tramites.workflow.get_disabled_transitions`."""
+    return workflow.get_disabled_transitions()
 
 
 @register_model('default', AccessPattern.READ_ONLY, False)
@@ -259,9 +216,10 @@ class Tramite(models.Model):
     def available_actions(self, user: User) -> list[str]:
         """Return the list of workflow action names *user* can perform right now.
 
-        The returned list depends on the user's role, the current trámite
-        status, and the active department's disabled transitions.  Useful
-        for template rendering.
+        Derivado de la tabla ``tramites.workflow.WORKFLOW``: depende del rol
+        del usuario, del estatus actual del trámite y de las transiciones
+        deshabilitadas del departamento activo.  Useful for template
+        rendering.
 
         Returns:
             List of action strings: ``'requerir_documentos'``,
@@ -270,23 +228,12 @@ class Tramite(models.Model):
         if not self.can_execute_action(user):
             return []
 
-        status = self.ultima_actividad_estatus_id  # type: ignore[assignment]
-        disabled = _get_disabled_transitions()
-        actions: list[str] = []
-
-        if status == TramiteEstatus.Estatus.EN_REVISION:
-            if TramiteEstatus.Estatus.REQUERIMIENTO not in disabled:
-                actions.append('requerir_documentos')
-            if TramiteEstatus.Estatus.EN_DILIGENCIA not in disabled:
-                actions.append('enviar_a_firma')
-            _append_cancelar_if_available(disabled, actions)
-        elif status == TramiteEstatus.Estatus.REQUERIMIENTO:
-            _append_cancelar_if_available(disabled, actions)
-        elif status == TramiteEstatus.Estatus.EN_DILIGENCIA:
-            if user.is_coordinador or user.is_administrador or user.is_superuser:
-                _append_cancelar_if_available(disabled, actions)
-
-        return actions
+        return workflow.offered_actions(
+            user=user,
+            source=self.ultima_actividad_estatus_id,
+            assigned=self.asignado_user_id == user.id,
+            disabled=workflow.get_disabled_transitions(),
+        )
 
     # =====================================================================
     # Internal helpers
@@ -456,11 +403,7 @@ class Tramite(models.Model):
         if not observacion:
             raise ValueError('La observación es requerida para cancelar un trámite.')
 
-        estatus_validos = (
-            TramiteEstatus.Estatus.POR_RECOGER,
-            TramiteEstatus.Estatus.RECHAZADO,
-            TramiteEstatus.Estatus.CANCELADO,
-        )
+        estatus_validos = workflow.closure_destinations()
         if estatus_cierre not in estatus_validos:
             logger.warning(
                 'Estatus de cierre inválido: %s (esperados: %s)',
