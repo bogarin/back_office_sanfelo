@@ -718,7 +718,7 @@ class TramitesDisponiblesAdmin(RoleCheckMixin, TramiteBaseAdmin):
     """Trámites disponibles para tomar (orientado a Analistas)."""
 
     allowed_roles = ('is_analista', 'is_coordinador', 'is_administrador')
-
+    list_display_links = None
     actions = ('tomar_asignacion',)
 
     def get_list_display(self, request: HttpRequest) -> list[str]:
@@ -740,7 +740,9 @@ class TramitesDisponiblesAdmin(RoleCheckMixin, TramiteBaseAdmin):
         return {k: v for k, v in actions.items() if k == 'tomar_asignacion'}
 
     def get_queryset(self, request):
-        return super().get_queryset(request).en_proceso().excluyendo_diligencia().sin_asignar()
+        # Solo PRESENTADO (201) sin asignar: la autoasignación (201→202) es la
+        # única transición válida desde el pool.
+        return super().get_queryset(request).en_proceso().presentados().sin_asignar()
 
     @admin.display(description='Acciones Rápidas')
     def acciones_disponibles(self, obj):

@@ -40,8 +40,11 @@ ESTATUS_CANCELACION_CHOICES = (
 class CancelarTramiteForm(forms.Form):
     """Formulario intermedio para cancelar un trámite.
 
-    Requiere que el analista seleccione un estatus de cancelación y proporcione
+    Requiere que el usuario seleccione un estatus de cancelación y proporcione
     una observación obligatoria explicando el motivo de la cancelación.
+
+    Los estatus ofrecidos se limitan a los destinos de cierre válidos para el
+    estatus actual del trámite (``tramites.workflow.closure_targets()``).
     """
 
     estatus_cierre = forms.ChoiceField(
@@ -62,3 +65,16 @@ class CancelarTramiteForm(forms.Form):
         ),
         help_text='La observación es obligatoria para cancelar un trámite',
     )
+
+    def __init__(self, *args, estatus_choices=None, **kwargs):
+        """Init con choices dinámicos según el estatus origen del trámite.
+
+        Args:
+            estatus_choices: Iterable ``(value, label)`` con los destinos de
+                cierre válidos. Si es ``None`` usa el default completo
+                (301/302/304) — la validación de transición en el modelo sigue
+                siendo la última línea de defensa.
+        """
+        super().__init__(*args, **kwargs)
+        if estatus_choices is not None:
+            self.fields['estatus_cierre'].choices = list(estatus_choices)

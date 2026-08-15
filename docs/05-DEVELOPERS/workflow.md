@@ -1,17 +1,13 @@
 # Workflow de Trámites — Guía para Desarrolladores
 
-> **Fuente de verdad:** `tramites/models/tramite.py` (`TRANSITIONS` dict + métodos de acción)
-> Última actualización: 12 de agosto de 2026
-
-______________________________________________________________________
+> **Fuente de verdad:** `tramites/workflow.py` (tabla declarativa `WORKFLOW`; `TRANSITIONS` en el modelo es una vista derivada)
+> Última actualización: 14 de agosto de 2026
 
 ## Resumen
 
-El workflow de trámites es una máquina de estados finitos implementada como un diccionario `TRANSITIONS` en el modelo `Tramite`. Cada transición de estado está definida explícitamente como `(from_status, to_status) → True`, y los métodos de acción (`asignar`, `requerir_documentos`, `enviar_a_firma`, `cancelar`) validan contra este diccionario antes de ejecutarse.
+El workflow de trámites es una máquina de estados finitos implementada como tabla declarativa `WORKFLOW` en `tramites/workflow.py` (dataclass `Transition`: acción, origen, destino, roles autorizados, guardas). Cada transición queda definida explícitamente como `(from_status, to_status)`, y los métodos de acción (`asignar`, `requerir_documentos`, `enviar_a_firma`, `cancelar`) del modelo `Tramite` validan contra el dict derivado `TRANSITIONS` antes de ejecutarse. `available_actions()` y los destinos del dropdown de cancelación derivan de la misma tabla.
 
 Este documento describe los estados, transiciones, acciones, permisos y el flujo típico de un trámite desde su creación hasta su cancelación.
-
-______________________________________________________________________
 
 ## 1. Estados del Workflow
 
@@ -19,23 +15,23 @@ Los estados están definidos en `TramiteEstatus.Estatus` (`tramites/models/catal
 
 | Código | Constante | Responsable | Descripción |
 |--------|-----------|-------------|-------------|
-| **Inicio (1xx)** | | | |
-| 101 | `BORRADOR` | Ciudadano | El ciudadano captura información y sube requisitos. Sin validez oficial. |
+| **Inicio (1XX)** | | | |
+| 101 | `BORRADOR` | Ciudadano | El ciudadano captura información y sube requisitos. Sin validez oficial. DEPRECADO. |
 | 102 | `PENDIENTE_PAGO` | Ciudadano | El trámite está bloqueado esperando confirmación de pago. |
 | 103 | `PAGO_EXPIRADO` | Sistema | La línea de captura venció y el trámite se detuvo por falta de pago. |
-| **Proceso (2xx)** | | | |
+| **Proceso (2XX)** | | | |
 | 201 | `PRESENTADO` | Sistema | El pago se confirmó y el trámite entró oficialmente a la bandeja de la dependencia. Sin asignar. |
 | 202 | `EN_REVISION` | Funcionario | Un analista ha tomado el expediente para validar documentos y datos. |
 | 203 | `REQUERIMIENTO` | Ciudadano | Se detectó error o falta de información. El ciudadano debe corregir. |
 | 204 | `SUBSANADO` | Funcionario | El ciudadano respondió al requerimiento. El trámite vuelve a la fila de revisión. |
-| 205 | `EN_DILIGENCIA` | Perito | Fase de campo: mediciones, inspecciones, deslindes, etc. |
-| **Finalizado (3xx)** | | | |
+| 205 | `EN_DILIGENCIA` | Perito | Fase de campo: mediciones, inspecciones, deslindes, etc. Ahora se llama "Mandar a firma" |
+| **Finalizado (3XX)** | | | |
 | 301 | `POR_RECOGER` | Ciudadano | El documento final está disponible para descarga o recolección. |
 | 302 | `RECHAZADO` | Funcionario | Resolución negativa: no procedió legal o técnicamente. |
 | 303 | `FINALIZADO` | Sistema | El ciudadano recibió su documento y el expediente se cierra. |
 | 304 | `CANCELADO` | Sistema | Trámite interrumpido por el ciudadano o impedimento administrativo. |
 
-> **Nota:** Los estados 1xx (inicio) son gestionados por el sistema externo de portal ciudadano. El backoffice solo gestiona los estados 2xx y las transiciones hacia 3xx. El estado 303 (`FINALIZADO`) se alcanza desde `POR_RECOGER` vía el sistema externo, no desde el backoffice.
+> **Nota:** Los estados 1XX (inicio) son gestionados por el sistema externo de portal ciudadano. El backoffice solo gestiona los estados 2XX y las transiciones hacia 3XX. El estado 303 (`FINALIZADO`) se alcanza desde `POR_RECOGER` vía el sistema externo, no desde el backoffice.
 
 ### Helper: `es_activo()`
 
@@ -53,11 +49,132 @@ def es_activo(cls, estatus: int) -> bool:
     )
 ```
 
-______________________________________________________________________
-
 ## 2. Transiciones Válidas
 
-El dict `TRANSITIONS` en `tramites/models/tramite.py` define todas las transiciones permitidas. Cada entrada es `(from_status, to_status) → True`:
+### Transiciones válidas para Inicio (1XX)
+
+Por el momento este proyecto no está orientado a administrar trámites con estatus en el grupo de Inicio (1XX).
+
+### Transiciones para Analista
+
+El funcionario (analista) solo tiene permiso de hacer estos movimientos:
+
+| Actual | Siguiente | Válido | Razón |
+| ------ | --------- | ------ | ----- |
+| 1XX | XXX | NO | `Analista` no debe ver ni operar sobre tickets que estan en estos estados. |
+| 2XX | 1XX | NO | `Analista` no puede mandar ningun tramite 2XX a Borrador, pendiente de pago o pago expirado. No le corresponde. |
+| 3XX | XXX | NO | `Analista` no puede cambiar el estado de un tramite que ya ha sido cerrado/terminado/cancelado. |
+| ------ | --------- | ------ | ----- |
+| 201 | 201 | NO | Sin significado semantico. |
+| 201 | 202 | SI | `Analista` se autoasigna un tramite. |
+| 201 | 203 | NO | Debe asignarse el tramite primero. |
+| 201 | 204 | NO | Debe asignarse el tramite primero. |
+| 201 | 205 | NO | Debe asignarse el tramite primero. |
+| 201 | 3XX | NO | Salto invalido. Debe asignarse el tramite primero. |
+| ------ | --------- | ------ | ----- |
+| 202 | 201 | NO | Restringido al coordinador. |
+| 202 | 202 | NO | Restringido al coordinador. |
+| 202 | 203 | SI | `Analista` determina que el trámite procede, pero requiere más información del Ciudadano. |
+| 202 | 204 | NO | Sin significado semantico. |
+| 202 | 205 | SI | `Analista` determina que el trámite es procedente y manda el trámite a firmar. |
+| 202 | 301 | NO | Ruta inválida: 301 solo se alcanza desde 205 (firma). Enviar a firma primero. |
+| 202 | 302 | SI | `Analista` determina que el trámite es improcedente y cierra el trámite. |
+| 202 | 303 | NO | Sin significado semántico. 303 solo se alcanza desde 301 vía el sistema externo. |
+| 202 | 304 | SI | `Analista` cancela el trámite (p. ej. solicitud expresa del ciudadano). |
+| ------ | --------- | ------ | ----- |
+| 203 | 201 | NO | Sin significado semantico o incoherente. |
+| 203 | 202 | NO | Potencialmente valido, pero el caso de uso no ha sido especificado en requerimientos. |
+| 203 | 203 | SI | `Analista` ya pidió más información al ciudadano, pero no la ha recibido o requiere alguna otra información. |
+| 203 | 204 | NO | Esto solo le corresponde al ciudadano y se hace mediante otro sistema. |
+| 203 | 205 | NO | Potencialmente valido, pero el caso de uso no ha sido especificado en requerimientos. Delegado a Coordinador. |
+| 203 | 301 | NO | Ruta inválida: 301 solo se alcanza desde 205 (firma). El trámite debe subsanarse (→204) y firmarse (→205) primero. |
+| 203 | 302 | SI | `Analista` requirió más información pero el ciudadano no la proporcionó en tiempo y forma. Se cierra el trámite. |
+| 203 | 303 | NO | Sin significado semántico. 303 solo se alcanza desde 301 vía el sistema externo. |
+| 203 | 304 | SI | `Analista` cancela el trámite (p. ej. solicitud expresa del ciudadano). |
+| ------ | --------- | ------ | ----- |
+| 204 | 201 | NO | Sin significado semantico. |
+| 204 | 202 | NO | Sin significado semántico. |
+| 204 | 203 | SI | `Analista` rechaza uno o varios de los requisitos subsanados por el ciudadano. |
+| 204 | 204 | NO | Sin significado semantico. |
+| 204 | 205 | SI | `Analista` determina que el trámite es procedente y manda el trámite a firmar. |
+| 204 | 301 | NO | Ruta inválida: 301 solo se alcanza desde 205 (firma). Enviar a firma primero. |
+| 204 | 302 | SI | `Analista` determina que el trámite es improcedente y cierra el trámite. |
+| 204 | 303 | NO | Sin significado semántico. 303 solo se alcanza desde 301 vía el sistema externo. |
+| 204 | 304 | SI | `Analista` cancela el trámite (p. ej. solicitud expresa del ciudadano). |
+| ------ | --------- | ------ | ----- |
+| 205 | XXX | NO | Restringido al coordinador: el cierre desde diligencia (205 → 301/302/304) es exclusivo de coordinador/administrador. |
+
+### Transiciones para Coordinador
+
+El usuario con rol de `Coordinador` hereda todas las acciones de revisión del `Analista` (sin requerir estar asignado al trámite) y además tiene permisos exclusivos sobre la gestión de asignaciones y el cierre desde diligencia:
+
+- 201 → 202 (Asignación de trámite a `Analista`)
+- 202 → 202 (Reasignación de trámite a otro `Analista`)
+- 202 → 201 (Eliminar `Analista` asignado sin asignar a otro. El trámite sigue disponible)
+- 205 → 301/302/304 (Cierre del trámite desde diligencia; reservado a coordinador/administrador. Es la única ruta hacia 301)
+
+| Actual | Siguiente | Válido | Razón |
+| ------ | --------- | ------ | ----- |
+| 1XX | XXX | NO | Estados de inicio gestionados por el sistema externo (portal ciudadano). El backoffice no opera sobre 1XX. |
+| 2XX | 1XX | NO | El backoffice no puede regresar ningún trámite 2XX a Borrador, pendiente de pago o pago expirado. |
+| 3XX | XXX | NO | Los estados 3XX son terminales: no admiten transiciones. |
+| ------ | --------- | ------ | ----- |
+| 201 | 201 | NO | Sin significado semántico. |
+| 201 | 202 | SI | Asignación de trámite a un `Analista` (el propio analista también puede autoasignarse; ver tabla de Analista). |
+| 201 | 203 | NO | Debe asignarse a un analista primero: las acciones de revisión operan sobre trámites asignados. |
+| 201 | 204 | NO | Sin significado semántico. 204 solo se alcanza desde 203, por el ciudadano (sistema externo). |
+| 201 | 205 | NO | Ruta inválida: 205 se alcanza desde 202/204 mediante envío a firma. |
+| 201 | 3XX | NO | Salto inválido. Debe asignarse y revisarse primero. |
+| ------ | --------- | ------ | ----- |
+| 202 | 201 | SI | Liberar: elimina el `Analista` asignado y el trámite vuelve al pool (exclusivo). |
+| 202 | 202 | SI | Reasignación de trámite a otro `Analista` (exclusivo). |
+| 202 | 203 | SI | Acción de revisión; normalmente delegada en el analista asignado. |
+| 202 | 204 | NO | Sin significado semántico. 204 lo genera el ciudadano (sistema externo). |
+| 202 | 205 | SI | Envía el trámite a firma; normalmente delegado en el analista asignado. |
+| 202 | 301 | NO | Ruta inválida: 301 solo se alcanza desde 205 (firma). |
+| 202 | 302 | SI | Cierra el trámite por improcedencia. |
+| 202 | 303 | NO | Sin significado semántico. 303 solo se alcanza desde 301 vía el sistema externo. |
+| 202 | 304 | SI | Cancela el trámite. |
+| ------ | --------- | ------ | ----- |
+| 203 | 201 | SI | Liberar (excepción `_liberar()`): reset permitido desde cualquier estado activo; el requerimiento queda en el historial de `Actividades`. |
+| 203 | 202 | NO | Potencialmente válido, pero el caso de uso no ha sido especificado en requerimientos. |
+| 203 | 203 | SI | Reitera el requerimiento al ciudadano (self-loop: registra actividad sin cambiar de estatus). |
+| 203 | 204 | NO | Solo el ciudadano puede subsanar (sistema externo). |
+| 203 | 205 | NO | Caso de uso no especificado en requerimientos. Si se habilita, correspondería al coordinador (requiere ADR). |
+| 203 | 301 | NO | Ruta inválida: 301 solo se alcanza desde 205 (firma). |
+| 203 | 302 | SI | Cierra el trámite: el ciudadano no proporcionó la información requerida en tiempo y forma. |
+| 203 | 303 | NO | Sin significado semántico. 303 solo se alcanza desde 301 vía el sistema externo. |
+| 203 | 304 | SI | Cancela el trámite. |
+| ------ | --------- | ------ | ----- |
+| 204 | 201 | SI | Liberar (excepción `_liberar()`): reset permitido desde cualquier estado activo. |
+| 204 | 202 | NO | Sin significado semántico. |
+| 204 | 203 | SI | Rechaza la subsanación: uno o varios requisitos siguen incumplidos. |
+| 204 | 204 | NO | Sin significado semántico. |
+| 204 | 205 | SI | Manda el trámite a firma. |
+| 204 | 301 | NO | Ruta inválida: 301 solo se alcanza desde 205 (firma). |
+| 204 | 302 | SI | Cierra el trámite por improcedencia. |
+| 204 | 303 | NO | Sin significado semántico. 303 solo se alcanza desde 301 vía el sistema externo. |
+| 204 | 304 | SI | Cancela el trámite. |
+| ------ | --------- | ------ | ----- |
+| 205 | 2XX | NO | Sin significado semántico: el envío a firma no se deshace; liberar y reasignar están bloqueados en 205. |
+| 205 | 301 | SI | Cierre positivo desde diligencia (exclusivo). Única ruta hacia 301. |
+| 205 | 302 | SI | Cierre negativo desde diligencia (exclusivo). |
+| 205 | 303 | NO | Sin significado semántico. 303 solo se alcanza desde 301 vía el sistema externo. |
+| 205 | 304 | SI | Cancelación desde diligencia (exclusivo). |
+
+### Transiciones para Administrador
+
+El usuario con rol de `Administrador` puede ejecutar **toda transición válida del sistema**: su matriz de transiciones es idéntica a la de `Coordinador` y no tiene transiciones exclusivas. Las diferencias son transversales, no de workflow:
+
+- No requiere estar asignado al trámite para ejecutar acciones de revisión.
+- `can_view()`, `can_download()`, `can_assign()`, `can_release()` y `can_execute_action()` retornan siempre `True` (ver sección 4).
+- Acceso completo al admin de Django (usuarios, grupos, catálogos), fuera del alcance del workflow.
+
+> Nota: el `superuser` de Django se comporta igual que el `Administrador` para todos los efectos del workflow.
+
+### Implementación
+
+La tabla `WORKFLOW` en `tramites/workflow.py` define todas las transiciones permitidas (con acción, roles y guardas). El dict `TRANSITIONS` se deriva de ella y es lo que consume `_validate_transition()`. Equivale a:
 
 ```python
 TRANSITIONS: dict[tuple[int, int], bool] = {
@@ -69,15 +186,22 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
     (202, 201): True,
     # Requerir documentos: en revisión → requerimiento
     (202, 203): True,
+    # Reiterar requerimiento (self-loop, sin cambio de estatus): requerimiento → requerimiento
+    (203, 203): True,
     # Enviar a firma: en revisión → en diligencia
     (202, 205): True,
-    # Cancelar desde estados activos → estados terminales
-    (202, 301): True,  # por recoger
+    # Rechazar subsanación: subsanado → requerimiento
+    (204, 203): True,
+    # Enviar a firma desde subsanado: subsanado → en diligencia
+    (204, 205): True,
+    # Cierre directo por analista (rechazo o cancelación, sin pasar por firma)
     (202, 302): True,  # rechazado
     (202, 304): True,  # cancelado
-    (203, 301): True,  # por recoger
     (203, 302): True,  # rechazado
     (203, 304): True,  # cancelado
+    (204, 302): True,  # rechazado
+    (204, 304): True,  # cancelado
+    # Cierre desde diligencia (solo coordinador/administrador)
     (205, 301): True,  # por recoger
     (205, 302): True,  # rechazado
     (205, 304): True,  # cancelado
@@ -88,41 +212,47 @@ TRANSITIONS: dict[tuple[int, int], bool] = {
 
 ```mermaid
 stateDiagram-v2
-    title Workflow de Trámites — Estados gestionados por Backoffice
+    title Workflow de Trámites — Transiciones por rol
 
-    state "Proceso (2xx)" as proceso {
+    state "Proceso (2XX)" as proceso {
         [*] --> PRESENTADO : Pago confirmado (sistema externo)
         PRESENTADO : 201 — Sin asignar
         EN_REVISION : 202 — Asignado a analista
-        REQUERIMIENTO : 203 — Esperando correcciones
-        EN_DILIGENCIA : 205 — Trabajo de campo
+        REQUERIMIENTO : 203 — Esperando correcciones del ciudadano
+        SUBSANADO : 204 — Ciudadano respondió al requerimiento
+        EN_DILIGENCIA : 205 — Trabajo de campo / firma
 
-        PRESENTADO --> EN_REVISION : asignar(analista)
-        EN_REVISION --> EN_REVISION : reasignar(otro analista)
-        EN_REVISION --> PRESENTADO : liberar()
-        EN_REVISION --> REQUERIMIENTO : requerir_documentos()
-        EN_REVISION --> EN_DILIGENCIA : enviar_a_firma()
+        PRESENTADO --> EN_REVISION : asignar / autoasignar (201→202)
+        EN_REVISION --> EN_REVISION : reasignar (202→202)
+        EN_REVISION --> PRESENTADO : liberar (202→201)
+        EN_REVISION --> REQUERIMIENTO : requerir documentos (202→203)
+        REQUERIMIENTO --> SUBSANADO : ciudadano corrige (sistema externo)
+        SUBSANADO --> REQUERIMIENTO : rechazar requerimientos (204→203)
+        SUBSANADO --> EN_DILIGENCIA : mandar a firma (204→205)
     }
 
-    state "Finalizado (3xx)" as finalizado {
+    state "Finalizado (3XX)" as finalizado {
         POR_RECOGER : 301
         RECHAZADO : 302
+        FINALIZADO : 303
         CANCELADO : 304
 
-        POR_RECOGER --> [*]
-        RECHAZADO --> [*]
-        CANCELADO --> [*]
+        POR_RECOGER --> FINALIZADO : ciudadano recoge (sistema externo)
     }
 
-    EN_REVISION --> POR_RECOGER : cancelar(301)
-    EN_REVISION --> RECHAZADO : cancelar(302)
-    EN_REVISION --> CANCELADO : cancelar(304)
-    REQUERIMIENTO --> POR_RECOGER : cancelar(301)
-    REQUERIMIENTO --> RECHAZADO : cancelar(302)
-    REQUERIMIENTO --> CANCELADO : cancelar(304)
-    EN_DILIGENCIA --> POR_RECOGER : cancelar(301)
-    EN_DILIGENCIA --> RECHAZADO : cancelar(302)
-    EN_DILIGENCIA --> CANCELADO : cancelar(304)
+    EN_REVISION --> RECHAZADO : improcedente (202→302)
+    REQUERIMIENTO --> RECHAZADO : cerrar sin respuesta (203→302)
+    SUBSANADO --> RECHAZADO : improcedente (204→302)
+    EN_REVISION --> CANCELADO : cancelación (202→304)
+    REQUERIMIENTO --> CANCELADO : cancelación (203→304)
+    SUBSANADO --> CANCELADO : cancelación (204→304)
+    EN_DILIGENCIA --> POR_RECOGER : cierre positivo (205→301, coordinador)
+    EN_DILIGENCIA --> RECHAZADO : cierre negativo (205→302, coordinador)
+    EN_DILIGENCIA --> CANCELADO : cancelación (205→304, coordinador)
+
+    FINALIZADO --> [*]
+    RECHAZADO --> [*]
+    CANCELADO --> [*]
 ```
 
 ### Validación de transiciones
@@ -141,8 +271,6 @@ def _validate_transition(self, to_status: int) -> None:
 
 **Agregar una transición nueva = agregar una línea al dict.** No se necesita modificar lógica en los métodos de acción.
 
-______________________________________________________________________
-
 ## 3. Acciones del Workflow
 
 Los métodos de acción viven en el modelo `Tramite` y son la API pública para cambiar el estado de un trámite. Cada acción valida la transición, verifica la asignación y registra una actividad.
@@ -152,9 +280,9 @@ Los métodos de acción viven en el modelo `Tramite` y son la API pública para 
 | Método | Transición | Permisos requeridos | Descripción |
 |--------|------------|---------------------|-------------|
 | `asignar()` | 201→202, 202→202, →201 | `can_assign()` o `can_execute_action()` | Asignar, reasignar o liberar un trámite |
-| `requerir_documentos()` | 202→203 | `can_execute_action()` | Requiere documentos adicionales al ciudadano |
-| `enviar_a_firma()` | 202→205 | `can_execute_action()` | Envía el trámite a firma; al pasar a 205 sale del buzón del analista |
-| `cancelar()` | 202/203/205→301/302/304 | Desde 202/203: `can_execute_action()`; desde 205: solo coordinador/administrador | Cancela el trámite con un estatus terminal |
+| `requerir_documentos()` | 202→203, 203→203, 204→203 | `can_execute_action()` | Requiere documentos adicionales al ciudadano (desde 203: reitera el requerimiento; desde 204: rechaza la subsanación) |
+| `enviar_a_firma()` | 202→205, 204→205 | `can_execute_action()` | Envía el trámite a firma; al pasar a 205 sale del buzón del analista |
+| `cancelar()` | 202/203/204→302/304; 205→301/302/304 | Desde 202/203/204: `can_execute_action()`; desde 205: solo coordinador/administrador | Cierra el trámite con un estatus terminal |
 
 ### `asignar(analista, asignado_por, observacion='')`
 
@@ -187,12 +315,12 @@ tramite.asignar(analista=None, asignado_por=coordinador)
 
 ### `requerir_documentos(analista, observacion)`
 
-Requiere documentos adicionales al ciudadano. Solo aplica cuando el trámite está en revisión.
+Requiere documentos adicionales al ciudadano. Aplica desde revisión (202), para reiterar un requerimiento (203→203) y para rechazar una subsanación (204→203).
 
 **Validaciones:**
 
 1. `_assert_activo()` — estado activo
-1. `_validate_transition(REQUERIMIENTO)` — transición (202→203) válida
+1. `_validate_transition(REQUERIMIENTO)` — transición (202→203, 203→203 o 204→203) válida
 1. `_assert_asignado_a(analista)` — el trámite debe estar asignado al usuario que ejecuta
 
 **Ejemplo:**
@@ -229,16 +357,17 @@ Cancela el trámite con un estatus terminal. Es la acción más estricta: requie
 1. `estatus_cierre` debe ser `POR_RECOGER` (301), `RECHAZADO` (302) o `CANCELADO` (304)
 1. `_assert_activo()` — estado activo
 1. `_validate_transition(estatus_cierre)` — transición válida
-1. Desde 202/203: `_assert_asignado_a(analista)` — asignado al usuario que ejecuta
+1. Desde 202/203/204: `_assert_asignado_a(analista)` — asignado al usuario que ejecuta
 1. Desde 205 (`EN_DILIGENCIA`): solo el coordinador/administrador/superuser puede cancelar; un analista recibe `PermissionDenied` aunque esté asignado
 
 **Ejemplo:**
 
 ```python
+# Cierre positivo (301): solo desde EN_DILIGENCIA (205) y solo coordinador/administrador
 tramite.cancelar(
-    analista=request.user,
+    analista=request.user,  # coordinador
     estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
-    observacion='Documentación completa. Listo para entrega.',
+    observacion='Firma completada. Listo para entrega.',
 )
 ```
 
@@ -256,8 +385,6 @@ tramite.cancelar(
 | `registrar_actividad(estatus_id, analista_id, observacion)` | Crea un registro en la tabla `Actividades` (APPEND_ONLY) |
 
 **Excepción notada:** `_liberar()` usa `_assert_activo()` pero **no** `_validate_transition()`. La liberación es un "reset" que puede aplicarse desde cualquier estado activo, y la transición `(activo, 201)` no siempre está en `TRANSITIONS`. El sistema confía en que `_assert_activo()` es suficiente.
-
-______________________________________________________________________
 
 ## 4. Permisos por Estado
 
@@ -307,7 +434,8 @@ El método `available_actions(user)` combina `can_execute_action()` con el estat
 | Estatus actual | Acciones disponibles |
 |----------------|---------------------|
 | `EN_REVISION` (202) | `['requerir_documentos', 'enviar_a_firma', 'cancelar']` |
-| `REQUERIMIENTO` (203) | `['cancelar']` |
+| `REQUERIMIENTO` (203) | `['requerir_documentos' (reiterar), 'cancelar']` |
+| `SUBSANADO` (204) | `['requerir_documentos', 'enviar_a_firma', 'cancelar']` |
 | `EN_DILIGENCIA` (205) | `['cancelar']` — solo coordinador/administrador; analista: `[]` |
 | Otro estatus | `[]` (sin acciones) |
 
@@ -322,8 +450,6 @@ Si `can_execute_action(user)` retorna `False`, `available_actions` retorna `[]` 
 | `tramites/admin.py` (acciones_disponibles) | `can_release()` para mostrar botón de liberar |
 | `tramites/views.py` (download_requisito_pdf) | `can_download()` |
 | `templates/admin/tramite_detail.html` | `{% if 'accion' in available_actions %}` para botones condicionales |
-
-______________________________________________________________________
 
 ## 5. Flujo Típico
 
@@ -382,18 +508,11 @@ tramite.enviar_a_firma(
 
 El estatus cambia a `EN_DILIGENCIA` (205). El trámite sale del buzón del analista y ya no aparece como disponible; desde este estado, la única acción disponible es `cancelar`, y solo puede ejecutarla el coordinador o administrador.
 
-#### Opción C: Cancelar directamente (202 → 301/302/304)
+#### Opción C: Cerrar directamente (202 → 302/304)
 
-La documentación es suficiente para una resolución:
+La resolución es negativa, o el ciudadano solicita la cancelación:
 
 ```python
-# Dictamen positivo
-tramite.cancelar(
-    analista=analista_lopez,
-    estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
-    observacion='Documentación completa y verificada.',
-)
-
 # Rechazo
 tramite.cancelar(
     analista=analista_lopez,
@@ -409,16 +528,18 @@ tramite.cancelar(
 )
 ```
 
-### Paso 4: Cancelación desde estados intermedios (203/205 → 301/302/304)
+> **Nota:** `POR_RECOGER` (301) no es alcanzable desde 202. Un dictamen positivo se tramita con `enviar_a_firma()` (202→205) y el cierre a 301 lo ejecuta el coordinador desde diligencia.
 
-Si el trámite está en `REQUERIMIENTO` (203), el analista asignado puede cancelarlo con cualquier estatus terminal. Desde `EN_DILIGENCIA` (205), solo el coordinador o administrador puede cancelar:
+### Paso 4: Cierre desde estados intermedios (203/204 → 302/304; 205 → 301/302/304)
+
+Si el trámite está en `REQUERIMIENTO` (203) o `SUBSANADO` (204), el analista asignado puede cerrarlo con `RECHAZADO` (302) o `CANCELADO` (304). Desde `EN_DILIGENCIA` (205), solo el coordinador o administrador puede cerrar — y es la única ruta hacia `POR_RECOGER` (301):
 
 ```python
-# Cancelar desde requerimiento (analista asignado)
-tramite.cancelar(analista=analista, estatus_cierre=301, observacion='...')
+# Cerrar desde requerimiento (analista asignado)
+tramite.cancelar(analista=analista, estatus_cierre=302, observacion='...')
 
-# Cancelar desde diligencia (solo coordinador/administrador)
-tramite.cancelar(analista=coordinador, estatus_cierre=304, observacion='...')
+# Cerrar desde diligencia (solo coordinador/administrador)
+tramite.cancelar(analista=coordinador, estatus_cierre=301, observacion='...')
 ```
 
 ### Paso 5: Finalización completa (301 → 303)
@@ -427,17 +548,15 @@ El estado `POR_RECOGER` (301) indica que el documento está listo. Cuando el ciu
 
 ### Acciones transversales: Reasignar y Liberar
 
-En cualquier punto del proceso activo, un **Coordinador** o **Administrador** puede:
+Un **Coordinador** o **Administrador** puede reasignar desde revisión (202) y liberar desde cualquier estado activo (bloqueado en 205):
 
 ```python
 # Reasignar a otro analista (202 → 202)
 tramite.asignar(analista=analista_martinez, asignado_por=coordinador_garcia)
 
-# Liberar al pool (cualquier activo → 201)
+# Liberar al pool (activo → 201; bloqueado en 205)
 tramite.asignar(analista=None, asignado_por=coordinador_garcia)
 ```
-
-______________________________________________________________________
 
 ## 6. Proxy Models en el Workflow
 
@@ -540,37 +659,31 @@ class Cerrado(Tramite):
         verbose_name_plural = 'Trámites finalizados'
 ```
 
-______________________________________________________________________
-
 ## 7. Personalización
 
 ### Agregar una nueva transición
 
 Para habilitar una transición entre dos estados existentes:
 
-1. **Agregar la entrada al dict `TRANSITIONS`** en `tramites/models/tramite.py`:
+1. **Agregar una fila** a la tabla `WORKFLOW` en `tramites/workflow.py`:
 
 ```python
-TRANSITIONS: dict[tuple[int, int], bool] = {
-    # ... transiciones existentes ...
-    # Nueva transición: requerimiento → en revisión (retorno de subsanación)
-    (TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.EN_REVISION): True,
-}
+Transition(
+    'reanudar_revision',                              # nombre público de la acción
+    TramiteEstatus.Estatus.REQUERIMIENTO,             # origen
+    TramiteEstatus.Estatus.EN_REVISION,               # destino
+    'Reanudar revisión',                              # label para UI/docs
+    _ROLES_REVISION,                                  # roles autorizados
+),
 ```
 
-2. **Si corresponde, actualizar `available_actions()`** para que el template muestre la acción en el nuevo estatus:
+El dict `TRANSITIONS` (derivado) y `available_actions()` se actualizan solos.
 
-```python
-def available_actions(self, user: User) -> list[str]:
-    # ...
-    if status == TramiteEstatus.Estatus.REQUERIMIENTO:
-        actions.extend(['reanudar_revision', 'cancelar'])
-    # ...
-```
+2. **Si la acción es nueva** (no reutiliza `requerir_documentos`/`enviar_a_firma`/`cancelar`), agregar el método correspondiente en `Tramite` que valide con `_validate_transition()` y registre la actividad.
 
-3. **Crear un ADR** en `docs/02-DECISIONES/` documentando la razón de la nueva transición.
+1. **Crear un ADR** en `docs/02-DECISIONES/` documentando la razón de la nueva transición.
 
-1. **Agregar tests** en `tests/tramites/test_models.py`:
+1. **Agregar tests** en `tests/tramites/`:
 
 ```python
 def test_requerimiento_to_en_revision():
@@ -623,8 +736,6 @@ Toda modificación al workflow (nueva transición, nuevo estado, cambio de permi
 - **Consecuencias**: impacto esperado (positivo y negativo)
 
 > **Referencia:** [ADR-014: Custom User Model, Workflow Refactoring, Permission Methods](../02-DECISIONES/014-custom-user-workflow-permissions.md)
-
-______________________________________________________________________
 
 ## Ver también
 

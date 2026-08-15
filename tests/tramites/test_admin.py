@@ -269,6 +269,7 @@ def _mock_base_queryset():
     qs.sin_asignar.return_value = qs
     qs.excluyendo_diligencia.return_value = qs
     qs.en_diligencia.return_value = qs
+    qs.presentados.return_value = qs
     return qs
 
 
@@ -465,11 +466,12 @@ def admin_qs_disponibles_diligencia():
 
 
 @patch('tramites.admin.TramiteBaseAdmin.get_queryset')
-def test_calls_excluyendo_diligencia_disponibles(mock_super_qs, admin_qs_disponibles_diligencia):
+def test_calls_presentados_disponibles(mock_super_qs, admin_qs_disponibles_diligencia):
+    """Disponible solo lista trámites en PRESENTADO (201): única entrada del pool."""
     admin, base_qs, request = admin_qs_disponibles_diligencia
     mock_super_qs.return_value = base_qs
     admin.get_queryset(request)
-    base_qs.excluyendo_diligencia.assert_called_once()
+    base_qs.presentados.assert_called_once()
 
 
 @pytest.fixture

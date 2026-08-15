@@ -304,12 +304,12 @@ Todas las acciones de workflow delegan a `registrar_actividad()` que inserta un 
 | Método | Transición | Descripción |
 |--------|-----------|-------------|
 | `asignar(analista, asignado_por, obs)` | `→ 202` | Asigna a analista. `analista=None` libera. |
-| `requerir_documentos(analista, obs)` | `202 → 203` | Solicita documentos adicionales |
-| `enviar_a_firma(analista, obs)` | `202 → 205` | Envía a firma |
-| `cancelar(analista, estatus_cierre, obs)` | `202/203/205 → 301/302/304` | Cancela con estatus terminal. Desde 205 (`EN_DILIGENCIA`) requiere coordinador/administrador/superuser; desde 202/203 requiere el analista asignado |
+| `requerir_documentos(analista, obs)` | `202 → 203`, `203 → 203`, `204 → 203` | Solicita documentos adicionales (desde 203: reitera; desde 204: rechaza la subsanación) |
+| `enviar_a_firma(analista, obs)` | `202 → 205`, `204 → 205` | Envía a firma |
+| `cancelar(analista, estatus_cierre, obs)` | `202/203/204 → 302/304`; `205 → 301/302/304` | Cierra con estatus terminal. Desde 205 (`EN_DILIGENCIA`) requiere coordinador/administrador/superuser; desde 202/203/204 requiere el analista asignado |
 | `_liberar(liberado_por, obs)` | `→ 201` | Vuelve al pool (interno) |
 
-**Validaciones:** `_assert_activo()`, `_assert_asignado_a()` (desde 202/203), `_validate_transition()`. `cancelar()` desde 205 valida el rol en lugar de `_assert_asignado_a()`: solo coordinador/administrador/superuser. `_liberar()` está bloqueado en 205 (`EstadoNoPermitidoError`).
+**Validaciones:** `_assert_activo()`, `_assert_asignado_a()` (desde 202/203/204), `_validate_transition()`. `cancelar()` desde 205 valida el rol en lugar de `_assert_asignado_a()`: solo coordinador/administrador/superuser. `_liberar()` está bloqueado en 205 (`EstadoNoPermitidoError`).
 
 **Matriz de transiciones válidas** (definida en `TRANSITIONS`):
 
@@ -318,16 +318,19 @@ PRESENTADO (201) ──→ EN_REVISION (202)
 EN_REVISION (202) ──→ EN_REVISION (202)     [reasignar]
 EN_REVISION (202) ──→ PRESENTADO (201)      [liberar]
 EN_REVISION (202) ──→ REQUERIMIENTO (203)
+REQUERIMIENTO (203) ──→ REQUERIMIENTO (203) [reiterar requerimiento]
 EN_REVISION (202) ──→ EN_DILIGENCIA (205)
-EN_REVISION (202) ──→ POR_RECOGER (301)
+SUBSANADO (204) ──→ REQUERIMIENTO (203)     [rechazar subsanación]
+SUBSANADO (204) ──→ EN_DILIGENCIA (205)     [mandar a firma]
 EN_REVISION (202) ──→ RECHAZADO (302)
 EN_REVISION (202) ──→ CANCELADO (304)
-REQUERIMIENTO (203) ──→ POR_RECOGER (301)
 REQUERIMIENTO (203) ──→ RECHAZADO (302)
 REQUERIMIENTO (203) ──→ CANCELADO (304)
-EN_DILIGENCIA (205) ──→ POR_RECOGER (301)
-EN_DILIGENCIA (205) ──→ RECHAZADO (302)
-EN_DILIGENCIA (205) ──→ CANCELADO (304)
+SUBSANADO (204) ──→ RECHAZADO (302)
+SUBSANADO (204) ──→ CANCELADO (304)
+EN_DILIGENCIA (205) ──→ POR_RECOGER (301)   [solo coordinador/admin]
+EN_DILIGENCIA (205) ──→ RECHAZADO (302)     [solo coordinador/admin]
+EN_DILIGENCIA (205) ──→ CANCELADO (304)     [solo coordinador/admin]
 ```
 
 ### Métodos de permisos

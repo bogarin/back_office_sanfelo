@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
 from core.rbac.constants import BackOfficeRole
+from tramites import workflow
 from tramites.constants import ESTATUS_EN_DILIGENCIA
 from tramites.exceptions import EstadoNoPermitidoError, TramiteNoAsignableError
 from tramites.models import Tramite
@@ -119,21 +120,81 @@ def test_estatus_en_diligencia_constant_matches_enum():
 
 
 def test_all_active_to_close_transitions_exist():
-    """Every active status must be closable."""
-    active_statuses = [
+    """Closure matrix per active status (refined workflow, Aug 2026).
+
+    - 202/203/204 close to RECHAZADO (302) and CANCELADO (304) only.
+    - 205 closes to POR_RECOGER (301), RECHAZADO (302) and CANCELADO (304)
+      and is the ONLY route to 301.
+    """
+    expected = {
+        TramiteEstatus.Estatus.EN_REVISION: (
+            TramiteEstatus.Estatus.RECHAZADO,
+            TramiteEstatus.Estatus.CANCELADO,
+        ),
+        TramiteEstatus.Estatus.REQUERIMIENTO: (
+            TramiteEstatus.Estatus.RECHAZADO,
+            TramiteEstatus.Estatus.CANCELADO,
+        ),
+        TramiteEstatus.Estatus.SUBSANADO: (
+            TramiteEstatus.Estatus.RECHAZADO,
+            TramiteEstatus.Estatus.CANCELADO,
+        ),
+        TramiteEstatus.Estatus.EN_DILIGENCIA: (
+            TramiteEstatus.Estatus.POR_RECOGER,
+            TramiteEstatus.Estatus.RECHAZADO,
+            TramiteEstatus.Estatus.CANCELADO,
+        ),
+    }
+
+    for active, targets in expected.items():
+        for target in targets:
+            assert (active, target) in TRANSITIONS, f'Missing transition: {active} → {target}'
+
+    # 301 is unreachable from revision states
+    for active in (
         TramiteEstatus.Estatus.EN_REVISION,
         TramiteEstatus.Estatus.REQUERIMIENTO,
-        TramiteEstatus.Estatus.EN_DILIGENCIA,
-    ]
-    close_targets = [
-        TramiteEstatus.Estatus.POR_RECOGER,
-        TramiteEstatus.Estatus.RECHAZADO,
-        TramiteEstatus.Estatus.CANCELADO,
-    ]
+        TramiteEstatus.Estatus.SUBSANADO,
+    ):
+        assert (active, TramiteEstatus.Estatus.POR_RECOGER) not in TRANSITIONS
 
-    for active in active_statuses:
-        for target in close_targets:
-            assert (active, target) in TRANSITIONS, f'Missing transition: {active} → {target}'
+
+def test_reiterar_self_loop_and_subsanado_transitions_exist():
+    """203→203 self-loop and 204 review transitions are defined."""
+    assert (TramiteEstatus.Estatus.REQUERIMIENTO, TramiteEstatus.Estatus.REQUERIMIENTO) in (
+        TRANSITIONS
+    )
+    assert (TramiteEstatus.Estatus.SUBSANADO, TramiteEstatus.Estatus.REQUERIMIENTO) in TRANSITIONS
+    assert (TramiteEstatus.Estatus.SUBSANADO, TramiteEstatus.Estatus.EN_DILIGENCIA) in TRANSITIONS
+
+
+# ---------------------------------------------------------------------------
+# workflow.closure_targets (dropdown de cancelación)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ('source', 'expected'),
+    [
+        (TramiteEstatus.Estatus.PRESENTADO, ()),
+        (TramiteEstatus.Estatus.EN_REVISION, (302, 304)),
+        (TramiteEstatus.Estatus.REQUERIMIENTO, (302, 304)),
+        (TramiteEstatus.Estatus.SUBSANADO, (302, 304)),
+        (TramiteEstatus.Estatus.EN_DILIGENCIA, (301, 302, 304)),
+    ],
+)
+def test_closure_targets_by_source(source, expected):
+    """Solo los destinos de cierre alcanzables desde cada estatus."""
+    assert workflow.closure_targets(source) == expected
+
+
+def test_closure_targets_respects_disabled():
+    """BACKOFFICE_DISABLED_TRANSITIONS elimina destinos del dropdown."""
+    assert workflow.closure_targets(TramiteEstatus.Estatus.EN_DILIGENCIA, disabled={301}) == (
+        302,
+        304,
+    )
+    assert workflow.closure_targets(TramiteEstatus.Estatus.EN_REVISION, disabled={302, 304}) == ()
 
 
 def test_invalid_transition_not_in_dict():
@@ -323,11 +384,19 @@ def test_en_revision_has_all_actions(tramite_en_revision, avail_superuser):
 
 
 @pytest.mark.django_db
-def test_requerimiento_only_cancelar(tramite_en_revision, avail_superuser):
+def test_requerimiento_reiterar_and_cancelar(tramite_en_revision, avail_superuser):
     tramite_en_revision.ultima_actividad_estatus_id = TramiteEstatus.Estatus.REQUERIMIENTO
     tramite_en_revision.asignado_user_id = avail_superuser.id
     actions = tramite_en_revision.available_actions(avail_superuser)
-    assert actions == ['cancelar']
+    assert actions == ['requerir_documentos', 'cancelar']
+
+
+@pytest.mark.django_db
+def test_subsanado_all_review_actions(tramite_en_revision, avail_superuser):
+    tramite_en_revision.ultima_actividad_estatus_id = TramiteEstatus.Estatus.SUBSANADO
+    tramite_en_revision.asignado_user_id = avail_superuser.id
+    actions = tramite_en_revision.available_actions(avail_superuser)
+    assert actions == ['requerir_documentos', 'enviar_a_firma', 'cancelar']
 
 
 @pytest.mark.django_db

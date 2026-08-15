@@ -1,7 +1,7 @@
 # 019: Service Layer para Workflow de Trámites
 
 **Date:** 10 de mayo de 2026
-**Status:** Accepted
+**Status:** Superseded by [ADR-021](021-fsm-declarativa-workflow.md) — el objetivo (extraer la lógica del God Model) se alcanza con la FSM declarativa en `tramites/workflow.py`, una alternativa más ligera que conserva la API pública del modelo
 **Resolves:** [AUDIT-002 H-002-001](../03-AUDITORIAS/002-limpieza-de-codigo.md) (God Model), [AUDIT-002 H-002-002](../03-AUDITORIAS/002-limpieza-de-codigo.md) (Sin service layer), [AUDIT-002 §7](../03-AUDITORIAS/002-limpieza-de-codigo.md) (ADR pendiente: state machine)
 **Supersedes (partially):** [ADR-014](014-custom-user-workflow-permissions.md) (sección Workflow — se mantiene el dict `TRANSITIONS` pero la lógica se extrae del modelo)
 **Related:** [ADR-018](018-backoffice-multi-departamento.md) (multi-departamento), [PLAN.md](../../PLAN.md) (fase de implementación)

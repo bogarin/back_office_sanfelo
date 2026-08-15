@@ -181,6 +181,27 @@ def tramite_requerimiento(analista, django_db_blocker):
     )
 
 
+@pytest.fixture
+def tramite_subsanado(analista, django_db_blocker):
+    """Create a tramite in SUBSANADO (204) assigned to the shared analyst."""
+    return Tramite(
+        id=9,
+        folio='TRAM-000009',
+        tramite_id=1,
+        tramite_nombre='Prueba Subsanado',
+        ultima_actividad_estatus_id=TramiteEstatus.Estatus.SUBSANADO,
+        ultima_actividad_estatus='SUBSANADO',
+        asignado_user_id=analista.id,
+        asignado_username=analista.username,
+        asignado_nombre=analista.get_full_name(),
+        tramite_categoria_id=1,
+        tramite_categoria_nombre='General',
+        urgente=False,
+        es_propietario=True,
+        creado='2024-01-01 00:00:00',
+    )
+
+
 # ---------------------------------------------------------------------------
 # Fixtures previously in TestTramiteAsignar (hoisted to module level)
 # ---------------------------------------------------------------------------
@@ -1147,20 +1168,18 @@ def test_enviar_a_firma_usuario_no_asignado_raises_permission(
 
 @pytest.mark.django_db
 @patch('tramites.models.Tramite.registrar_actividad')
-def test_cancelar_exitoso_actividad_por_recoger(
-    mock_registrar, analista, tramite_en_revision_asignado
-):
+def test_cancelar_exitoso_actividad_por_recoger(mock_registrar, coordinador, tramite_en_diligencia):
     """
-    Happy path: Cancel tramite with POR_RECOGER status.
+    Happy path: Coordinator closes with POR_RECOGER from EN_DILIGENCIA (205).
 
     Expected behavior:
     - Creates Actividades with estatus POR_RECOGER (301)
-    - Uses provided observation
+    - 301 is ONLY reachable from 205 (exclusivo coordinador/administrador)
     """
-    tramite = tramite_en_revision_asignado
+    tramite = tramite_en_diligencia
 
     tramite.cancelar(
-        analista=analista,
+        analista=coordinador,
         estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
         observacion='Trámite listo para recoger',
     )
@@ -1168,7 +1187,7 @@ def test_cancelar_exitoso_actividad_por_recoger(
     assert mock_registrar.call_count == 1
     call_args = mock_registrar.call_args
     assert call_args[0][0] == TramiteEstatus.Estatus.POR_RECOGER
-    assert call_args.kwargs['analista_id'] == analista.id
+    assert call_args.kwargs['analista_id'] == coordinador.id
     assert 'listo para recoger' in call_args.kwargs['observacion']
 
 
@@ -1290,7 +1309,7 @@ def test_cancelar_usuario_no_asignado_raises_permission_denied(
     with pytest.raises(PermissionDenied, match='Este tramite esta asignado a otro analista'):
         tramite.cancelar(
             analista=other_analista,
-            estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
+            estatus_cierre=TramiteEstatus.Estatus.RECHAZADO,
             observacion='Test',
         )
 
@@ -1421,6 +1440,160 @@ def test_cancelar_analista_desde_requerimiento_exitoso(
     call_args = mock_registrar.call_args
     assert call_args[0][0] == TramiteEstatus.Estatus.CANCELADO
     assert call_args.kwargs['analista_id'] == analista.id
+
+
+# ---- Tests for the refined workflow (203 self-loop, 204, 301 restriction) ----
+
+
+@pytest.mark.django_db
+@patch('tramites.models.Tramite.registrar_actividad')
+def test_requerir_documentos_reiterar_desde_requerimiento(
+    mock_registrar, analista, tramite_requerimiento
+):
+    """
+    Happy path: Reiterar requerimiento (203 → 203 self-loop).
+
+    Expected behavior:
+    - Creates Actividades with estatus REQUERIMIENTO (203) — same status
+    """
+    tramite = tramite_requerimiento
+    tramite.requerir_documentos(
+        analista=analista,
+        observacion='Se reitera el requerimiento: falta comprobante',
+    )
+
+    assert mock_registrar.call_count == 1
+    call_args = mock_registrar.call_args
+    assert call_args[0][0] == TramiteEstatus.Estatus.REQUERIMIENTO
+    assert call_args.kwargs['analista_id'] == analista.id
+
+
+@pytest.mark.django_db
+@patch('tramites.models.Tramite.registrar_actividad')
+def test_requerir_documentos_rechazar_subsanacion(mock_registrar, analista, tramite_subsanado):
+    """
+    Happy path: Rechazar subsanación (204 → 203).
+
+    Expected behavior:
+    - Creates Actividades with estatus REQUERIMIENTO (203)
+    """
+    tramite = tramite_subsanado
+    tramite.requerir_documentos(
+        analista=analista,
+        observacion='La subsanación sigue incompleta',
+    )
+
+    assert mock_registrar.call_count == 1
+    call_args = mock_registrar.call_args
+    assert call_args[0][0] == TramiteEstatus.Estatus.REQUERIMIENTO
+    assert call_args.kwargs['analista_id'] == analista.id
+
+
+@pytest.mark.django_db
+@patch('tramites.models.Tramite.registrar_actividad')
+def test_enviar_a_firma_desde_subsanado(mock_registrar, analista, tramite_subsanado):
+    """
+    Happy path: Mandar a firma desde SUBSANADO (204 → 205).
+    """
+    tramite = tramite_subsanado
+    tramite.enviar_a_firma(
+        analista=analista,
+        observacion='Subsanación verificada, procede a firma',
+    )
+
+    assert mock_registrar.call_count == 1
+    call_args = mock_registrar.call_args
+    assert call_args[0][0] == TramiteEstatus.Estatus.EN_DILIGENCIA
+    assert call_args.kwargs['analista_id'] == analista.id
+
+
+@pytest.mark.django_db
+@patch('tramites.models.Tramite.registrar_actividad')
+def test_cancelar_desde_subsanado_exitoso(mock_registrar, analista, tramite_subsanado):
+    """
+    Happy path: Cerrar desde SUBSANADO (204 → 302).
+    """
+    tramite = tramite_subsanado
+    tramite.cancelar(
+        analista=analista,
+        estatus_cierre=TramiteEstatus.Estatus.RECHAZADO,
+        observacion='Improcedente tras subsanación',
+    )
+
+    assert mock_registrar.call_count == 1
+    call_args = mock_registrar.call_args
+    assert call_args[0][0] == TramiteEstatus.Estatus.RECHAZADO
+
+
+@pytest.mark.django_db
+@patch('tramites.models.Tramite.registrar_actividad')
+def test_por_recoger_no_reachable_from_revision_states(
+    mock_registrar,
+    analista,
+    tramite_en_revision_asignado,
+    tramite_requerimiento,
+    tramite_subsanado,
+):
+    """
+    Edge case: POR_RECOGER (301) is only reachable from EN_DILIGENCIA (205).
+
+    Expected behavior:
+    - Raises EstadoNoPermitidoError from 202, 203 and 204
+    """
+    for tramite in (tramite_en_revision_asignado, tramite_requerimiento, tramite_subsanado):
+        with pytest.raises(EstadoNoPermitidoError, match='estatus actual'):
+            tramite.cancelar(
+                analista=analista,
+                estatus_cierre=TramiteEstatus.Estatus.POR_RECOGER,
+                observacion='Test',
+            )
+
+    assert mock_registrar.call_count == 0
+
+
+@pytest.mark.django_db
+@patch('tramites.models.Tramite.registrar_actividad')
+def test_coordinador_requerir_sin_asignacion(mock_registrar, coordinador, tramite_en_revision):
+    """
+    Happy path: Coordinador hereda acciones de revisión sin estar asignado.
+    """
+    tramite = tramite_en_revision
+    tramite.requerir_documentos(
+        analista=coordinador,
+        observacion='Requerimiento emitido por coordinador',
+    )
+
+    assert mock_registrar.call_count == 1
+    assert mock_registrar.call_args.kwargs['analista_id'] == coordinador.id
+
+
+@pytest.mark.django_db
+@patch('tramites.models.Tramite.registrar_actividad')
+def test_coordinador_cancelar_sin_asignacion(mock_registrar, coordinador, tramite_en_revision):
+    """
+    Happy path: Coordinador cierra desde 202 sin estar asignado (202 → 302).
+    """
+    tramite = tramite_en_revision
+    tramite.cancelar(
+        analista=coordinador,
+        estatus_cierre=TramiteEstatus.Estatus.RECHAZADO,
+        observacion='Cierre por coordinador',
+    )
+
+    assert mock_registrar.call_count == 1
+    assert mock_registrar.call_args[0][0] == TramiteEstatus.Estatus.RECHAZADO
+
+
+@pytest.mark.django_db
+def test_enviar_a_firma_desde_requerimiento_raises(analista, tramite_requerimiento):
+    """
+    Edge case: 203 → 205 no está definido (caso de uso no especificado).
+    """
+    with pytest.raises(EstadoNoPermitidoError, match='estatus actual'):
+        tramite_requerimiento.enviar_a_firma(
+            analista=analista,
+            observacion='Test',
+        )
 
 
 @pytest.mark.django_db

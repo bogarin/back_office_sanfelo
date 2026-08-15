@@ -677,12 +677,13 @@ def test_download_view_rejects_unauthorized_user(_mock_log, superuser, client, d
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_success_logs_download(  # noqa: PLR0913, PLR0917
+def test_download_view_success_logs_download(  # noqa: PLR0913
     mock_log,
     mock_serve,
     superuser,
     client,
     db,
+    *,
     download_url,
 ):
     """Successful download logs with success=True."""
@@ -704,12 +705,13 @@ def test_download_view_success_logs_download(  # noqa: PLR0913, PLR0917
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_sftp_error_logs_failure(  # noqa: PLR0913, PLR0917
+def test_download_view_sftp_error_logs_failure(  # noqa: PLR0913
     mock_log,
     mock_serve,
     superuser,
     client,
     db,
+    *,
     download_url,
 ):
     """SFTPConnectionError is logged with success=False and re-raised."""
@@ -733,12 +735,13 @@ def test_download_view_sftp_error_logs_failure(  # noqa: PLR0913, PLR0917
 
 @patch('tramites.views.SFTPService.serve_pdf')
 @patch('tramites.views._log_download')
-def test_download_view_passes_correct_args_to_service(  # noqa: PLR0913, PLR0917
+def test_download_view_passes_correct_args_to_service(  # noqa: PLR0913
     mock_log,
     mock_serve,
     superuser,
     client,
     db,
+    *,
     download_url,
 ):
     """View passes tramite and filename to SFTPService.serve_pdf."""

@@ -35,6 +35,7 @@ from core.managers import ReadOnlyQuerySet
 from tramites.constants import (
     ESTATUS_EN_DILIGENCIA,
     ESTATUS_FINALIZADO_LOWER,
+    ESTATUS_PRESENTADO,
     ESTATUS_PROCESO_LOWER,
     ESTATUS_PROCESO_UPPER,
 )
@@ -71,6 +72,10 @@ class TramiteQuerySet(models.QuerySet):
     def en_diligencia(self):
         """Filter to trámites in EN_DILIGENCIA status (205)."""
         return self.filter(ultima_actividad_estatus_id=ESTATUS_EN_DILIGENCIA)
+
+    def presentados(self):
+        """Filter to trámites in PRESENTADO status (201) — pool de disponibles."""
+        return self.filter(ultima_actividad_estatus_id=ESTATUS_PRESENTADO)
 
 
 class CachedReadOnlyManager(models.Manager.from_queryset(ReadOnlyQuerySet)):  # type: ignore[misc]

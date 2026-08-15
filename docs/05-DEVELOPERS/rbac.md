@@ -131,15 +131,22 @@ TRANSITIONS = {
     (202, 201): True,
     # Requerir documentos: en revisión → requerimiento
     (202, 203): True,
+    # Reiterar requerimiento (self-loop, sin cambio de estatus): requerimiento → requerimiento
+    (203, 203): True,
     # Enviar a firma: en revisión → en diligencia
     (202, 205): True,
-    # Cancelar desde estados activos → estados terminales
-    (202, 301): True,  # por recoger
+    # Rechazar subsanación: subsanado → requerimiento
+    (204, 203): True,
+    # Enviar a firma desde subsanado: subsanado → en diligencia
+    (204, 205): True,
+    # Cierre directo por analista (rechazo o cancelación, sin pasar por firma)
     (202, 302): True,  # rechazado
     (202, 304): True,  # cancelado
-    (203, 301): True,  # por recoger
     (203, 302): True,  # rechazado
     (203, 304): True,  # cancelado
+    (204, 302): True,  # rechazado
+    (204, 304): True,  # cancelado
+    # Cierre desde diligencia (solo coordinador/administrador)
     (205, 301): True,  # por recoger
     (205, 302): True,  # rechazado
     (205, 304): True,  # cancelado

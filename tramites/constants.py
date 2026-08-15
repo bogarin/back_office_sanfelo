@@ -51,6 +51,7 @@ ESTATUS_FINALIZADO_LOWER = 301
 
 # Specific status IDs (used in managers and queries)
 ESTATUS_EN_DILIGENCIA = 205
+ESTATUS_PRESENTADO = 201
 
 _STATUS_GROUPS = {
     1: 'inicio',

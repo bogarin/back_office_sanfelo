@@ -23,6 +23,7 @@ from django.http import FileResponse, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from tramites import workflow
 from tramites.exceptions import (
     BackofficeError,
     SFTPConnectionError,
@@ -162,8 +163,19 @@ def cancelar_tramite_view(request: HttpRequest, pk: int) -> HttpResponse:
         messages.error(request, 'No es posible cancelar este trámite en su estatus actual.')
         return redirect(return_url)
 
+    # Destinos de cierre válidos para el estatus actual del trámite
+    # (p. ej. 301 — Por Recoger — solo es alcanzable desde 205).
+    etiquetas = dict(ESTATUS_CANCELACION_CHOICES)
+    estatus_choices = [
+        (target, etiquetas.get(target, str(target)))
+        for target in workflow.closure_targets(
+            tramite.ultima_actividad_estatus_id,
+            disabled=workflow.get_disabled_transitions(),
+        )
+    ]
+
     if request.method == 'POST':
-        form = CancelarTramiteForm(request.POST)
+        form = CancelarTramiteForm(request.POST, estatus_choices=estatus_choices)
         if form.is_valid():
             estatus_cierre = int(form.cleaned_data['estatus_cierre'])
             observacion = form.cleaned_data['observacion']
@@ -190,12 +202,12 @@ def cancelar_tramite_view(request: HttpRequest, pk: int) -> HttpResponse:
                 logger.error('Error cancelando trámite %s: %s', tramite.folio, e, exc_info=True)
                 messages.error(request, 'Error inesperado al cancelar el trámite.')
     else:
-        form = CancelarTramiteForm()
+        form = CancelarTramiteForm(estatus_choices=estatus_choices)
 
     context = {
         'tramite': tramite,
         'form': form,
-        'estatus_cancelacion_choices': ESTATUS_CANCELACION_CHOICES,
+        'estatus_cancelacion_choices': estatus_choices,
         'opts': Tramite._meta,
         'return_url': return_url,
     }

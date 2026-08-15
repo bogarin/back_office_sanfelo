@@ -259,6 +259,17 @@ class Tramite(models.Model):
                 'solo el analista asignado puede realizar esta acción.'
             )
 
+    def _assert_revisor_autorizado(self, usuario: User) -> None:
+        """Raise if *usuario* may not execute review actions on this trámite.
+
+        Coordinador, Administrador y superuser heredan las acciones de
+        revisión del Analista sin requerir asignación; cualquier otro
+        usuario debe ser el analista asignado.
+        """
+        if usuario.is_coordinador or usuario.is_administrador or usuario.is_superuser:
+            return
+        self._assert_asignado_a(usuario)
+
     def _validate_transition(self, to_status: int) -> None:
         """Validate that the current status can transition to *to_status*.
 
@@ -364,10 +375,15 @@ class Tramite(models.Model):
             self._asignar_analista(analista, asignado_por, observacion)
 
     def requerir_documentos(self, analista: User, observacion: str) -> None:
-        """Requiere documentos adicionales al trámite (202 → 203)."""
+        """Requiere documentos adicionales al trámite.
+
+        - 202 → 203: requiere información al ciudadano.
+        - 203 → 203: reitera el requerimiento (self-loop, sin cambio de estatus).
+        - 204 → 203: rechaza la subsanación y vuelve a pedir.
+        """
         self._assert_activo()
         self._validate_transition(TramiteEstatus.Estatus.REQUERIMIENTO)
-        self._assert_asignado_a(analista)
+        self._assert_revisor_autorizado(analista)
         self.registrar_actividad(
             TramiteEstatus.Estatus.REQUERIMIENTO,
             analista_id=analista.id,
@@ -375,10 +391,10 @@ class Tramite(models.Model):
         )
 
     def enviar_a_firma(self, analista: User, observacion: str) -> None:
-        """Envía el trámite a firma (202 → 205)."""
+        """Envía el trámite a firma (202/204 → 205)."""
         self._assert_activo()
         self._validate_transition(TramiteEstatus.Estatus.EN_DILIGENCIA)
-        self._assert_asignado_a(analista)
+        self._assert_revisor_autorizado(analista)
         self.registrar_actividad(
             TramiteEstatus.Estatus.EN_DILIGENCIA,
             analista_id=analista.id,
@@ -386,7 +402,11 @@ class Tramite(models.Model):
         )
 
     def cancelar(self, analista: User, estatus_cierre: int, observacion: str) -> None:
-        """Cancela el trámite con un estatus terminal (202/203/205 → 301/302/304).
+        """Cancela el trámite con un estatus terminal.
+
+        - 202/203/204 → 302/304 (cierre directo de revisión).
+        - 205 → 301/302/304 (exclusivo de coordinador/administrador;
+          única ruta hacia 301).
 
         Args:
             analista: User que ejecuta la acción
@@ -421,7 +441,7 @@ class Tramite(models.Model):
                     'Solo el coordinador o administrador puede cancelar trámites en diligencia.'
                 )
         else:
-            self._assert_asignado_a(analista)
+            self._assert_revisor_autorizado(analista)
         self.registrar_actividad(
             estatus_cierre,
             analista_id=analista.id,

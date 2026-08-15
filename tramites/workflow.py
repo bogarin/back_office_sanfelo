@@ -111,7 +111,7 @@ WORKFLOW: tuple[Transition, ...] = (
         requires_assignment=False,
         offers_action=False,
     ),
-    # -- Revisión (Analista asignado) --
+    # -- Revisión desde EN_REVISION (202) --
     Transition(
         'requerir_documentos',
         _Estatus.EN_REVISION,
@@ -129,14 +129,6 @@ WORKFLOW: tuple[Transition, ...] = (
     Transition(
         'cancelar',
         _Estatus.EN_REVISION,
-        _Estatus.POR_RECOGER,
-        'Cerrar trámite',
-        _ROLES_REVISION,
-        requires_note=True,
-    ),
-    Transition(
-        'cancelar',
-        _Estatus.EN_REVISION,
         _Estatus.RECHAZADO,
         'Cerrar trámite',
         _ROLES_REVISION,
@@ -150,13 +142,14 @@ WORKFLOW: tuple[Transition, ...] = (
         _ROLES_REVISION,
         requires_note=True,
     ),
+    # -- Revisión desde REQUERIMIENTO (203) --
     Transition(
-        'cancelar',
+        'requerir_documentos',
         _Estatus.REQUERIMIENTO,
-        _Estatus.POR_RECOGER,
-        'Cerrar trámite',
+        _Estatus.REQUERIMIENTO,
+        'Reiterar requerimiento',
         _ROLES_REVISION,
-        requires_note=True,
+        changes_status=False,
     ),
     Transition(
         'cancelar',
@@ -169,12 +162,44 @@ WORKFLOW: tuple[Transition, ...] = (
     Transition(
         'cancelar',
         _Estatus.REQUERIMIENTO,
+        _Estatus.CANCELADO,
+        'Cerrar trámite',
+        _ROLES_REVISION,
+        requires_note=True,
+    ),
+    # -- Revisión desde SUBSANADO (204) --
+    Transition(
+        'requerir_documentos',
+        _Estatus.SUBSANADO,
+        _Estatus.REQUERIMIENTO,
+        'Rechazar subsanación',
+        _ROLES_REVISION,
+    ),
+    Transition(
+        'enviar_a_firma',
+        _Estatus.SUBSANADO,
+        _Estatus.EN_DILIGENCIA,
+        'Enviar a firma',
+        _ROLES_REVISION,
+    ),
+    Transition(
+        'cancelar',
+        _Estatus.SUBSANADO,
+        _Estatus.RECHAZADO,
+        'Cerrar trámite',
+        _ROLES_REVISION,
+        requires_note=True,
+    ),
+    Transition(
+        'cancelar',
+        _Estatus.SUBSANADO,
         _Estatus.CANCELADO,
         'Cerrar trámite',
         _ROLES_REVISION,
         requires_note=True,
     ),
     # -- Cierre desde diligencia: solo Coordinador/Administrador --
+    # Única ruta hacia POR_RECOGER (301).
     Transition(
         'cancelar',
         _Estatus.EN_DILIGENCIA,
@@ -270,3 +295,22 @@ def closure_destinations() -> tuple[int, ...]:
     """Estatus de cierre aceptados por ``cancelar()``, de cualquier origen."""
     destinations = {t.target for t in WORKFLOW if t.action == 'cancelar'}
     return tuple(sorted(destinations))
+
+
+def closure_targets(
+    source: int | None,
+    *,
+    disabled: frozenset[int] | set[int] = frozenset(),
+) -> tuple[int, ...]:
+    """Destinos de cierre válidos desde *source* (ordenados).
+
+    Usado para construir el dropdown de ``CancelarTramiteForm``: solo
+    ofrece los estatus terminales realmente alcanzables desde el estatus
+    actual y habilitados para el departamento activo.
+    """
+    targets = {
+        t.target
+        for t in WORKFLOW
+        if t.action == 'cancelar' and t.source == source and t.target not in disabled
+    }
+    return tuple(sorted(targets))
