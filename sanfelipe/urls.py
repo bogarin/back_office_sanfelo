@@ -17,6 +17,7 @@ from core.views import (
     health_check,
     invalidate_catalog_cache,
     pwa_manifest,
+    serviceworker,
     test_errors,
     test_rendering,
 )
@@ -30,6 +31,8 @@ urlpatterns = [
     path('health/', health_check, name='health-check'),
     # PWA manifest
     path('manifest.json', pwa_manifest, name='pwa-manifest'),
+    # PWA service worker (root path = root scope)
+    path('sw.js', serviceworker, name='serviceworker'),
     # Custom admin views - must be before admin.site.urls
     path('admin/auth/user/asignar-rol/', asignar_rol, name='asignar-rol'),
     # Maintenance: invalidate catalog cache (Administrador only)

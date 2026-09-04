@@ -8,6 +8,7 @@ Integrates with Buzón de Trámites system for analyst assignment.
 
 import logging
 from datetime import datetime
+from typing import ClassVar
 
 from django.conf import settings
 from django.contrib import admin, messages
@@ -248,7 +249,7 @@ class TramiteBaseAdmin(admin.ModelAdmin):
         )
 
     class Media:
-        js = ('admin/js/quick_actions.js',)
+        js: ClassVar[list[str]] = ['admin/js/quick_actions.js']
 
     # Lista de columnas en la tabla
     list_display = (

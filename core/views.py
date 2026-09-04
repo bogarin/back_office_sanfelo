@@ -5,13 +5,17 @@ This module contains main views for Backoffice San Felipe.
 Following Django's best practices with proper separation of concerns.
 """
 
+from pathlib import Path
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.http import (
+    FileResponse,
     HttpRequest,
     HttpResponse,
     HttpResponseForbidden,
@@ -94,6 +98,30 @@ def pwa_manifest(request: HttpRequest) -> JsonResponse:
             ],
         }
     )
+
+
+def serviceworker(request: HttpRequest) -> FileResponse:
+    """Serve the PWA service worker from the site root.
+
+    Served at ``/sw.js`` so its default scope is ``/`` and the worker
+    controls every page, including ``/admin/`` (the manifest
+    ``start_url``).  Sent with ``Cache-Control: no-cache`` so browsers
+    detect updated worker bytes on every visit instead of honoring the
+    default HTTP cache (24h limit for service workers).
+
+    Args:
+        request: The HTTP request object.
+
+    Returns:
+        FileResponse: The service worker script.
+    """
+    found = finders.find('serviceworker.js')
+    sw_path = found[0] if isinstance(found, list) else found
+    sw_file = Path(sw_path) if sw_path else Path(settings.STATIC_ROOT) / 'serviceworker.js'
+    response = FileResponse(sw_file.open('rb'), content_type='application/javascript')
+    response['Cache-Control'] = 'no-cache'
+    response['Service-Worker-Allowed'] = '/'
+    return response
 
 
 @staff_member_required
