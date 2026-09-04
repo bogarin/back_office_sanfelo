@@ -9,8 +9,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib import admin
+from django.contrib.messages.storage.cookie import CookieStorage
 from django.core.exceptions import ImproperlyConfigured
-from django.test import override_settings
+from django.test import RequestFactory, override_settings
+from django.urls import reverse
 
 from core.rbac.constants import BackOfficeRole
 from tramites.admin import RoleCheckMixin, TramiteBaseAdmin
@@ -531,3 +533,71 @@ def test_en_diligencia_admin_no_batch_actions():
     """The EnDiligencia admin must not expose assign/release batch actions."""
     admin = _get_admin_instance(EnDiligencia)
     assert admin.actions == ()
+
+
+# =============================================================================
+# change_view — redirect cuando la acción saca al trámite del queryset
+# =============================================================================
+
+
+def _make_detail_request(action):
+    request = RequestFactory().post(
+        '/admin/tramites/buzon/1/change/',
+        {'action': action, 'observacion': 'test'},
+    )
+    request.session = {}  # ty: ignore[invalid-assignment]
+    request._messages = CookieStorage(request)  # ty: ignore[unresolved-attribute]
+    request.user = _make_user(user_id=42, roles=frozenset({BackOfficeRole.ANALISTA}))
+    return request
+
+
+def _make_tramite_mock():
+    tramite = MagicMock()
+    tramite.folio = 'DAU-260902-AABF-K'
+    tramite.can_view.return_value = True
+    tramite.available_actions.return_value = ['enviar_a_firma']
+    return tramite
+
+
+@patch('tramites.admin.TramiteBaseAdmin.get_object')
+def test_change_view_redirects_when_action_moves_tramite_out_of_queryset(mock_get_object):
+    """enviar_a_firma (202/204 → 205) saca al trámite del queryset de Buzón.
+
+    Tras la acción, get_object() devuelve None porque Buzón excluye
+    EN_DILIGENCIA. change_view debe redirigir al changelist en lugar de
+    lanzar AttributeError al acceder a tramite.folio (regresión del 500).
+    """
+    admin = _get_admin_instance(Buzon)
+    tramite = _make_tramite_mock()
+    mock_get_object.side_effect = [tramite, None]
+    request = _make_detail_request('enviar_a_firma')
+
+    response = admin.change_view(request, '1')
+
+    assert response.status_code == 302
+    assert response.url == reverse('admin:tramites_buzon_changelist')
+    tramite.enviar_a_firma.assert_called_once()
+    assert mock_get_object.call_count == 2
+
+
+@patch('tramites.admin.SFTPService.fetch_actividad_files')
+@patch('tramites.admin.SFTPService.fetch_requisito_files')
+@patch('tramites.admin.SFTPService._list_all_files_for_tramite')
+@patch('tramites.admin.TramiteBaseAdmin.get_object')
+def test_change_view_renders_when_tramite_still_in_queryset(
+    mock_get_object, mock_sftp_list, mock_requisitos, mock_actividades
+):
+    """Si el trámite sigue en el queryset tras la acción, se renderiza el detalle."""
+    admin = _get_admin_instance(Buzon)
+    tramite = _make_tramite_mock()
+    tramite.historial_actividades = []
+    mock_get_object.side_effect = [tramite, tramite]
+    mock_sftp_list.return_value = []
+    mock_requisitos.return_value = ([], [])
+    mock_actividades.return_value = ([], [])
+    request = _make_detail_request('enviar_a_firma')
+
+    response = admin.change_view(request, '1')
+
+    assert response.status_code == 200
+    tramite.enviar_a_firma.assert_called_once()

@@ -623,6 +623,13 @@ class TramiteBaseAdmin(admin.ModelAdmin):
             # after action execution (fixes stale data bug).
             tramite = self.get_object(request, object_id)
 
+            # La acción pudo mover el trámite fuera del queryset de este
+            # admin (ej. enviar_a_firma: 202/204 → 205 ya no aparece en
+            # Buzón). Redirigir al changelist mostrando el mensaje de éxito.
+            if tramite is None:
+                opts = self.model._meta
+                return redirect(f'admin:{opts.app_label}_{opts.model_name}_changelist')
+
         else:
             form = TramiteDetailForm()
 
