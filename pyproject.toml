@@ -1,6 +1,6 @@
 [project]
 name = "backoffice_tramites"
-version = "0.1.1"
+version = "0.1.2"
 description = "Backoffice de tramites - Microservice for San Felipe Government"
 readme = "README.md"
 requires-python = ">=3.14"
